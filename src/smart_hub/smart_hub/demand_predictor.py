@@ -82,8 +82,9 @@ class DemandPredictor(Node):
         "events_topic": ("/hub/events", ""),
     }
 
-    def __init__(self):
-        super().__init__(NODE_NAME)
+    def __init__(self, **node_kwargs):
+        # node_kwargs (e.g. parameter_overrides) are used by the node tests.
+        super().__init__(NODE_NAME, **node_kwargs)
         for name, (default, desc) in self.PARAMS.items():
             self.declare_parameter(name, default,
                                    ParameterDescriptor(description=desc))
@@ -109,6 +110,7 @@ class DemandPredictor(Node):
         self._infer_ms = collections.deque(maxlen=600)
         self._last_latency_log = time.monotonic()
         self._wrong_zone = 0
+        self.last_output = None
 
         self.pub = self.create_publisher(DemandPrediction, p["demand_topic"],
                                          _qos(10))
@@ -197,6 +199,16 @@ class DemandPredictor(Node):
                 self._stamps.popitem(last=False)
 
     def on_tick(self):
+        # A timer-callback exception would stop rclpy.spin and kill the node
+        # (silencing /hub/demand). Log it loudly and keep the 1 Hz loop alive;
+        # consumers already treat a missing/old forecast as invalid.
+        try:
+            self._tick()
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().error("tick failed: %r" % (exc,),
+                                    throttle_duration_sec=5.0)
+
+    def _tick(self):
         t0 = time.perf_counter()
         pred = self.estimator.tick(time.monotonic(), self._now())
 
@@ -212,15 +224,19 @@ class DemandPredictor(Node):
         out.model_id = pred.model_id
         out.valid = bool(pred.valid)
         self.pub.publish(out)
+        self.last_output = out  # inspected by the node tests
 
         state = (pred.valid, pred.reason)
         if state != self._last_state:
             self._event("DEMAND_VALID" if pred.valid else "DEMAND_INVALID",
                         pred.reason, pred.model_id)
-            log = self.get_logger().info if pred.valid else \
-                self.get_logger().warning
-            log("forecast %s (%s)" % ("valid" if pred.valid else "INVALID",
-                                      pred.reason))
+            # Two separate call sites: rclpy forbids changing the severity
+            # of one logging call site between calls (raises ValueError).
+            if pred.valid:
+                self.get_logger().info("forecast valid (%s)" % pred.reason)
+            else:
+                self.get_logger().warning(
+                    "forecast INVALID (%s)" % pred.reason)
             self._last_state = state
 
         if pred.inference_ms is not None:
