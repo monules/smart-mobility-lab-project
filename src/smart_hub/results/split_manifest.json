@@ -1,0 +1,697 @@
+{
+ "horizon_sec": 30,
+ "episode_duration_sec": 360,
+ "base_seed": 1000,
+ "split_seed": 42,
+ "split_rule": "stratified by profile, whole episodes, 60/20/20, decided before windowing",
+ "splits": {
+  "train": [
+   1000,
+   1001,
+   1002,
+   1003,
+   1004,
+   1006,
+   1010,
+   1011,
+   1015,
+   1016,
+   1017,
+   1019,
+   1020,
+   1021,
+   1022,
+   1023,
+   1026,
+   1027,
+   1029,
+   1030,
+   1031,
+   1032,
+   1036,
+   1040,
+   1041,
+   1042,
+   1046,
+   1047,
+   1048,
+   1049
+  ],
+  "val": [
+   1005,
+   1007,
+   1009,
+   1013,
+   1018,
+   1028,
+   1037,
+   1039,
+   1043,
+   1045
+  ],
+  "test": [
+   1008,
+   1012,
+   1014,
+   1024,
+   1025,
+   1033,
+   1034,
+   1035,
+   1038,
+   1044
+  ]
+ },
+ "episodes": {
+  "1000": {
+   "seed": 1000,
+   "profile": "noisy_threshold",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     122.5,
+     3.7,
+     "silent"
+    ]
+   ]
+  },
+  "1001": {
+   "seed": 1001,
+   "profile": "steady",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     205.1,
+     2.2,
+     "invalid"
+    ]
+   ]
+  },
+  "1002": {
+   "seed": 1002,
+   "profile": "ramp_up",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1003": {
+   "seed": 1003,
+   "profile": "ramp_down",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     158.1,
+     3.8,
+     "silent"
+    ],
+    [
+     294.4,
+     10.5,
+     "invalid"
+    ]
+   ]
+  },
+  "1004": {
+   "seed": 1004,
+   "profile": "peak",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     105.0,
+     8.2,
+     "frozen"
+    ]
+   ]
+  },
+  "1005": {
+   "seed": 1005,
+   "profile": "wave",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     110.6,
+     3.6,
+     "silent"
+    ],
+    [
+     149.9,
+     2.1,
+     "frozen"
+    ]
+   ]
+  },
+  "1006": {
+   "seed": 1006,
+   "profile": "burst",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     201.3,
+     2.6,
+     "invalid"
+    ]
+   ]
+  },
+  "1007": {
+   "seed": 1007,
+   "profile": "noisy_threshold",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     206.2,
+     4.1,
+     "frozen"
+    ],
+    [
+     222.8,
+     8.2,
+     "frozen"
+    ]
+   ]
+  },
+  "1008": {
+   "seed": 1008,
+   "profile": "steady",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     269.6,
+     2.2,
+     "invalid"
+    ]
+   ]
+  },
+  "1009": {
+   "seed": 1009,
+   "profile": "ramp_up",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     83.4,
+     6.3,
+     "silent"
+    ]
+   ]
+  },
+  "1010": {
+   "seed": 1010,
+   "profile": "ramp_down",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     75.8,
+     9.3,
+     "invalid"
+    ],
+    [
+     94.1,
+     3.9,
+     "silent"
+    ]
+   ]
+  },
+  "1011": {
+   "seed": 1011,
+   "profile": "peak",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     218.6,
+     8.1,
+     "frozen"
+    ],
+    [
+     255.5,
+     3.9,
+     "invalid"
+    ]
+   ]
+  },
+  "1012": {
+   "seed": 1012,
+   "profile": "wave",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     232.6,
+     3.8,
+     "invalid"
+    ]
+   ]
+  },
+  "1013": {
+   "seed": 1013,
+   "profile": "burst",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     153.7,
+     10.7,
+     "frozen"
+    ]
+   ]
+  },
+  "1014": {
+   "seed": 1014,
+   "profile": "noisy_threshold",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     189.7,
+     10.3,
+     "invalid"
+    ]
+   ]
+  },
+  "1015": {
+   "seed": 1015,
+   "profile": "steady",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     266.5,
+     4.7,
+     "frozen"
+    ],
+    [
+     314.7,
+     11.4,
+     "frozen"
+    ]
+   ]
+  },
+  "1016": {
+   "seed": 1016,
+   "profile": "ramp_up",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1017": {
+   "seed": 1017,
+   "profile": "ramp_down",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     141.6,
+     2.6,
+     "silent"
+    ],
+    [
+     147.1,
+     6.9,
+     "silent"
+    ]
+   ]
+  },
+  "1018": {
+   "seed": 1018,
+   "profile": "peak",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1019": {
+   "seed": 1019,
+   "profile": "wave",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     138.4,
+     11.9,
+     "invalid"
+    ]
+   ]
+  },
+  "1020": {
+   "seed": 1020,
+   "profile": "burst",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     139.6,
+     8.8,
+     "invalid"
+    ],
+    [
+     309.6,
+     9.1,
+     "silent"
+    ]
+   ]
+  },
+  "1021": {
+   "seed": 1021,
+   "profile": "noisy_threshold",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     191.3,
+     4.2,
+     "frozen"
+    ],
+    [
+     233.2,
+     11.0,
+     "invalid"
+    ]
+   ]
+  },
+  "1022": {
+   "seed": 1022,
+   "profile": "steady",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     167.3,
+     7.6,
+     "silent"
+    ]
+   ]
+  },
+  "1023": {
+   "seed": 1023,
+   "profile": "ramp_up",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     162.0,
+     11.8,
+     "frozen"
+    ]
+   ]
+  },
+  "1024": {
+   "seed": 1024,
+   "profile": "ramp_down",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1025": {
+   "seed": 1025,
+   "profile": "peak",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     90.5,
+     8.7,
+     "silent"
+    ]
+   ]
+  },
+  "1026": {
+   "seed": 1026,
+   "profile": "wave",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1027": {
+   "seed": 1027,
+   "profile": "burst",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     180.9,
+     10.9,
+     "frozen"
+    ]
+   ]
+  },
+  "1028": {
+   "seed": 1028,
+   "profile": "noisy_threshold",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     221.9,
+     8.3,
+     "frozen"
+    ]
+   ]
+  },
+  "1029": {
+   "seed": 1029,
+   "profile": "steady",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     272.1,
+     2.9,
+     "silent"
+    ]
+   ]
+  },
+  "1030": {
+   "seed": 1030,
+   "profile": "ramp_up",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1031": {
+   "seed": 1031,
+   "profile": "ramp_down",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     297.1,
+     6.7,
+     "silent"
+    ]
+   ]
+  },
+  "1032": {
+   "seed": 1032,
+   "profile": "peak",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1033": {
+   "seed": 1033,
+   "profile": "wave",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1034": {
+   "seed": 1034,
+   "profile": "burst",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     295.5,
+     7.6,
+     "invalid"
+    ]
+   ]
+  },
+  "1035": {
+   "seed": 1035,
+   "profile": "noisy_threshold",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1036": {
+   "seed": 1036,
+   "profile": "steady",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1037": {
+   "seed": 1037,
+   "profile": "ramp_up",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1038": {
+   "seed": 1038,
+   "profile": "ramp_down",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1039": {
+   "seed": 1039,
+   "profile": "peak",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1040": {
+   "seed": 1040,
+   "profile": "wave",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1041": {
+   "seed": 1041,
+   "profile": "burst",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1042": {
+   "seed": 1042,
+   "profile": "noisy_threshold",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     284.9,
+     5.9,
+     "silent"
+    ]
+   ]
+  },
+  "1043": {
+   "seed": 1043,
+   "profile": "steady",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     100.7,
+     6.4,
+     "silent"
+    ],
+    [
+     172.4,
+     9.3,
+     "frozen"
+    ]
+   ]
+  },
+  "1044": {
+   "seed": 1044,
+   "profile": "ramp_up",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": [
+    [
+     200.7,
+     12.0,
+     "silent"
+    ]
+   ]
+  },
+  "1045": {
+   "seed": 1045,
+   "profile": "ramp_down",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1046": {
+   "seed": 1046,
+   "profile": "peak",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1047": {
+   "seed": 1047,
+   "profile": "wave",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1048": {
+   "seed": 1048,
+   "profile": "burst",
+   "bus_mode": "scheduled",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  },
+  "1049": {
+   "seed": 1049,
+   "profile": "noisy_threshold",
+   "bus_mode": "policy",
+   "policy_mode": "reactive",
+   "duration_sec": 360,
+   "gaps": []
+  }
+ }
+}

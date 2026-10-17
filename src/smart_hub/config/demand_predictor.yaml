@@ -1,0 +1,23 @@
+# demand_predictor parameters (S2, owner M1-B).
+# Ranges are checked at startup; the node refuses invalid values and rejects
+# runtime changes (parameters are part of each run's experiment record).
+demand_predictor:
+  ros__parameters:
+    model_path: ""                 # empty = <smart_hub share>/models/demand_ridge_h30.json
+    use_model: true                # false = persistence baseline only
+    require_model: false           # true = do not start if the model is missing/invalid
+    prediction_horizon_sec: 30     # must equal the model horizon
+    history_sec: 60                # 1 Hz history buffer length
+    warmup_sec: 60                 # valid samples before the first valid forecast
+    reset_gap_sec: 60              # this many missing seconds clears the history
+    stale_timeout_sec: 1.0         # assignment: perception freshness 1.0 s
+    future_tolerance_sec: 0.5      # reject source stamps further in the future
+    queue_confidence_min: 0.5      # assignment parameter name; below = UNKNOWN
+    queue_zone_id: "Q"
+    publish_rate_hz: 1.0           # fixed: features are per-second
+    latency_report_sec: 30.0
+    run_id: ""
+    scenario_id: ""
+    queue_topic: /hub/queue
+    demand_topic: /hub/demand
+    events_topic: /hub/events

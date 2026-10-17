@@ -1,0 +1,9 @@
+shipped model   ridge-demand-h30-d31fd020ac
+episodes        train/val/test = 30/10/10
+T03 [demand]    MAE ridge 1.215 vs persistence 1.506 (diff -0.292, 95% CI -0.543..-0.044); RMSE 1.636 vs 2.091; episodes better 7 / worse 3; alpha 30.0
+T03 [queue ]    MAE ridge 1.624 vs persistence 1.668 (diff -0.044, 95% CI -0.157..+0.070); RMSE 2.074 vs 2.183; episodes better 5 / worse 5; alpha 0.1
+latency p95     0.0131 ms features+predict, 0.0118 ms full tick
+dispatch reactive           wait 73.7 s, boarded 750, censored 204, dispatches 213
+dispatch predictive_demand  wait 63.7 s, boarded 817, censored 159, dispatches 234 | vs reactive -10.0 s (95% CI -14.9..-6.0), lower in 35/50
+dispatch predictive_queue   wait 75.1 s, boarded 757, censored 196, dispatches 211 | vs reactive +1.4 s (95% CI +0.4..+2.7), lower in 4/50
+pass criteria   {'T03_ridge_mae_le_persistence': True, 'T03_inference_p95_lt_100ms': True, 'at_least_30_episodes': True, 'documented_worse_case_exists': True, 'predictive_wait_le_reactive': True}
