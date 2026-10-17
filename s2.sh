@@ -44,19 +44,26 @@ case "$cmd" in
   evidence)
     mkdir -p "$OUT"
     rm -rf "$OUT/s2_bag_$seed"
+    # Background jobs in a non-interactive bash ignore SIGINT, so the launch
+    # is stopped with SIGTERM; hz and bag run in the foreground, where SIGINT
+    # works and lets them flush their output cleanly.
     docker run --rm -v "$OUT:/out" "$IMAGE" bash -c "
       $ROS
+      export PYTHONUNBUFFERED=1
       ros2 launch smart_hub demand_demo.launch.py seed:=$seed \
         run_id:=evidence-$seed > /out/s2_launch_$seed.log 2>&1 &
       LPID=\$!
-      sleep 3
+      sleep 5
+      echo '[1/3] topic info + 15 s rate measurement'
       ros2 topic info /hub/demand --verbose > /out/s2_topic_info.txt
-      (timeout -s INT 20 ros2 topic hz /hub/demand > /out/s2_demand_hz.txt 2>&1 || true) &
+      timeout -s INT 15 ros2 topic hz /hub/demand > /out/s2_demand_hz.txt 2>&1 || true
+      echo '[2/3] recording bag for 120 s'
       timeout -s INT 120 ros2 bag record -o /out/s2_bag_$seed \
-        /hub/queue /hub/demand /hub/events || true
+        --topics /hub/queue /hub/demand /hub/events > /out/s2_bag_record.log 2>&1 || true
+      echo '[3/3] bag info'
       ros2 bag info /out/s2_bag_$seed > /out/s2_bag_info.txt
-      kill -INT \$LPID 2>/dev/null || true
-      wait \$LPID 2>/dev/null || true"
+      kill -TERM \$LPID 2>/dev/null || true
+      sleep 3"
     echo "Evidence in $OUT (bag, launch log, topic info, rate)"
     ;;
   *)
