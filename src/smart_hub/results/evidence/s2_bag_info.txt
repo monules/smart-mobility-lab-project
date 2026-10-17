@@ -1,0 +1,14 @@
+
+Files:             s2_bag_1025_0.mcap
+Bag size:          77.3 KiB
+Storage id:        mcap
+ROS Distro:        jazzy
+Duration:          119.598053166s
+Start:             Oct 17 2026 05:21:01.996846928 (1792214461.996846928)
+End:               Oct 17 2026 05:23:01.594900094 (1792214581.594900094)
+Messages:          680
+Topic information: Topic: /hub/demand | Type: smart_hub_interfaces/msg/DemandPrediction | Count: 120 | Serialization Format: cdr
+                   Topic: /hub/events | Type: smart_hub_interfaces/msg/HubEvent | Count: 4 | Serialization Format: cdr
+                   Topic: /hub/queue | Type: smart_hub_interfaces/msg/QueueState | Count: 556 | Serialization Format: cdr
+Service:           0
+Service information: 

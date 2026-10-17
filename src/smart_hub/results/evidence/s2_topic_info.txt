@@ -1,0 +1,21 @@
+Type: smart_hub_interfaces/msg/DemandPrediction
+
+Publisher count: 1
+
+Node name: demand_predictor
+Node namespace: /
+Topic type: smart_hub_interfaces/msg/DemandPrediction
+Topic type hash: RIHS01_2e03881740c76356e7fce579892d413e7b7abbb442547b05baa0a2e0be2bda54
+Endpoint type: PUBLISHER
+GID: 01.0f.70.b7.24.00.8b.51.00.00.00.00.00.00.14.03
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 0
+
