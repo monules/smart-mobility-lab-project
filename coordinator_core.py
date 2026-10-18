@@ -178,10 +178,15 @@ class Decision:
 class DispatchPolicy:
     """Decides when to send ONE DockBus goal.
 
-    - dispatch after `need_high` consecutive samples >= `high`
-    - never while a mission is outstanding, bus not idle, or inside cooldown
-    - escalation latches at dispatch, clears after `need_low` consecutive
-      samples < `low` (hysteresis)
+    - escalation starts after `need_high` consecutive samples >= `high` and
+      clears after `need_low` consecutive samples < `low` (hysteresis)
+    - while escalated, send a bus only if the current signal is still >=
+      `high`, none is outstanding, the bus is idle and the cooldown has
+      passed, so escalation persists across missions but two goals are never
+      active at once
+    - based on Tuymurod's demand/dispatch_policy.py; the one difference is
+      the "current signal still >= high" check (his version could dispatch
+      on a falling queue while escalation had not cleared yet)
     - uses forecast when valid, otherwise fresh observed count (FALLBACK);
       counters reset whenever the source changes or input goes invalid, so an
       invalid forecast can never contribute to a dispatch
@@ -199,6 +204,7 @@ class DispatchPolicy:
         self.outstanding = ''          # correlation id of active mission
         self.last_dispatch = float('-inf')
         self._n = 0
+        self.last_reason = 'NO_VALID_SIGNAL'
 
     def step(self, now, pred_valid, predicted, queue_valid, queue_count,
              bus_idle):
@@ -210,25 +216,38 @@ class DispatchPolicy:
         else:
             self.source = None
             self.high_n = self.low_n = 0
+            self.last_reason = 'NO_VALID_SIGNAL'
             return None
         if source != self.source:
             self.source = source
             self.high_n = self.low_n = 0
         self.high_n = self.high_n + 1 if value >= self.high else 0
         self.low_n = self.low_n + 1 if value < self.low else 0
+        if self.high_n >= self.need_high:
+            self.escalated = True
         if self.low_n >= self.need_low:
             self.escalated = False
-        if (self.high_n >= self.need_high and not self.outstanding
-                and not self.escalated and bus_idle
-                and now - self.last_dispatch >= self.cooldown):
-            self._n += 1
-            corr = 'dock-%03d-%s' % (self._n, uuid4().hex[:6])
-            self.outstanding = corr          # reserved before the goal is sent
-            self.last_dispatch = now
-            self.escalated = True
-            self.high_n = 0
-            return Decision(source, corr)
-        return None
+        if not self.escalated:
+            self.last_reason = 'BELOW_THRESHOLD'
+            return None
+        if value < self.high:        # falling demand: stay escalated, but no new bus
+            self.last_reason = 'SIGNAL_BELOW_HIGH'
+            return None
+        if self.outstanding:
+            self.last_reason = 'MISSION_OUTSTANDING'
+            return None
+        if now - self.last_dispatch < self.cooldown:
+            self.last_reason = 'COOLDOWN'
+            return None
+        if not bus_idle:
+            self.last_reason = 'BUS_UNAVAILABLE'
+            return None
+        self._n += 1
+        corr = 'dock-%03d-%s' % (self._n, uuid4().hex[:6])
+        self.outstanding = corr              # reserved before the goal is sent
+        self.last_dispatch = now
+        self.last_reason = source
+        return Decision(source, corr)
 
     def finished(self, correlation_id):
         """Mission ended/rejected. Late or unknown ids are ignored."""
