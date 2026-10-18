@@ -1,0 +1,43 @@
+# M2-B Hub Coordinator (Arkar) - S8
+
+## Files and where they go in the repo
+| File | Goes to |
+|---|---|
+| `coordinator_core.py` | `smart_hub/smart_hub/coordinator_core.py` |
+| `hub_coordinator.py` | `smart_hub/smart_hub/hub_coordinator.py` |
+| `test_coordinator_core.py` | `smart_hub/tests/` (change the import to `from smart_hub.coordinator_core import ...`) |
+
+Add the console script in `setup.py`: `'hub_coordinator = smart_hub.hub_coordinator:main'`.
+Branch: `feature/m2b-coordinator`. Don't push to `main` until `colcon build` passes on your laptop.
+
+## What it does
+- **`/crossing/request`** (RequestCrossing): ACQUIRE / RENEW / RELEASE, one owner token at a time.
+  - Denies on: pedestrian in C, unknown/stale state, safety stop, someone else owns it, C not clear for 2.0 s, not first in FIFO.
+  - Lease expiry never frees an occupied crossing: the owner goes to HOLD and is only reclaimed after C is observed clear for 2.0 s.
+  - RELEASE only works once the owner's footprint is outside C.
+- **`/crossing/state`** at 10 Hz (R1 transient-local) and **`/hub/events`** (R100) for every grant, release, hold, denial change, dispatch and result.
+- **Bus dispatch** at 1 Hz: 3 consecutive forecasts >= 6, bus IDLE, no outstanding goal, 30 s cooldown, escalation clears after 5 forecasts < 4. If the forecast is invalid it falls back to the fresh observed count (reason `FALLBACK`). One `DockBus` goal at a time, and late replies are ignored by correlation id.
+- **Escort client**: `send_escort()` exists, but nothing calls it yet (see question 3).
+
+## Questions to settle with the team (interface lock)
+1. `requester_id` in `RequestCrossing` must equal `VehicleState.vehicle_id` (e.g. `bus_1`, `robot_1`), otherwise I can't tell who is inside C. `VehicleState.kind` must be `bus`, `car` or `robot`. (M2-A, M4, M5)
+2. Lease is 3 s, so bus and robot must send RENEW about every 1 s while crossing. (M2-A, M4)
+3. Who triggers the escort at t = 70 s? The assignment gives no interface for it. (M5 / scenario_runner)
+4. `/hub/bus_arrival.state` must be exactly `IDLE` when the bus is free, published at 2 Hz. (M2-A)
+5. If any vehicle in `/hub/vehicles` is `valid=false`, I treat the crossing as UNKNOWN and deny entry. (M5, M3)
+6. After one dispatch, the next one is blocked until the forecast stays < 4 for 5 samples (the hysteresis rule). If the queue stays high after the bus leaves, no second bus comes. Check this is what the instructor wants.
+7. The doc splits the project across 7 roles but the assignment assumes 5 members. Confirm the grading split with the instructor.
+
+## Verified vs not verified
+- **Verified:** `coordinator_core.py`, 26 unit tests passing (plain `unittest`; pytest runs them too).
+- **Not verified:** `hub_coordinator.py` has not been run. ROS 2 was not available when it was written, so check message field names against the real interface files, then build and run it.
+- **Not done yet (your evidence):** T04 and T15 results, `ros2 bag` captures, the concurrent-request test over real services, and the S8 timeline run. Those need the other nodes.
+
+## Mock testing without teammates
+Publish fake `/hub/queue`, `/hub/vehicles`, `/hub/safety` (stop_latched=false), `/hub/bus_arrival` (state IDLE) and `/hub/demand` (predicted_count 7, valid true) with correct header stamps, then call:
+```
+ros2 service call /crossing/request smart_hub_interfaces/srv/RequestCrossing "{requester_id: 'bus_1', operation: 'ACQUIRE', token: ''}"
+```
+
+## For your defense
+Be ready to explain: why the crossing is a service and docking an action; what happens on a service timeout (the same-token ACQUIRE retry); why lease expiry goes to HOLD and not FREE; how the dispatch counters reset on invalid input; and which callback group everything runs in (default mutually exclusive, so no locks needed).
