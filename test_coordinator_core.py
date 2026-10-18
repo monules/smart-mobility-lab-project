@@ -187,22 +187,40 @@ class TestDispatch(unittest.TestCase):
         res = self.feed(p, [1, 1, 1, 1, 1, 7, 7, 7, 7], t0=100.0)  # lows clear latch, but mission still active
         self.assertTrue(all(r is None for r in res))
 
-    def test_redispatch_needs_finish_cooldown_and_five_lows(self):
+    def test_second_bus_only_after_finish_and_cooldown_if_still_high(self):
+        p = DispatchPolicy()
+        d = self.feed(p, [7, 7, 7])[2]                    # dispatched at t=2
+        p.finished(d.correlation_id)
+        res = self.feed(p, [7, 7, 7], t0=10.0)            # inside 30 s cooldown
+        self.assertTrue(all(r is None for r in res))
+        self.assertEqual(p.last_reason, 'COOLDOWN')
+        self.assertIsNotNone(p.step(33.0, True, 7, True, 7, True))   # escalation persisted
+
+    def test_escalation_clears_after_five_lows(self):
         p = DispatchPolicy()
         d = self.feed(p, [7, 7, 7])[2]
-        self.assertTrue(p.finished(d.correlation_id))
-        # still escalated: no new dispatch even after cooldown
-        self.assertTrue(all(r is None for r in self.feed(p, [7, 7, 7, 7], t0=50.0)))
-        self.feed(p, [2, 2, 2, 2, 2], t0=60.0)           # latch cleared
-        res = self.feed(p, [7, 7, 7], t0=70.0)
-        self.assertIsNotNone(res[2])
+        p.finished(d.correlation_id)
+        self.feed(p, [2] * 5, t0=40.0)                    # cleared
+        self.assertFalse(p.escalated)
+        res = self.feed(p, [7, 7], t0=50.0)               # only 2 highs: not enough
+        self.assertTrue(all(r is None for r in res))
+        self.assertIsNotNone(p.step(52.0, True, 7, True, 7, True))
+
+    def test_falling_queue_while_escalated_does_not_dispatch(self):
+        p = DispatchPolicy()
+        d = self.feed(p, [7, 7, 7])[2]
+        p.finished(d.correlation_id)
+        res = self.feed(p, [5, 5, 3, 3], t0=40.0)         # cooldown over, still escalated, demand falling
+        self.assertTrue(all(r is None for r in res))
+        self.assertTrue(p.escalated)
+        self.assertEqual(p.last_reason, 'SIGNAL_BELOW_HIGH')
 
     def test_cooldown_blocks(self):
         p = DispatchPolicy()
         d = self.feed(p, [7, 7, 7])[2]                    # dispatched at t=2
         p.finished(d.correlation_id)
-        self.feed(p, [2] * 5, t0=3.0)                     # latch cleared at t=7
-        res = self.feed(p, [7, 7, 7], t0=8.0)             # t=10 < 2+30
+        self.feed(p, [2] * 5, t0=3.0)                     # escalation cleared
+        res = self.feed(p, [7, 7, 7], t0=8.0)             # re-escalates, but t=10 < 2+30
         self.assertTrue(all(r is None for r in res))
 
     def test_invalid_forecast_never_dispatches(self):

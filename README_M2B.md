@@ -25,13 +25,18 @@ Branch: `feature/m2b-coordinator`. Don't push to `main` until `colcon build` pas
 3. Who triggers the escort at t = 70 s? The assignment gives no interface for it. (M5 / scenario_runner)
 4. `/hub/bus_arrival.state` must be exactly `IDLE` when the bus is free, published at 2 Hz. (M2-A)
 5. If any vehicle in `/hub/vehicles` is `valid=false`, I treat the crossing as UNKNOWN and deny entry. (M5, M3)
-6. After one dispatch, the next one is blocked until the forecast stays < 4 for 5 samples (the hysteresis rule). If the queue stays high after the bus leaves, no second bus comes. Check this is what the instructor wants.
+6. Dispatch rule: escalation starts after 3 samples >= 6 and clears after 5 samples < 4. While escalated, a new bus is sent only if the current signal is still >= 6, no goal is outstanding, the bus is IDLE and 30 s have passed. This is Tuymurod's rule (`demand/dispatch_policy.py`) plus one check: his version could send a bus on a falling queue before escalation cleared. Tell him, because his paired predictive-vs-reactive comparison should use the same rule.
 7. The doc splits the project across 7 roles but the assignment assumes 5 members. Confirm the grading split with the instructor.
 
 ## Verified vs not verified
-- **Verified:** `coordinator_core.py`, 26 unit tests passing (plain `unittest`; pytest runs them too).
+- **Verified:** `coordinator_core.py`, 28 unit tests passing (plain `unittest`; pytest runs them too).
 - **Not verified:** `hub_coordinator.py` has not been run. ROS 2 was not available when it was written, so check message field names against the real interface files, then build and run it.
 - **Not done yet (your evidence):** T04 and T15 results, `ros2 bag` captures, the concurrent-request test over real services, and the S8 timeline run. Those need the other nodes.
+
+## Repo state (checked 18 Oct)
+- `smart_hub_interfaces` on `feature/m1b-demand-predictor` is TEMPORARY (only QueueState, DemandPrediction, HubEvent). Its comment says M5 owns the full package. Don't push a second version; agree who writes it. I still need the other messages/services/actions from it: CrossingState, SafetyState, BusArrival, VehicleStateArray, RequestCrossing, DockBus, EscortPassenger.
+- The package layout is `src/smart_hub/` (ament_python) and `src/smart_hub_interfaces/` (ament_cmake). Put my files in `src/smart_hub/smart_hub/` and add the `hub_coordinator` console script to its `setup.py`.
+- Still missing in the coordinator: a reactive mode (needed for the S8 predictive-vs-reactive comparison; use observed count only).
 
 ## Mock testing without teammates
 Publish fake `/hub/queue`, `/hub/vehicles`, `/hub/safety` (stop_latched=false), `/hub/bus_arrival` (state IDLE) and `/hub/demand` (predicted_count 7, valid true) with correct header stamps, then call:
