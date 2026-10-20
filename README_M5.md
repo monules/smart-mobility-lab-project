@@ -183,8 +183,8 @@ from `/parking/observed`; edge labels from `/hub/vehicles`; forecast
 
 ## 7. Not done / limits
 
-- Merging: `src/smart_hub/setup.py` and `package.xml` will conflict with
-  M1-B's (add both sets of `console_scripts`, data files and depends).
+- Merging with M1-B: done on `integration/current-team-work` (union of
+  `setup.py` / `package.xml` entries; M5's interface package kept).
 - `scenario_runner` does not publish `/camera/image_raw` (M1-A's S1 input).
   `dashboard_marker_publisher` does not yet draw routes (no route topic
   exists yet), edge labels from `/traffic/edges` or the demand forecast.

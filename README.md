@@ -8,8 +8,9 @@ observable, reproducible evidence (assignment §1).
 
 > **Status (branch `integration/current-team-work`, local only).** M5
 > (simulator, safety, infrastructure) and M1-B (demand prediction) are
-> integrated, built and tested here. M2-B's coordinator is on `main` but not
-> yet inside the ROS package; M3's work is on an open PR branch; **M1-A,
+> integrated, built and tested here. M2-B's coordinator and M3's parking and
+> traffic code are merged from `main` but still sit at the repository root,
+> outside the ROS package, so they are not built or launched yet; **M1-A,
 > M2-A and M4 have no code yet**. See [§10 Status](#10-current-status-and-next-steps).
 
 Platform: **ROS 2 Jazzy, Ubuntu 24.04, Python `rclpy`**, run in Docker
@@ -44,7 +45,7 @@ velocities, and only `safety_supervisor` publishes final commands (§4.2).
 | M1-B Tuymurod | Demand prediction | `demand_predictor` | S2 | ✅ merged |
 | M2-A Fazliddin | Bus & docking | `bus_manager` | S3 | ❌ none yet |
 | M2-B Arkar | Hub coordinator | `hub_coordinator` | S8 | ⚠️ root files from `main`, not in the package |
-| M3 Carla | Parking & traffic | `parking_manager`, `traffic_monitor` | S4, S5 | ⚠️ open PR #3 branch, not merged |
+| M3 Carla | Parking & traffic | `parking_manager`, `traffic_monitor` | S4, S5 | ⚠️ root `smart_hub/`, `tests/` from `main` (PR #3), not in the package |
 | M4 Aidil | Routing & robot | `route_planner`, `robot_manager` | S6, S7 | ❌ none yet |
 | M5 Saidumar | Simulator, safety, infra | `scenario_runner`, `safety_supervisor`, `actuator_bridge`, `metrics_logger`, `dashboard_marker_publisher` | S9 | ✅ complete for simulation |
 
@@ -63,6 +64,8 @@ velocities, and only `safety_supervisor` publishes final commands (§4.2).
 │   ├── INTEGRATION_CONTRACT.md  topics, services, IDs, safety and reset rules
 │   └── TEAM_STANDARDS.md        short copyable conventions
 ├── coordinator_core.py, hub_coordinator.py, test_coordinator_core.py   M2-B (not built)
+├── smart_hub/                   M3 parking_manager, traffic_monitor + engines, hub_map (not built)
+├── tests/                       M3 tests T07–T10 + ROS stubs (plain pytest)
 └── src/
     ├── smart_hub_interfaces/    SHARED: 14 msg, 6 srv, 3 action (§6–7)
     └── smart_hub/               SHARED ament_python package (all nodes)
@@ -255,6 +258,7 @@ the Mac.
 | `ros2 topic pub --once` e-stop has no effect | it can exit before discovery; use `--times 3 -r 10 -w 1` as above |
 | `ros2 node list` empty right after launch | CLI discovery delay; nodes still run — use `ros2 topic hz` |
 | New node "executable not found" | add it to `setup.py` `console_scripts`, then `docker/hub.sh build` |
+| `import smart_hub` from the repo root gets the wrong module | M3's root `smart_hub/` folder shadows the installed package when Python runs with `/ws` as working directory; ROS nodes are unaffected. Fixed once M3's files move into `src/smart_hub` |
 | Everything held, reason `ESTOP_SIGNAL_STALE` | nothing publishes `/hub/estop`; launch with `publish_estop:=true` (default) |
 
 ## 6. How to develop a new component
@@ -321,8 +325,13 @@ Run everything: `docker/hub.sh test`.
   path. **BLOCKED**: needs M4's `route_planner` and a manager that calls
   `/route/compute` (M2-A/M4).
 
+Teammate tests outside the package (not run by `colcon test`):
+```bash
+docker/hub.sh run 'python3 -m pytest -q -p no:cacheprovider tests test_coordinator_core.py'
+```
+
 **Verified results** (Docker on Apple Silicon, 2026-10-21, integration
-commit `6ebf009`, simulation only):
+commits `6ebf009` and `7de00b6`, simulation only):
 
 | Check | Result |
 |---|---|
@@ -335,7 +344,8 @@ commit `6ebf009`, simulation only):
 | Nonzero output while latched | 0 |
 | M1-B S2 runtime with M5 stack | `/hub/demand` 1 Hz, valid after warm-up; dashboard shows the forecast |
 | M2-B / M3 against these interfaces | crossing granted, then denied with `SAFETY_STOP` after an e-stop; parking/edge states consumed (scratch workspace, not merged) |
-| M2-B `test_coordinator_core.py`; M3 branch `tests/` | 28 passed; 59 passed, 9 skipped (run from clean exports) |
+| M2-B `test_coordinator_core.py`; M3 `tests/` (after merging `main`, `7de00b6`) | 28 passed; 59 passed, 9 skipped |
+| Full suite + S9 after merging M3 (`7de00b6`) | 132 passed, 2 xfailed; S9 PASSED, T16 1.2 ms |
 
 One S9 run once exited 0 without writing `s9_check.json` (not reproduced in
 3 reruns); `docker/hub.sh s9` now fails if the file is missing.
@@ -344,12 +354,11 @@ One S9 run once exited 0 without writing `s9_check.json` (not reproduced in
 
 | Branch | Purpose |
 |---|---|
-| `main` (origin) | assignment base; contains M2-B's coordinator (PR #2). Not modified by integration work |
-| `m5-safety-supervisor` (local) | M5 work, one commit on top of `main` |
-| `integration/current-team-work` (local) | this branch: M5 + M1-B merged, shared docs; **not pushed yet** |
+| `main` (origin) | team base: PR #1, M2-B coordinator (PR #2), M3 parking/traffic (PR #3, `146b8b2`). Not modified by integration work |
+| `m5-safety-supervisor` (local) | M5 work, one commit on top of the older `main` (`3db1b1e`) |
+| `integration/current-team-work` (local) | this branch: M5 + M1-B + current `main` merged, shared docs; **not pushed yet** |
 | `origin/feature/m1b-demand-predictor` | M1-B's branch (merged here) |
-| `origin/feature/m2b-coordinator`, `origin/ARKARKYAW2003-patch-1` | already merged into `main` (PR #2, #1) |
-| `origin/m3-parking-traffic` | M3, open PR #3; not merged here (files at repo root, not in `src/smart_hub`) |
+| `origin/feature/m2b-coordinator`, `origin/ARKARKYAW2003-patch-1`, `origin/m3-parking-traffic` | already merged into `main` (PR #2, #1, #3) |
 
 Once the team agrees to publish the integration branch (it is local today),
 teammates would use:
@@ -387,7 +396,7 @@ are deliberately untracked). Merge into `main` only as a team decision.
 | S2 / T03 prediction (+ T04 reference policy) | M1-B | ✅ merged, tests pass |
 | T04 dispatch hysteresis, S8 / T15 | M2-B | ⚠️ core logic + 28 tests on `main`; node not in package; T15 needs all nodes |
 | S3 / T05–T06 docking, cancel | M2-A | ❌ |
-| S4–S5 / T07–T10 parking, congestion | M3 | ⚠️ PR #3 branch, 59 tests pass; not merged |
+| S4–S5 / T07–T10 parking, congestion | M3 | ⚠️ merged via `main` at repo root, 59 tests pass; not in the package |
 | S6–S7 / T11–T14 routing, escort | M4 | ❌ |
 | S9 / T16, T17 | M5 | ✅ verified in simulation |
 | T18 planner loss | M4 + M5 | ⛔ blocked (no planner) |
@@ -400,9 +409,11 @@ are deliberately untracked). Merge into `main` only as a team decision.
   `src/smart_hub/smart_hub/` and the test into `src/smart_hub/test/` (as
   your README says), add the `hub_coordinator` console script. Verified to
   build and run against these interfaces in a scratch workspace.
-- **M3:** move `smart_hub/*.py` and `tests/` into `src/smart_hub/` and
-  rebase PR #3 on this branch; confirm `kind: obstacle`; note a parked bus
-  at A is labelled `A-Cs: CONGESTED` (speed 0 counts as slow).
+- **M3:** move root `smart_hub/*.py` into `src/smart_hub/smart_hub/` and
+  `tests/` into `src/smart_hub/test/`, add the two console scripts (this
+  also removes the import-shadowing pitfall); confirm `kind: obstacle`; note
+  a parked bus at A is labelled `A-Cs: CONGESTED` (speed 0 counts as slow).
+  Verified to build and run against these interfaces in a scratch workspace.
 - **M1-B:** restyle for `ament_flake8` (mostly single quotes) and fix one
   docstring; then delete the `PENDING_OWNER_RESTYLE` entries.
 - **M1-A, M2-A, M4:** start from §6 above; use `robot_1`/`bus_1`; publish
