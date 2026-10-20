@@ -5,7 +5,12 @@ Subscribes  /hub/vehicles     VehicleStateArray  R10   agents and obstacle O
             /parking/state    ParkingState       R1T   slot colours (M3)
             /hub/safety       SafetyState        R1T   stop_latched + reason text
             /hub/events       HubEvent           R100  last event text
+            /hub/demand       DemandPrediction   R10   forecast text (M1-B)
+            /traffic/edges    EdgeStateArray     R10   blocked/unknown/dense edges (M3)
 Publishes   /hub/markers      MarkerArray        R10, 5 Hz, frame 'map'
+
+Not drawn: planned routes. No interface carries them (ComputeRoute is a
+service between a manager and the planner, not a topic).
 
 No control authority: the node has exactly one publisher (/hub/markers) and
 never publishes any cmd_vel, request or service call. Marker content is built
@@ -19,7 +24,8 @@ import rclpy
 from rclpy.node import Node
 from smart_hub.marker_core import MarkerCore
 from smart_hub.ros_common import declare, R10, R100, R1T
-from smart_hub_interfaces.msg import (CrossingState, HubEvent, ParkingState, SafetyState,
+from smart_hub_interfaces.msg import (CrossingState, DemandPrediction, EdgeStateArray,
+                                      HubEvent, ParkingState, SafetyState,
                                       VehicleStateArray)
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -44,6 +50,8 @@ class DashboardMarkerPublisher(Node):
         self.create_subscription(ParkingState, '/parking/state', self.on_parking, R1T)
         self.create_subscription(SafetyState, '/hub/safety', self.on_safety, R1T)
         self.create_subscription(HubEvent, '/hub/events', self.on_event, R100)
+        self.create_subscription(DemandPrediction, '/hub/demand', self.on_demand, R10)
+        self.create_subscription(EdgeStateArray, '/traffic/edges', self.on_edges, R10)
         self.create_timer(1.0 / float(p['rate_hz']), self.publish)
 
     def on_vehicles(self, msg):
@@ -61,6 +69,14 @@ class DashboardMarkerPublisher(Node):
 
     def on_event(self, msg):
         self.core.on_event(msg.entity_id, msg.event, msg.reason)
+
+    def on_demand(self, msg):
+        self.core.on_demand(msg.valid, msg.predicted_count, msg.baseline_count,
+                            msg.horizon_sec, time.monotonic())
+
+    def on_edges(self, msg):
+        self.core.on_edges({e.edge_id: (e.blocked, e.valid, e.density_ratio)
+                            for e in msg.edges}, time.monotonic())
 
     def to_marker(self, spec, stamp):
         m = Marker()

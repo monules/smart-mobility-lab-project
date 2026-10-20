@@ -80,6 +80,30 @@ def test_parking_slots():
     assert text_of(m, 'parking', 12) == 'P3 UNKNOWN'
 
 
+def test_demand_text_valid_invalid_and_stale():
+    c = MarkerCore(stale_after=1.0)
+    assert text_of(c.build(T0), 'queue', 2) == 'prediction unavailable'
+    c.on_demand(True, 7.24, 5.0, 30, T0)
+    assert text_of(c.build(T0), 'queue', 2) == 'demand +30s: 7.2 (now 5)'
+    assert text_of(c.build(T0 + 1.5), 'queue', 2) == 'prediction unavailable'   # stale
+    c.on_demand(False, -1.0, -1.0, 30, T0)                                   # warm-up
+    assert text_of(c.build(T0), 'queue', 2) == 'prediction unavailable'
+
+
+def test_edge_overlays_from_traffic_edges():
+    c = MarkerCore()
+    assert by_ns(c.build(T0), 'edge_state') == []           # no data: no overlay
+    c.on_edges({'Cs-J': (True, True, 0.2), 'A-Cs': (False, True, 0.75),
+                'E-J': (False, False, -1.0), 'B-U': (False, True, 0.1),
+                'NOT-AN-EDGE': (True, True, 1.0)}, T0)
+    overlays = {m['id']: m for m in by_ns(c.build(T0), 'edge_state')}
+    assert overlays[0]['points'] == list(geo.EDGES['Cs-J'])    # blocked
+    assert overlays[1]['points'] == list(geo.EDGES['E-J'])     # invalid -> unknown
+    assert overlays[2]['points'] == list(geo.EDGES['A-Cs'])    # density >= 0.70
+    assert all(len(m['points']) % 2 == 0 for m in overlays.values())
+    assert by_ns(c.build(T0 + 1.5), 'edge_state') == []        # stale: base map only
+
+
 def test_safety_text_shows_latch_and_reason():
     c = MarkerCore()
     c.on_safety(True, 'ESTOP', T0)

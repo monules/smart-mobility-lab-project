@@ -28,6 +28,13 @@ SLOT_COLOR = {'FREE': (0.1, 0.8, 0.1, 0.6), 'RESERVED': (1.0, 0.8, 0.0, 0.6),
               'OCCUPIED': (0.9, 0.1, 0.1, 0.6)}
 COLOR_BY_KIND = {'robot': (0.0, 0.7, 1.0, 1.0), 'bus': (1.0, 0.6, 0.0, 1.0),
                  'car': (0.8, 0.8, 0.0, 1.0), 'obstacle': (0.2, 0.2, 0.2, 1.0)}
+# Edge overlays from /traffic/edges. EdgeState has no congestion label, so
+# only what its fields state is drawn: blocked, invalid (unknown) and a
+# density ratio at/above the assignment's congestion threshold (S5: 0.70).
+EDGE_OVERLAY = (('BLOCKED', 0, (1.0, 0.1, 0.1, 1.0)),
+                ('UNKNOWN', 1, (0.25, 0.25, 0.25, 1.0)),
+                ('DENSE', 2, (1.0, 0.55, 0.0, 1.0)))
+DENSITY_THRESHOLD = 0.70
 
 
 def rect_marker(ns, mid, rect, color, z=0.0):
@@ -55,6 +62,8 @@ class MarkerCore:
         self.crossing = None     # ((state, owner_id), receipt time)
         self.parking = None      # ({slot_id: state}, receipt time)
         self.safety = None       # ((stop_latched, reason), receipt time)
+        self.demand = None       # ((valid, predicted, baseline, horizon), receipt time)
+        self.edges = None        # ({edge_id: (blocked, valid, density)}, receipt time)
         self.last_event = ''
 
     def on_vehicles(self, vehicles, now):
@@ -69,6 +78,13 @@ class MarkerCore:
     def on_safety(self, stop_latched, reason, now):
         self.safety = ((stop_latched, reason), now)
 
+    def on_demand(self, valid, predicted, baseline, horizon_sec, now):
+        self.demand = ((bool(valid), predicted, baseline, horizon_sec), now)
+
+    def on_edges(self, edges, now):
+        """edges: {edge_id: (blocked, valid, density_ratio)} from /traffic/edges."""
+        self.edges = (dict(edges), now)
+
     def on_event(self, entity_id, event, reason):
         self.last_event = '%s %s %s' % (entity_id, event, reason)
 
@@ -77,6 +93,31 @@ class MarkerCore:
         if sample is None or now - sample[1] > self.stale_after:
             return None
         return sample[0]
+
+    def _demand_text(self, now):
+        """Forecast text; assignment 9.3 asks for an explicit 'unavailable'."""
+        demand = self._fresh(self.demand, now)
+        if demand is None or not demand[0]:
+            return 'prediction unavailable'
+        _, predicted, baseline, horizon = demand
+        return 'demand +%ds: %.1f (now %.0f)' % (horizon, predicted, baseline)
+
+    def _edge_overlays(self, now):
+        """One LINE_LIST per edge condition, only for known map edges."""
+        edges = self._fresh(self.edges, now) or {}
+        groups = {name: [] for name, _, _ in EDGE_OVERLAY}
+        for eid, (blocked, valid, density) in sorted(edges.items()):
+            if eid not in geo.EDGES:
+                continue                              # not a map edge: ignore
+            if not valid:
+                groups['UNKNOWN'] += geo.EDGES[eid]
+            elif blocked:
+                groups['BLOCKED'] += geo.EDGES[eid]
+            elif density >= DENSITY_THRESHOLD:
+                groups['DENSE'] += geo.EDGES[eid]
+        return [{'ns': 'edge_state', 'id': mid, 'type': 'line_list', 'pos': (0.0, 0.0, 0.02),
+                 'scale': (0.12, 0.0, 0.0), 'color': color, 'points': groups[name]}
+                for name, mid, color in EDGE_OVERLAY if groups[name]]
 
     def build(self, now):
         """Return the list of marker dicts for one 5 Hz publication."""
@@ -87,6 +128,9 @@ class MarkerCore:
         m.append({'ns': 'edges', 'id': 0, 'type': 'line_list', 'pos': (0.0, 0.0, 0.01),
                   'scale': (0.05, 0.0, 0.0), 'color': (0.7, 0.7, 0.7, 0.8),
                   'points': EDGE_POINTS})
+
+        m += self._edge_overlays(now)
+        m.append(text_marker('queue', 2, 4.0, 5.3, self._demand_text(now), 0.25))
 
         crossing = self._fresh(self.crossing, now) or ('UNKNOWN', '')
         state, owner = crossing
