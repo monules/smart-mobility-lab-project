@@ -1,0 +1,7 @@
+# /parking/release_slot -- server: parking_manager (M3)
+string request_id
+string reservation_id
+string vehicle_id
+---
+bool success
+string reason

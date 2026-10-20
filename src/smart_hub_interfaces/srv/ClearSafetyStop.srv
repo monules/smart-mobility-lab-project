@@ -1,0 +1,6 @@
+# /safety/clear_stop -- server: safety_supervisor (M5)
+string operator_id
+string acknowledgement
+---
+bool success
+string reason

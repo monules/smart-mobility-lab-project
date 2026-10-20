@@ -1,0 +1,23 @@
+# Scenario S9: negative tests, fault handling and emergency stop (M5).
+# Map M1 coordinates (metres). The robot starts at R facing east, the bus waits
+# at entry A. Faults that need precise timing relative to robot motion (e-stop,
+# odometry freeze) are injected by s9_fault_check; the timed events below run
+# in every S9 launch and exercise the remaining fault types.
+scenario_id: S9
+duration_sec: 120
+observation_noise_m: 0.0
+estop: false
+agents:
+  robot_1: {kind: robot, x: 3.0, y: 6.0, theta: 0.0}
+  bus_1: {kind: bus, x: 1.0, y: 2.0, theta: 0.0}
+obstacles:
+  O: {x: 7.0, y: 2.0, active: false}
+parking:
+  P1: occupied
+  P2: free
+  P3: free
+events:
+  - {t: 3.0, type: note, text: "S9 start"}
+  - {t: 6.0, type: obstacle, id: O, active: true}       # blocks Cs-J
+  - {t: 8.0, type: parking, slot: P3, state: offline}   # parking sensor stale
+  - {t: 90.0, type: obstacle, id: O, active: false}

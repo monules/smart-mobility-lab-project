@@ -1,0 +1,32 @@
+# M5 safety parameters. Values marked (A) come from the assignment
+# (sections 3.3, 5, 16); the rest are M5 engineering choices documented in
+# README_M5.md. Every node validates its values at startup and refuses bad ones.
+safety_supervisor:
+  ros__parameters:
+    robot_id: robot_1
+    bus_id: bus_1
+    robot_speed_limit: 0.25     # (A) m/s
+    bus_speed_limit: 0.40       # (A) m/s
+    robot_turn_limit: 1.0       # rad/s
+    bus_turn_limit: 0.5         # rad/s
+    command_timeout: 0.5        # (A) s, stale candidate -> zero
+    sensor_timeout: 1.0         # (A) s, odometry / vehicles / crossing / door
+    estop_timeout: 1.0          # s, /hub/estop is a 10 Hz heartbeat (A: 10 Hz)
+    future_tolerance: 0.2       # s, reject stamps from the future (A: declared tolerance)
+    stopped_speed: 0.02         # m/s, "stopped" threshold
+    clearance: 0.20             # (A) m, added clearance outside footprints
+    lookahead: 0.5              # s, motion footprint prediction
+    require_estop_heartbeat: true
+    enforce_crossing: true
+    rate_hz: 20.0               # (A)
+
+actuator_bridge:
+  ros__parameters:
+    command_timeout: 0.5        # s, independent of the supervisor
+    robot_speed_limit: 0.25
+    bus_speed_limit: 0.40
+    robot_turn_limit: 1.0
+    bus_turn_limit: 0.5
+    door_settle_sec: 0.5
+    rate_hz: 20.0
+    mode: sim
