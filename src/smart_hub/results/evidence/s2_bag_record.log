@@ -1,0 +1,15 @@
+stdin is not a terminal device. Keyboard handling disabled.[INFO] [1792214461.837782678] [rosbag2_recorder]: Press SPACE for pausing/resuming
+[INFO] [1792214461.837795053] [rosbag2_recorder]: Event publisher thread: Started
+[INFO] [1792214461.839287428] [rosbag2_recorder]: Starting recording to '/out/s2_bag_1025'
+[INFO] [1792214461.840213511] [rosbag2_recorder]: Listening for topics...
+[INFO] [1792214461.840294428] [rosbag2_recorder]: Recording...
+[INFO] [1792214461.840225844] [rosbag2_recorder]: Topics discovery started.
+[INFO] [1792214461.948389678] [rosbag2_recorder]: Subscribed to topic '/hub/queue'
+[INFO] [1792214461.949219719] [rosbag2_recorder]: Subscribed to topic '/hub/demand'
+[INFO] [1792214461.949890761] [rosbag2_recorder]: Subscribed to topic '/hub/events'
+[INFO] [1792214461.950026344] [rosbag2_recorder]: All requested topics are subscribed. Stopping discovery...
+[INFO] [1792214461.950128386] [rosbag2_recorder]: Topics discovery stopped.
+[INFO] [1792214581.733016094] [rosbag2_recorder]: Pausing recording.
+[INFO] [1792214581.735619969] [rosbag2_cpp]: Writing remaining messages from cache to the bag. It may take a while
+[INFO] [1792214581.739973469] [rosbag2_recorder]: Recording stopped
+[INFO] [1792214581.743023928] [rosbag2_recorder]: Event publisher thread: Exited

@@ -1,0 +1,15 @@
+[INFO] [launch]: All log files can be found below /root/.ros/log/2026-10-17-05-20-40-849657-b40441e63fb6-29
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fake_queue_publisher-1]: process started with pid [35]
+[INFO] [demand_predictor-2]: process started with pid [36]
+[fake_queue_publisher-1] [INFO] [1792214440.996718793] [fake_queue_publisher]: SYNTHETIC replay: seed=1025 profile=peak gaps=[(90.5, 8.7, 'silent')] (1758 messages)
+[demand_predictor-2] [INFO] [1792214440.996881543] [demand_predictor]: started: model_id=ridge-demand-h30-d31fd020ac (/ws/install/smart_hub/share/smart_hub/models/demand_ridge_h30.json); parameters={'demand_topic': '/hub/demand', 'events_topic': '/hub/events', 'future_tolerance_sec': 0.5, 'history_sec': 60, 'latency_report_sec': 30.0, 'model_path': '', 'prediction_horizon_sec': 30, 'publish_rate_hz': 1.0, 'queue_confidence_min': 0.5, 'queue_topic': '/hub/queue', 'queue_zone_id': 'Q', 'require_model': False, 'reset_gap_sec': 60, 'run_id': 'evidence-1025', 'scenario_id': 'S2', 'stale_timeout_sec': 1.0, 'use_model': True, 'warmup_sec': 60}
+[demand_predictor-2] [WARN] [1792214441.998777877] [demand_predictor]: forecast INVALID (WARMUP)
+[demand_predictor-2] [INFO] [1792214470.994387126] [demand_predictor]: latency ms: inference p50=nan p95=nan (n=0); tick p95=0.518; rejected inputs={}; wrong zone=0
+[demand_predictor-2] [INFO] [1792214500.998328876] [demand_predictor]: forecast valid (OK)
+[demand_predictor-2] [INFO] [1792214500.998843209] [demand_predictor]: latency ms: inference p50=0.082 p95=0.082 (n=1); tick p95=0.518; rejected inputs={}; wrong zone=0
+[demand_predictor-2] [INFO] [1792214531.994130668] [demand_predictor]: latency ms: inference p50=0.055 p95=0.088 (n=32); tick p95=0.494; rejected inputs={}; wrong zone=0
+[demand_predictor-2] [WARN] [1792214532.998217002] [demand_predictor]: forecast INVALID (STALE_INPUT)
+[demand_predictor-2] [WARN] [1792214540.995241839] [demand_predictor]: forecast INVALID (GAP_RECOVERY)
+[demand_predictor-2] [INFO] [1792214561.998177918] [demand_predictor]: latency ms: inference p50=0.055 p95=0.088 (n=32); tick p95=0.494; rejected inputs={}; wrong zone=0
+[demand_predictor-2] [INFO] [1792214570.998558756] [demand_predictor]: forecast valid (OK)
