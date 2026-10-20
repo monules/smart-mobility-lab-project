@@ -40,8 +40,12 @@ case "${1:-help}" in
     in_container "" "colcon test --base-paths src --parallel-workers 1 \
       --event-handlers console_direct+ ; colcon test-result --verbose" ;;
   s9)
-    in_container "" "mkdir -p output && ros2 launch smart_hub s9.launch.py \
-      seed:=${2:-9} output_dir:=/ws/output" ;;
+    # ros2 launch exits 0 even when the check fails, so the verdict is read
+    # from the evidence file: no file or passed=false -> nonzero exit.
+    in_container "" "mkdir -p output && rm -f output/s9_check.json && \
+      ros2 launch smart_hub s9.launch.py seed:=${2:-9} output_dir:=/ws/output; \
+      python3 -c \"import json, sys; r = json.load(open('output/s9_check.json')); \
+print('S9 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
   shell) in_container "-it" "exec bash" ;;
   run) in_container "" "${2:?usage: docker/hub.sh run '<command>'}" ;;
   *) sed -n '2,13p' "$0" ;;
