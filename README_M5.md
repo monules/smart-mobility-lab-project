@@ -18,7 +18,7 @@ Branch `m5-safety-supervisor`. ROS 2 **Jazzy**, Ubuntu 24.04, run in Docker
 | `src/smart_hub/smart_hub/mock_candidate_publisher.py` | Test tool: stand-in for M4/M2-A candidate commands until their managers exist. |
 | `src/smart_hub/launch/hub.launch.py`, `s9.launch.py` | M5 stack launch (`scenario`, `seed`, `mode` args) and the S9 demo. |
 | `src/smart_hub/config/m5_safety.yaml`, `scenarios/S9.yaml` | Parameters (assignment values marked `(A)`), S9 scenario. |
-| `src/smart_hub/test/` | 81 tests (see §6). |
+| `src/smart_hub/test/` | M5 tests (see §6); team-wide results are in the root `README.md` §8. |
 | `docker/Dockerfile`, `docker/hub.sh` | Dev image (derived from M1-B's) + build/test/run helper. |
 
 ## 2. Commands (run from the repository root on the Mac)
@@ -81,6 +81,9 @@ it never publishes any `cmd_vel`, request or service call (§4.2).
 | `/crossing/state` (R1T) | box C coloured by state: FREE green, GRANTED blue, HOLD yellow, OCCUPIED purple, PEDESTRIAN orange, UNKNOWN grey; text shows owner |
 | `/parking/state` (R1T) | 1.0 × 0.8 m box at P1–P3: FREE green, RESERVED yellow, OCCUPIED red, UNKNOWN grey |
 | `/hub/safety` (R1T), `/hub/events` (R100) | text above the map: `SAFETY: OK / STOP LATCHED (reason)`, last event |
+| `/hub/demand` (R10, M1-B) | text in queue Q: `demand +30s: X (now Y)`, or `prediction unavailable` if invalid/stale (§9.3) |
+| `/traffic/edges` (R10, M3) | edge overlays: red blocked, dark grey invalid, orange density ≥ 0.70 (no speed-based congestion: `EdgeState` has no label) |
+| — | **not drawn: planned routes** (no interface publishes them) |
 | static (`geometry.py`) | site 12 × 8 m, queue Q x∈[2,6] y∈[5,7], graph edges as one LINE_LIST |
 
 Any state not received in the last 1 s (`stale_after`) is drawn as
@@ -145,7 +148,9 @@ drive timeout). Any one dying cannot leave a nonzero motor command.
 ## 6. Verification (all run in the Docker container, 2026-10-21)
 
 `docker/hub.sh test` → **74 tests, 0 failures, 0 skipped**, three runs in a row
-(81 with `test_marker_core.py`, added later: 0 failures).
+on `m5-safety-supervisor` (81 with `test_marker_core.py`, added later). On
+`integration/current-team-work` (M5 + M1-B): 134 tests, 132 passed,
+2 xfailed — see the root `README.md` §8.
 
 | Test file | Kind | Covers |
 |---|---|---|
@@ -153,7 +158,7 @@ drive timeout). Any one dying cannot leave a nonzero motor command.
 | `test_bridge_core.py` (7) | unit | watchdog stop (T17 core), caps, door interlock |
 | `test_sim_core.py` (6) | unit | unicycle, same seed ⇒ same run, reset, drive timeout, events |
 | `test_metrics_core.py` (4), `test_geometry.py` (4) | unit | latency, physical stop, violations, files; map geometry |
-| `test_marker_core.py` (7) | unit | marker shapes/radii, unique ids, crossing/parking colours, stale → UNKNOWN, safety text |
+| `test_marker_core.py` (9) | unit | marker shapes/radii, unique ids, crossing/parking colours, stale → UNKNOWN, safety text, demand text, edge overlays |
 | `test_safety_supervisor_node.py` (4), `test_scenario_runner_node.py` (3) | real rclpy node | unstamped/future stamps, e-stop, params; reset success/failure |
 | `test_t17_process_kill.py` | **ROS integration, real processes** | SIGKILL controller → supervisor zero; SIGKILL supervisor → bridge zero; kill bridge → sim stops |
 | `test_s9_launch.py` | **launch_testing** | full S9 sequence on `hub.launch.py`; checker exits 0 |
