@@ -11,31 +11,29 @@ This is test tooling: it is clearly labelled synthetic and must not be
 launched together with the real passenger_detector.
 """
 
-import rclpy
 from builtin_interfaces.msg import Time as TimeMsg
+import rclpy
 from rclpy.node import Node
 from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
                        ReliabilityPolicy)
-
+from smart_hub.demand.simulation import make_spec, PROFILES, run_episode
 from smart_hub_interfaces.msg import QueueState
-
-from smart_hub.demand.simulation import PROFILES, make_spec, run_episode
 
 
 class FakeQueuePublisher(Node):
     def __init__(self):
-        super().__init__("fake_queue_publisher")
-        self.declare_parameter("seed", 1025)
-        self.declare_parameter("profile", "")       # empty = from seed
-        self.declare_parameter("loop", False)
-        self.declare_parameter("topic", "/hub/queue")
-        seed = int(self.get_parameter("seed").value)
-        profile = self.get_parameter("profile").value or None
+        super().__init__('fake_queue_publisher')
+        self.declare_parameter('seed', 1025)
+        self.declare_parameter('profile', '')       # empty = from seed
+        self.declare_parameter('loop', False)
+        self.declare_parameter('topic', '/hub/queue')
+        seed = int(self.get_parameter('seed').value)
+        profile = self.get_parameter('profile').value or None
         if profile is not None and profile not in PROFILES:
-            raise ValueError("profile must be one of %s" % (PROFILES,))
-        self.loop = bool(self.get_parameter("loop").value)
+            raise ValueError('profile must be one of %s' % (PROFILES,))
+        self.loop = bool(self.get_parameter('loop').value)
         spec = make_spec(seed, profile)
-        spec.bus_mode = "scheduled"
+        spec.bus_mode = 'scheduled'
         self.obs = run_episode(spec).observations
         self.idx = 0
         self.t0 = self._now()
@@ -43,10 +41,10 @@ class FakeQueuePublisher(Node):
                          durability=DurabilityPolicy.VOLATILE,
                          history=HistoryPolicy.KEEP_LAST, depth=10)
         self.pub = self.create_publisher(
-            QueueState, self.get_parameter("topic").value, qos)
+            QueueState, self.get_parameter('topic').value, qos)
         self.create_timer(0.02, self.tick)
         self.get_logger().info(
-            "SYNTHETIC replay: seed=%d profile=%s gaps=%s (%d messages)"
+            'SYNTHETIC replay: seed=%d profile=%s gaps=%s (%d messages)'
             % (seed, spec.profile, spec.gaps, len(self.obs)))
 
     def _now(self):
@@ -60,8 +58,8 @@ class FakeQueuePublisher(Node):
             msg = QueueState()
             msg.header.stamp = TimeMsg(sec=int(stamp),
                                        nanosec=int((stamp % 1.0) * 1e9))
-            msg.header.frame_id = "map"
-            msg.zone_id = "Q"
+            msg.header.frame_id = 'map'
+            msg.zone_id = 'Q'
             msg.count = int(count)
             msg.confidence = float(conf)
             msg.valid = bool(valid)
@@ -73,7 +71,7 @@ class FakeQueuePublisher(Node):
                 self.idx = 0
                 self.t0 = self._now()
             else:
-                self.get_logger().info("episode finished", once=True)
+                self.get_logger().info('episode finished', once=True)
 
 
 def main(args=None):
@@ -91,5 +89,5 @@ def main(args=None):
             rclpy.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

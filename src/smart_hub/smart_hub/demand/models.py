@@ -13,7 +13,7 @@ from typing import Dict, Sequence
 
 from smart_hub.demand.features import FEATURE_NAMES
 
-PERSISTENCE_ID = "persistence-h30"
+PERSISTENCE_ID = 'persistence-h30'
 
 
 class PersistenceModel:
@@ -36,18 +36,18 @@ class LinearDemandModel:
         n = len(feature_names)
         if tuple(feature_names) != tuple(FEATURE_NAMES):
             raise ValueError(
-                "model features %s do not match code features %s"
+                'model features %s do not match code features %s'
                 % (list(feature_names), list(FEATURE_NAMES))
             )
         if not (len(mean) == len(scale) == len(coef) == n):
-            raise ValueError("model vector lengths do not match feature count")
+            raise ValueError('model vector lengths do not match feature count')
         values = list(mean) + list(scale) + list(coef) + [intercept]
         if not all(math.isfinite(float(v)) for v in values):
-            raise ValueError("model contains non-finite values")
+            raise ValueError('model contains non-finite values')
         if any(float(s) <= 0 for s in scale):
-            raise ValueError("model scale values must be positive")
+            raise ValueError('model scale values must be positive')
         if int(horizon_sec) <= 0:
-            raise ValueError("horizon_sec must be positive")
+            raise ValueError('horizon_sec must be positive')
         self.model_id = str(model_id)
         self.feature_names = tuple(feature_names)
         self.mean = [float(v) for v in mean]
@@ -59,7 +59,7 @@ class LinearDemandModel:
 
     def predict(self, features: Sequence[float]) -> float:
         if len(features) != len(self.coef):
-            raise ValueError("wrong feature count")
+            raise ValueError('wrong feature count')
         y = self.intercept
         for x, m, s, w in zip(features, self.mean, self.scale, self.coef):
             y += w * (float(x) - m) / s
@@ -67,56 +67,56 @@ class LinearDemandModel:
 
     def to_dict(self) -> Dict:
         return {
-            "model_id": self.model_id,
-            "model_type": "standardized_linear",
-            "horizon_sec": self.horizon_sec,
-            "feature_names": list(self.feature_names),
-            "mean": self.mean,
-            "scale": self.scale,
-            "coef": self.coef,
-            "intercept": self.intercept,
-            "metadata": self.metadata,
+            'model_id': self.model_id,
+            'model_type': 'standardized_linear',
+            'horizon_sec': self.horizon_sec,
+            'feature_names': list(self.feature_names),
+            'mean': self.mean,
+            'scale': self.scale,
+            'coef': self.coef,
+            'intercept': self.intercept,
+            'metadata': self.metadata,
         }
 
     @staticmethod
     def make_model_id(prefix: str, payload: Dict) -> str:
         """Content-derived ID, so a changed model can never reuse an ID."""
-        blob = json.dumps(payload, sort_keys=True).encode("utf-8")
-        return "%s-%s" % (prefix, hashlib.sha256(blob).hexdigest()[:10])
+        blob = json.dumps(payload, sort_keys=True).encode('utf-8')
+        return '%s-%s' % (prefix, hashlib.sha256(blob).hexdigest()[:10])
 
 
 def load_model(path: str) -> LinearDemandModel:
     """Load and validate an exported model; raises on any inconsistency."""
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, 'r', encoding='utf-8') as fh:
         data = json.load(fh)
-    if data.get("model_type") != "standardized_linear":
-        raise ValueError("unsupported model_type: %r" % data.get("model_type"))
+    if data.get('model_type') != 'standardized_linear':
+        raise ValueError('unsupported model_type: %r' % data.get('model_type'))
     model = LinearDemandModel(
-        model_id=data["model_id"],
-        feature_names=data["feature_names"],
-        mean=data["mean"],
-        scale=data["scale"],
-        coef=data["coef"],
-        intercept=data["intercept"],
-        horizon_sec=data.get("horizon_sec", 30),
-        metadata=data.get("metadata", {}),
+        model_id=data['model_id'],
+        feature_names=data['feature_names'],
+        mean=data['mean'],
+        scale=data['scale'],
+        coef=data['coef'],
+        intercept=data['intercept'],
+        horizon_sec=data.get('horizon_sec', 30),
+        metadata=data.get('metadata', {}),
     )
     # Recompute the content hash so a hand-edited file is detected.
     expected = LinearDemandModel.make_model_id(
-        model.model_id.rsplit("-", 1)[0], _hash_payload(model))
+        model.model_id.rsplit('-', 1)[0], _hash_payload(model))
     if expected != model.model_id:
-        raise ValueError("model_id does not match file content (edited file?)")
+        raise ValueError('model_id does not match file content (edited file?)')
     return model
 
 
 def _hash_payload(model: LinearDemandModel) -> Dict:
     return {
-        "features": list(model.feature_names),
-        "mean": model.mean,
-        "scale": model.scale,
-        "coef": model.coef,
-        "intercept": model.intercept,
-        "horizon_sec": model.horizon_sec,
+        'features': list(model.feature_names),
+        'mean': model.mean,
+        'scale': model.scale,
+        'coef': model.coef,
+        'intercept': model.intercept,
+        'horizon_sec': model.horizon_sec,
     }
 
 
@@ -124,7 +124,7 @@ def build_linear_model(prefix: str, mean, scale, coef, intercept,
                        horizon_sec: int = 30, metadata: Dict = None
                        ) -> LinearDemandModel:
     """Create a model whose ID is the hash of its numeric content."""
-    tmp = LinearDemandModel("tmp", FEATURE_NAMES, mean, scale, coef,
+    tmp = LinearDemandModel('tmp', FEATURE_NAMES, mean, scale, coef,
                             intercept, horizon_sec, metadata)
     tmp.model_id = LinearDemandModel.make_model_id(prefix, _hash_payload(tmp))
     return tmp

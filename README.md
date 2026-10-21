@@ -637,8 +637,13 @@ are deliberately untracked). Merge into `main` only as a team decision.
   confirm or correct it, and fill your contribution row. Left: answer
   resets; restyle. Note: a parked bus at A is labelled `A-Cs: CONGESTED`
   (speed 0 counts as slow).
-- **M1-B:** restyle for `ament_flake8` (mostly single quotes) and fix one
-  docstring; then delete the `PENDING_OWNER_RESTYLE` entries.
+- **M1-B:** done on branch `feature/m1b-style-reset`: all 834 `ament_flake8`
+  findings fixed (806 quote swaps done by a tokenizer script and checked to
+  give the identical Python syntax tree, 28 import-order / dict-literal /
+  docstring fixes by hand), files removed from `PENDING_OWNER_RESTYLE`;
+  `demand_predictor` answers the reset handshake (clears its 60 s history →
+  `valid=false` warm-up again) and is a reset participant with
+  `perception:=true` (live: `acks=7`). Left: report section, review.
 - **M1-A (Husan):** study [README_M1A.md](README_M1A.md) and the code before
   the defence; record a lab video and hand-label at least 100 frames for the
   §8.3 video MAE / precision / recall (tools: `video_publisher`, `detector:=hog`).
@@ -698,7 +703,8 @@ it has copy-paste code and a table of what each person connects.
 >    writes `sX_check.json` with PASS/FAIL per rule (§11.3 / §12.3 / §15.3);
 > 3. run it, keep the JSON + a rosbag, put them in `evidence/<you>/`;
 > 4. write your report section with those numbers.
-- **Tuymurod (M1-B):** fix the code style (single quotes) + answer resets.
+- **Tuymurod (M1-B):** code style ✅ + resets ✅ (done for him) — read the
+  diff on `feature/m1b-style-reset`, write your report part.
 Each person: own branch → `docker/hub.sh test` green → pull request into
 `integration/current-team-work`.
 

@@ -78,7 +78,7 @@ Ridge beats persistence by −0.292 MAE (95 % CI −0.543 … −0.044), better 
 
 !img ../../src/smart_hub/results/forecast_examples.png | Figure 4 — S2 forecast examples (M1-B). | 14
 
-T04 was run with the coordinator (section 7) using a checker in place of the forecaster; **TODO (M1-B):** restyle files for `ament_flake8`.
+T04 was run with the coordinator (section 7) using a checker in place of the forecaster. The predictor now takes part in the scenario reset handshake: a reset drops its 60 s history so the next forecast is invalid until warm-up completes, and its files pass `ament_flake8` / `ament_pep257`.
 
 ## 6. M2-A — bus manager and docking (S3)
 

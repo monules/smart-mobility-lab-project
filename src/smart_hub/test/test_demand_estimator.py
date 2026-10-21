@@ -1,6 +1,6 @@
 import unittest
 
-from smart_hub.demand.estimator import INVALID_VALUE, DemandEstimator
+from smart_hub.demand.estimator import DemandEstimator, INVALID_VALUE
 from smart_hub.demand.models import PersistenceModel
 
 
@@ -16,11 +16,11 @@ def feed(est, seconds, count=4, start=0.0, valid=True, conf=0.9):
 
 
 class Exploding:
-    model_id = "exploding"
+    model_id = 'exploding'
     horizon_sec = 30
 
     def predict(self, features):
-        raise RuntimeError("boom")
+        raise RuntimeError('boom')
 
 
 class TestEstimator(unittest.TestCase):
@@ -30,7 +30,7 @@ class TestEstimator(unittest.TestCase):
     def test_warmup_then_valid(self):
         preds = feed(self.est, 61)
         self.assertTrue(all(not p.valid for p in preds[:59]))
-        self.assertTrue(all(p.reason == "WARMUP" for p in preds[:59]))
+        self.assertTrue(all(p.reason == 'WARMUP' for p in preds[:59]))
         self.assertTrue(preds[59].valid)
         self.assertEqual(preds[59].predicted_count, 4.0)
         self.assertEqual(preds[59].baseline_count, 4.0)
@@ -51,7 +51,7 @@ class TestEstimator(unittest.TestCase):
         # freeze must already be invalid (< 1.2 s requirement).
         p = self.est.tick(70.85, 70.85)
         self.assertFalse(p.valid)
-        self.assertEqual(p.reason, "STALE_INPUT")
+        self.assertEqual(p.reason, 'STALE_INPUT')
         self.assertEqual(p.baseline_count, INVALID_VALUE)
 
     def test_frozen_source_stamp_is_stale(self):
@@ -59,7 +59,7 @@ class TestEstimator(unittest.TestCase):
         for k in range(10):  # same stamp re-sent for 2 s
             r = self.est.on_queue(4, True, 0.9, 69.8, 70 + k * 0.2,
                                   70 + k * 0.2)
-            self.assertEqual(r, "FROZEN_STAMP")
+            self.assertEqual(r, 'FROZEN_STAMP')
         p = self.est.tick(71.05, 71.05)
         self.assertFalse(p.valid)
 
@@ -77,13 +77,13 @@ class TestEstimator(unittest.TestCase):
 
     def test_rejections(self):
         e = self.est
-        self.assertEqual(e.on_queue(3, False, 0.9, 1, 1, 1), "INVALID_FLAG")
-        self.assertEqual(e.on_queue(3, True, 0.1, 1, 1, 1), "LOW_CONFIDENCE")
-        self.assertEqual(e.on_queue(-1, True, 0.9, 1, 1, 1), "BAD_COUNT")
-        self.assertEqual(e.on_queue(float("nan"), True, 0.9, 1, 1, 1),
-                         "BAD_COUNT")
-        self.assertEqual(e.on_queue(3, True, 0.9, 5.0, 1, 1), "FUTURE_STAMP")
-        self.assertEqual(e.on_queue(3, True, 0.9, 1.0, 1, 1), "ACCEPTED")
+        self.assertEqual(e.on_queue(3, False, 0.9, 1, 1, 1), 'INVALID_FLAG')
+        self.assertEqual(e.on_queue(3, True, 0.1, 1, 1, 1), 'LOW_CONFIDENCE')
+        self.assertEqual(e.on_queue(-1, True, 0.9, 1, 1, 1), 'BAD_COUNT')
+        self.assertEqual(e.on_queue(float('nan'), True, 0.9, 1, 1, 1),
+                         'BAD_COUNT')
+        self.assertEqual(e.on_queue(3, True, 0.9, 5.0, 1, 1), 'FUTURE_STAMP')
+        self.assertEqual(e.on_queue(3, True, 0.9, 1.0, 1, 1), 'ACCEPTED')
 
     def test_invalid_message_cancels_pending_sample(self):
         feed(self.est, 70)
@@ -97,14 +97,14 @@ class TestEstimator(unittest.TestCase):
         self.est.tick(71.05, 71.05)  # gap second
         preds = feed(self.est, 32, start=71.2)
         reasons = [p.reason for p in preds]
-        self.assertEqual(reasons[:30], ["GAP_RECOVERY"] * 30)
+        self.assertEqual(reasons[:30], ['GAP_RECOVERY'] * 30)
         self.assertTrue(preds[30].valid)
 
     def test_model_fault_gives_invalid_not_crash(self):
         e = DemandEstimator(Exploding())
         p = feed(e, 61)[-1]
         self.assertFalse(p.valid)
-        self.assertEqual(p.reason, "MODEL_ERROR")
+        self.assertEqual(p.reason, 'MODEL_ERROR')
 
     def test_inference_latency_under_100ms(self):
         preds = [p for p in feed(self.est, 300) if p.valid]
@@ -118,5 +118,5 @@ class TestEstimator(unittest.TestCase):
             DemandEstimator(PersistenceModel(), confidence_min=1.5)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

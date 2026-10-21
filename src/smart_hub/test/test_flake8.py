@@ -10,13 +10,6 @@ from ament_flake8.main import main_with_errors
 import pytest
 
 PENDING_OWNER_RESTYLE = [
-    # M1-B (Tuymurod): 834 findings, 806 of them Q000 double quotes
-    './scripts/train_demand_model.py',
-    './smart_hub/demand',
-    './smart_hub/demand_predictor.py',
-    './smart_hub/fake_queue_publisher.py',
-    './launch/demand_demo.launch.py',
-    './test/test_demand_*.py',
     # M2-B (Arkar): semicolons, one-line ifs, import order, long lines
     './smart_hub/coordinator_core.py',
     './smart_hub/hub_coordinator.py',

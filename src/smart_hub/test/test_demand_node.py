@@ -10,11 +10,11 @@ import importlib.util
 import time
 import unittest
 
-HAVE_ROS = (importlib.util.find_spec("rclpy") is not None
-            and importlib.util.find_spec("smart_hub_interfaces") is not None)
+HAVE_ROS = (importlib.util.find_spec('rclpy') is not None
+            and importlib.util.find_spec('smart_hub_interfaces') is not None)
 
 
-@unittest.skipUnless(HAVE_ROS, "ROS 2 (rclpy + smart_hub_interfaces) needed")
+@unittest.skipUnless(HAVE_ROS, 'ROS 2 (rclpy + smart_hub_interfaces) needed')
 class TestDemandPredictorNode(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -32,8 +32,8 @@ class TestDemandPredictorNode(unittest.TestCase):
         import smart_hub.demand_predictor as dp
         self.dp = dp
         self.node = dp.DemandPredictor(parameter_overrides=[
-            Parameter("warmup_sec", value=31),
-            Parameter("run_id", value="unit-test"),
+            Parameter('warmup_sec', value=31),
+            Parameter('run_id', value='unit-test'),
         ])
         # Fake monotonic clock so a 'second' passes per tick without sleeping.
         self.mono = [1000.0]
@@ -49,7 +49,7 @@ class TestDemandPredictorNode(unittest.TestCase):
         self.mono[0] = 1000.0 + k
         if send:
             msg = QueueState()
-            msg.zone_id = "Q"
+            msg.zone_id = 'Q'
             msg.count = count
             msg.confidence = 0.9
             msg.valid = True
@@ -64,7 +64,7 @@ class TestDemandPredictorNode(unittest.TestCase):
         outs = [self.second(k) for k in range(31)]
         self.assertTrue(all(not o.valid for o in outs[:30]))
         self.assertTrue(all(o.predicted_count == -1.0 for o in outs[:30]))
-        self.assertTrue(outs[30].valid, "first valid forecast")
+        self.assertTrue(outs[30].valid, 'first valid forecast')
         self.assertGreaterEqual(outs[30].predicted_count, 0.0)
         self.assertEqual(outs[30].baseline_count, 4.0)
         self.assertEqual(outs[30].horizon_sec, 30)
@@ -76,7 +76,7 @@ class TestDemandPredictorNode(unittest.TestCase):
 
         recovery = [self.second(k) for k in range(32, 63)]
         self.assertTrue(all(not o.valid for o in recovery[:30]))
-        self.assertTrue(recovery[30].valid, "valid again after gap")
+        self.assertTrue(recovery[30].valid, 'valid again after gap')
 
     def test_valid_output_stamp_is_observation_time(self):
         from smart_hub_interfaces.msg import QueueState
@@ -84,7 +84,7 @@ class TestDemandPredictorNode(unittest.TestCase):
             self.second(k)
         self.mono[0] = 1030.0
         msg = QueueState()
-        msg.zone_id = "Q"
+        msg.zone_id = 'Q'
         msg.count = 5
         msg.confidence = 0.9
         msg.valid = True
@@ -101,7 +101,7 @@ class TestDemandPredictorNode(unittest.TestCase):
     def test_wrong_zone_ignored(self):
         from smart_hub_interfaces.msg import QueueState
         msg = QueueState()
-        msg.zone_id = "C"
+        msg.zone_id = 'C'
         msg.count = 9
         msg.confidence = 0.9
         msg.valid = True
@@ -109,6 +109,26 @@ class TestDemandPredictorNode(unittest.TestCase):
         self.node.on_queue(msg)
         self.assertEqual(self.node._wrong_zone, 1)
 
+    def test_scenario_reset_clears_history_and_acknowledges_once(self):
+        from smart_hub_interfaces.msg import HubEvent
+        sent = []
+        self.node.events.publish = sent.append         # capture instead of sending
 
-if __name__ == "__main__":
+        def acks():
+            return [(a.event, a.entity_id, a.correlation_id) for a in sent
+                    if a.event == 'RESET_ACK']
+        for k in range(40):
+            out = self.second(k)
+        self.assertTrue(out.valid)
+        req = HubEvent(event='SCENARIO_RESET_REQUEST', correlation_id='S1-s2-r2')
+        self.node.on_hub_event(req)
+        self.node.on_hub_event(req)                    # resent request: ack again
+        self.assertEqual(acks(), [('RESET_ACK', 'demand_predictor', 'S1-s2-r2')] * 2)
+        out = self.second(40)
+        self.assertFalse(out.valid, 'old history must not survive a reset')
+        self.node.on_hub_event(HubEvent(event='BUS_PHASE'))   # other events ignored
+        self.assertEqual(len(acks()), 2)
+
+
+if __name__ == '__main__':
     unittest.main()
