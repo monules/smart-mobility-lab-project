@@ -6,3 +6,5 @@ output/
 __pycache__/
 *.pyc
 .DS_Store
+# raw lab videos are large; keep them out of git (evidence goes in the submission)
+videos/

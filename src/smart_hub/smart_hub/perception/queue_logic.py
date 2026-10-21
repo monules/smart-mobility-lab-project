@@ -26,6 +26,7 @@ class QueueLogic:
         self.last_rx = None            # monotonic receipt time of the last frame
         self.last_stamp = None         # source stamp of the last frame (s)
         self.stamp_changed_at = None   # receipt time when the stamp last advanced
+        self.last_update = None        # receipt time of the last frame the tracker saw
         self.crossing_seen_at = None   # last time someone was inside C
         self.scores = {}               # track id -> latest detector score
         self.events = []               # ('QUEUE_VALID' | 'QUEUE_INVALID', reason)
@@ -40,6 +41,7 @@ class QueueLogic:
         else:
             return                     # repeated/old frame: a frozen source
         self.tracker.update([(x, y) for x, y, _ in people], now)
+        self.last_update = now
         for tr in self.tracker.tracks:
             if tr.last_seen == now:
                 best = min(people, key=lambda p: (p[0] - tr.x) ** 2 + (p[1] - tr.y) ** 2)
@@ -65,7 +67,10 @@ class QueueLogic:
         if not valid:
             return {'count': 0, 'confidence': 0.0, 'valid': False,
                     'crossing_occupied': True, 'stamp': None, 'reason': reason}
-        counted = self.tracker.counted(now)
+        # Judge the count at the last frame, not now: missing frames are no
+        # evidence that people left. Without this, a silent feed decays to a
+        # 'valid' zero before the 1 s stale rule turns the state invalid.
+        counted = self.tracker.counted(self.last_update)
         in_queue = [tr for tr in counted if point_in_polygon(tr.x, tr.y, QUEUE_Q)]
         scores = [self.scores.get(tr.track_id, 1.0) for tr in in_queue]
         crossing = (self.crossing_seen_at is not None

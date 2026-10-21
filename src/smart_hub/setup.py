@@ -31,6 +31,7 @@ setup(
             'passenger_detector = smart_hub.passenger_detector:main',
             'video_publisher = smart_hub.video_publisher:main',
             's1_check = smart_hub.s1_check:main',
+            'video_eval = smart_hub.video_eval:main',
             # M1-B (AI demand prediction, S2)
             'demand_predictor = smart_hub.demand_predictor:main',
             'fake_queue_publisher = smart_hub.fake_queue_publisher:main',
