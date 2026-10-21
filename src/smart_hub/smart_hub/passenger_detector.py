@@ -3,6 +3,7 @@
 Subscribes  /camera/image_raw  sensor_msgs/Image (bgr8/rgb8/mono8)  sensor QoS, 10 Hz
 Publishes   /hub/queue         smart_hub_interfaces/QueueState      R10, 5 Hz
             /hub/events        HubEvent                             R100, transitions
+Listens     /hub/events        SCENARIO_RESET_REQUEST -> forget tracks, RESET_ACK
 
 Pipeline per frame (assignment 8.2): detect people -> foot point of each box
 -> homography to the floor (metres) -> track ids over time -> count
@@ -24,7 +25,7 @@ from smart_hub.perception.detectors import foot, make_detector
 from smart_hub.perception.homography import fit_homography, image_to_map
 from smart_hub.perception.queue_logic import QueueLogic
 from smart_hub.perception.tracker import Tracker
-from smart_hub.ros_common import declare, R10, R100
+from smart_hub.ros_common import declare, R10, R100, reset_ack, RESET_REQUEST
 from smart_hub_interfaces.msg import HubEvent, QueueState
 
 # Default calibration: the four painted corners of queue Q as they appear in
@@ -66,17 +67,33 @@ class PassengerDetector(Node):
             foot_offset=p['hog_foot_offset'], max_gray=p['blob_max_gray'],
             min_area=p['blob_min_area'])
         self.h = fit_homography(p['image_points'], p['map_points'])
-        tracker = Tracker(p['match_distance_m'], p['confirm_sec'], p['hold_sec'],
-                          p['occlusion_keep_sec'])
-        self.logic = QueueLogic(p['stale_timeout_sec'], p['crossing_clear_sec'], tracker)
+        self.params = p
+        self.logic = self._new_logic()
+        self._reset_id = None
         self.zone_id, self.run_id, self.scenario_id = p['zone_id'], p['run_id'], p['scenario_id']
         self.rejected = 0
         self.pub = self.create_publisher(QueueState, '/hub/queue', R10)
         self.event_pub = self.create_publisher(HubEvent, '/hub/events', R100)
         self.create_subscription(Image, '/camera/image_raw', self.on_image,
                                  qos_profile_sensor_data)
+        self.create_subscription(HubEvent, '/hub/events', self.on_hub_event, R100)
         self.create_timer(1.0 / p['publish_rate_hz'], self.publish)
         self.get_logger().info('passenger_detector ready: detector=%s' % self.detector.name)
+
+    def _new_logic(self):
+        p = self.params
+        tracker = Tracker(p['match_distance_m'], p['confirm_sec'], p['hold_sec'],
+                          p['occlusion_keep_sec'])
+        return QueueLogic(p['stale_timeout_sec'], p['crossing_clear_sec'], tracker)
+
+    def on_hub_event(self, msg):
+        """Scenario reset (contract §7): forget every track, then acknowledge."""
+        if msg.event != RESET_REQUEST:
+            return
+        if msg.correlation_id != self._reset_id:     # once per run id
+            self._reset_id = msg.correlation_id
+            self.logic = self._new_logic()           # invalid until new frames arrive
+        self.event_pub.publish(reset_ack(self, msg.correlation_id, 'tracks cleared'))
 
     @staticmethod
     def _validate(p):

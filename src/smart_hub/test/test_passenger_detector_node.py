@@ -70,3 +70,21 @@ class TestPassengerDetectorNode(unittest.TestCase):
                     Parameter('occlusion_keep_sec', value=0.1)):
             with self.assertRaises(ValueError):
                 PassengerDetector(context=self.ctx, parameter_overrides=[bad]).destroy_node()
+
+    def test_scenario_reset_clears_tracks_once_per_run(self):
+        from smart_hub.passenger_detector import PassengerDetector
+        from smart_hub.ros_common import RESET_REQUEST
+        from smart_hub_interfaces.msg import HubEvent
+        node = PassengerDetector(context=self.ctx)
+        try:
+            node.logic.on_frame([(3.0, 6.0, 1.0)], 1.0, 1.0)
+            node.logic.on_frame([(3.0, 6.0, 1.0)], 1.5, 1.5)
+            before = node.logic
+            node.on_hub_event(HubEvent(event=RESET_REQUEST, correlation_id='S1-s1-r2'))
+            after = node.logic
+            self.assertIsNot(before, after)
+            self.assertEqual(after.state(1.6)['reason'], 'NO_IMAGE')   # unknown, not zero
+            node.on_hub_event(HubEvent(event=RESET_REQUEST, correlation_id='S1-s1-r2'))
+            self.assertIs(node.logic, after)                            # resend: no 2nd reset
+        finally:
+            node.destroy_node()
