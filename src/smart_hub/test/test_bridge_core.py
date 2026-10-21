@@ -67,3 +67,15 @@ def test_door_waits_for_bus_to_settle_and_blocks_motion():
 def test_invalid_config_rejected():
     with pytest.raises(ValueError):
         BridgeCore(BridgeConfig(command_timeout=0.0))
+
+
+def test_scenario_reset_zeroes_output_and_closes_door():
+    b = BridgeCore()
+    b.on_command('robot', 0.2, 0.0, T0)
+    b.on_command('bus', 0.0, 0.0, T0)
+    b.on_door_request(True)
+    b.tick(T0 + 0.6)
+    assert b.tick(T0 + 0.6)[1] is True
+    b.reset()
+    out, door, _ = b.tick(T0 + 0.65)
+    assert out == {'robot': (0.0, 0.0), 'bus': (0.0, 0.0)} and door is False

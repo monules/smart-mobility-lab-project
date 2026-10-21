@@ -113,3 +113,21 @@ def test_safety_text_shows_latch_and_reason():
     assert text_of(m, 'status', 1) == 'last event: safety_supervisor STOP_LATCHED ESTOP'
     c.on_safety(False, 'OK', T0)
     assert text_of(c.build(T0), 'status', 0) == 'SAFETY: OK (OK)'
+
+
+def test_routes_drawn_cleared_and_reset():
+    c = MarkerCore()
+    path = [(3.0, 6.0), (5.0, 6.0), (5.0, 4.0), (5.0, 2.0), (9.0, 2.0), (9.0, 1.0)]
+    c.on_route('robot', path)
+    c.on_route('bus', [(1.0, 2.0)])                     # one point: not a route
+    routes = by_ns(c.build(T0 + 100.0), 'routes')       # plans never go stale
+    assert [m['type'] for m in routes] == ['line_strip', 'text']
+    assert routes[0]['points'] == path and routes[1]['text'] == 'robot goal'
+    assert routes[1]['pos'][:2] == (9.0, 1.3)
+    c.on_route('robot', [])                             # empty Path clears the route
+    assert by_ns(c.build(T0), 'routes') == []
+    c.on_route('robot', path)
+    c.on_safety(True, 'ESTOP', T0)
+    c.reset()
+    m = c.build(T0)
+    assert by_ns(m, 'routes') == [] and text_of(m, 'status', 0).startswith('SAFETY: UNKNOWN')

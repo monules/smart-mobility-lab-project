@@ -30,6 +30,24 @@ def stamp_age(node, stamp):
     return (node.get_clock().now() - Time.from_msg(stamp)).nanoseconds / 1e9
 
 
+#: Reset handshake on /hub/events (docs/INTEGRATION_CONTRACT.md §7).
+#: scenario_runner publishes RESET_REQUEST with correlation_id = new run id;
+#: every participating node resets itself, then publishes RESET_ACK with
+#: entity_id = its node name and the same correlation_id.
+RESET_REQUEST = 'SCENARIO_RESET_REQUEST'
+RESET_ACK = 'RESET_ACK'
+
+
+def reset_ack(node, run_id, reason='OK'):
+    """Build the HubEvent that acknowledges a scenario reset for run_id."""
+    from smart_hub_interfaces.msg import HubEvent
+    ev = HubEvent()
+    ev.header.stamp = node.get_clock().now().to_msg()
+    ev.run_id, ev.correlation_id = run_id, run_id
+    ev.entity_id, ev.event, ev.reason = node.get_name(), RESET_ACK, reason
+    return ev
+
+
 def declare(node, defaults):
     """Declare parameters from {name: default}; return {name: value}."""
     return {name: node.declare_parameter(name, default).value

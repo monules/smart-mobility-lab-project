@@ -332,3 +332,27 @@ def test_hold_events_only_on_transitions():
 def test_invalid_config_rejected(field, value):
     with pytest.raises(ValueError):
         SafetyCore(SafetyConfig(**{field: value}))
+
+
+# ------------------------------------------------------------ scenario reset
+def test_scenario_reset_forgets_samples_but_keeps_latch():
+    core = ready_core()
+    core.on_command('robot', 0.2, 0.0, T0, 0.0)
+    core.on_estop(True, T0)
+    reason = core.reset_inputs()
+    assert reason == 'inputs cleared; stop_latched=True'
+    d = core.tick(T0 + 0.01)
+    assert d.stop_latched and d.commands['robot'] == (0.0, 0.0)
+    assert 'ODOM_STALE' in d.holds['robot'] and 'VEHICLES_STALE' in d.reason
+    ok, why = core.request_clear(T0 + 0.01)       # reset is no way around clear_stop
+    assert not ok and 'ESTOP_ASSERTED' in why
+
+
+def test_scenario_reset_without_latch_still_holds_until_fresh_data():
+    core = ready_core()
+    core.on_command('robot', 0.2, 0.0, T0, 0.0)
+    core.reset_inputs()
+    assert core.tick(T0).commands['robot'] == (0.0, 0.0)
+    feed(core, T0 + 0.1)
+    core.on_command('robot', 0.2, 0.0, T0 + 0.1, 0.0)
+    assert core.tick(T0 + 0.1).commands['robot'] == (0.2, 0.0)

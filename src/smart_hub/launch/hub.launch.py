@@ -21,7 +21,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -34,6 +34,11 @@ def generate_launch_description():
     out = LaunchConfiguration('output_dir')
     estop = LaunchConfiguration('publish_estop')
     perception = LaunchConfiguration('perception')
+    # Nodes that must acknowledge /scenario/reset (contract §7). M1-B's
+    # demand_predictor does not implement the handshake yet, so it is left out.
+    participants = PythonExpression([
+        "'safety_supervisor,actuator_bridge,metrics_logger,dashboard_marker_publisher'"
+        " + (',passenger_detector' if '", perception, "' == 'true' else '')"])
     return LaunchDescription([
         DeclareLaunchArgument('scenario', default_value='S9'),
         DeclareLaunchArgument('seed', default_value='9'),
@@ -43,7 +48,8 @@ def generate_launch_description():
         DeclareLaunchArgument('perception', default_value='false'),
         Node(package='smart_hub', executable='scenario_runner', name='scenario_runner',
              output='screen',
-             parameters=[{'scenario': scenario, 'seed': seed, 'publish_estop': estop}]),
+             parameters=[{'scenario': scenario, 'seed': seed, 'publish_estop': estop,
+                          'reset_participants': participants}]),
         Node(package='smart_hub', executable='safety_supervisor', name='safety_supervisor',
              output='screen', parameters=[cfg, {'scenario_id': scenario}]),
         Node(package='smart_hub', executable='actuator_bridge', name='actuator_bridge',

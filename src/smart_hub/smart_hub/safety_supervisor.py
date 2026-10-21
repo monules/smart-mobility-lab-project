@@ -7,6 +7,7 @@ Subscribes  /robot/cmd_vel_candidate  geometry_msgs/TwistStamped  R1   (M4)
             /crossing/state           CrossingState               R1T  (M2-B)
             /bus/door_open            std_msgs/Bool               R1   (actuator_bridge)
             /hub/estop                std_msgs/Bool               R1T  (operator/runner)
+            /hub/events               HubEvent                    R100 (reset requests)
 Publishes   /robot/cmd_vel, /bus/cmd_vel  geometry_msgs/Twist     R1, 20 Hz
             /hub/safety               SafetyState                 R1T, 10 Hz + on change
             /hub/events               HubEvent                    R100, transitions only
@@ -24,7 +25,8 @@ from geometry_msgs.msg import Twist, TwistStamped
 from nav_msgs.msg import Odometry
 import rclpy
 from rclpy.node import Node
-from smart_hub.ros_common import declare, R1, R10, R100, R1T, stamp_age
+from smart_hub.ros_common import (declare, R1, R10, R100, R1T, reset_ack,
+                                  RESET_REQUEST, stamp_age)
 from smart_hub.safety_core import SafetyConfig, SafetyCore
 from smart_hub_interfaces.msg import CrossingState, HubEvent, SafetyState, VehicleStateArray
 from smart_hub_interfaces.srv import ClearSafetyStop
@@ -46,6 +48,7 @@ class SafetySupervisor(Node):
         self.run_id, self.scenario_id = p['run_id'], p['scenario_id']
         self.stop_seq = 0
         self._episode_open = False
+        self._reset_id, self._reset_reason = None, ''
         self.rejected = 0                       # messages refused (bad stamp/NaN)
         self._tick_count = 0
         self._last_latched = False
@@ -63,6 +66,7 @@ class SafetySupervisor(Node):
         self.create_subscription(CrossingState, '/crossing/state', self.on_crossing, R1T)
         self.create_subscription(Bool, '/bus/door_open', self.on_door, R1)
         self.create_subscription(Bool, '/hub/estop', self.on_estop, R1T)
+        self.create_subscription(HubEvent, '/hub/events', self.on_hub_event, R100)
         self.create_service(ClearSafetyStop, '/safety/clear_stop', self.on_clear)
         self.create_timer(1.0 / p['rate_hz'], self.tick)
         self.get_logger().info('safety_supervisor ready: %s' % self.core.cfg)
@@ -116,6 +120,18 @@ class SafetySupervisor(Node):
             self._flush_events()
             self._event('ESTOP_ZERO_OUTPUT', 'safety_supervisor',
                         'receipt_to_zero_ms=%.3f' % ((t_out - t_rx) * 1000.0))
+
+    def on_hub_event(self, msg):
+        if msg.event != RESET_REQUEST:
+            return
+        if msg.correlation_id != self._reset_id:
+            # First request for this run: forget old samples (every agent is
+            # held until fresh data), keep the latch, output zero now.
+            self._reset_reason = self.core.reset_inputs()
+            self._reset_id = msg.correlation_id
+            self._publish_zero()
+        # Repeated request (a lost ack): acknowledge again, do not reset again.
+        self.event_pub.publish(reset_ack(self, msg.correlation_id, self._reset_reason))
 
     def on_clear(self, req, res):
         ok, reason = self.core.request_clear(time.monotonic())

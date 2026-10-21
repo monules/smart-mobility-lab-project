@@ -35,6 +35,9 @@ EDGE_OVERLAY = (('BLOCKED', 0, (1.0, 0.1, 0.1, 1.0)),
                 ('UNKNOWN', 1, (0.25, 0.25, 0.25, 1.0)),
                 ('DENSE', 2, (1.0, 0.55, 0.0, 1.0)))
 DENSITY_THRESHOLD = 0.70
+# Planned routes from /robot/route and /bus/route (nav_msgs/Path, contract §3).
+ROUTE_AGENTS = ('robot', 'bus')
+ROUTE_COLOR = {'robot': (0.0, 0.9, 1.0, 0.9), 'bus': (1.0, 0.6, 0.0, 0.9)}
 
 
 def rect_marker(ns, mid, rect, color, z=0.0):
@@ -64,7 +67,24 @@ class MarkerCore:
         self.safety = None       # ((stop_latched, reason), receipt time)
         self.demand = None       # ((valid, predicted, baseline, horizon), receipt time)
         self.edges = None        # ({edge_id: (blocked, valid, density)}, receipt time)
+        self.routes = {}         # agent ('robot'/'bus') -> [(x, y), ...] current plan
         self.last_event = ''
+
+    def reset(self):
+        """Scenario reset: forget every received state (redrawn as UNKNOWN)."""
+        self.__init__(self.stale_after)
+
+    def on_route(self, agent, points):
+        """Store the current route of agent from /<agent>/route; empty = no route.
+
+        Routes are plans, not sensor samples: they are latched by the manager
+        (transient-local) and stay drawn until replaced or cleared, so no
+        staleness timeout applies.
+        """
+        if len(points) >= 2:
+            self.routes[agent] = [(float(x), float(y)) for x, y in points]
+        else:
+            self.routes.pop(agent, None)
 
     def on_vehicles(self, vehicles, now):
         self.vehicles = (list(vehicles), now)
@@ -130,6 +150,15 @@ class MarkerCore:
                   'points': EDGE_POINTS})
 
         m += self._edge_overlays(now)
+        for i, agent in enumerate(ROUTE_AGENTS):
+            points = self.routes.get(agent)
+            if points:
+                m.append({'ns': 'routes', 'id': i, 'type': 'line_strip',
+                          'pos': (0.0, 0.0, 0.05), 'scale': (0.08, 0.0, 0.0),
+                          'color': ROUTE_COLOR[agent], 'points': points})
+                gx, gy = points[-1]
+                m.append(text_marker('routes', 10 + i, gx, gy + 0.3,
+                                     '%s goal' % agent, 0.22, ROUTE_COLOR[agent]))
         m.append(text_marker('queue', 2, 4.0, 5.3, self._demand_text(now), 0.25))
 
         crossing = self._fresh(self.crossing, now) or ('UNKNOWN', '')
