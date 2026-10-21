@@ -74,12 +74,64 @@ def test_injected_event_and_bad_events():
     sim = HubSim(SCENARIO, seed=1)
     sim.apply_event({'type': 'parking', 'slot': 'P2', 'state': 'offline'})
     assert sim.parking['P2'] == 'offline'
-    for bad in ({'type': 'teleport'}, {'type': 'freeze', 'topic': 'camera', 'duration': 1},
+    for bad in ({'type': 'teleport'}, {'type': 'freeze', 'topic': 'lidar', 'duration': 1},
                 {'type': 'estop', 'value': 'yes'}):
         with pytest.raises(ValueError):
             sim.apply_event(bad)
     assert not sim.set_command('O', 1.0, 0.0)       # obstacles cannot be driven
     assert not sim.set_command('robot_1', math.nan, 0.0)
+
+
+def test_pedestrians_appear_hide_walk_and_leave():
+    sim = HubSim({'scenario_id': 'P', 'events': [
+        {'t': 0.5, 'type': 'pedestrian', 'id': 'p1', 'x': 3.0, 'y': 6.0, 'vx': 0.2},
+        {'t': 1.0, 'type': 'occlude', 'id': 'p1', 'duration': 0.3},
+        {'t': 2.0, 'type': 'pedestrian', 'id': 'p1', 'active': False}]}, seed=1)
+    seen = {}
+    for _ in range(int(round(2.5 / DT))):
+        sim.step()
+        seen[round(sim.t, 2)] = sim.camera_people()
+    assert seen[0.25] == []
+    assert seen[0.6] == [(pytest.approx(3.0 + 0.2 * 0.10), 6.0)]   # 2 steps of walking
+    assert seen[1.15] == []                                         # occluded 0.3 s
+    assert len(seen[1.4]) == 1
+    assert seen[2.1] == [] and 'p1' not in sim.pedestrians
+
+
+def test_camera_freeze_modes_validate():
+    sim = HubSim(SCENARIO, seed=1)
+    for topic in ('camera', 'camera_repeat'):
+        sim.apply_event({'type': 'freeze', 'topic': topic, 'duration': 1.0})
+        assert sim.is_frozen(topic)
+    for bad in ({'type': 'pedestrian', 'id': 'p9'}, {'type': 'occlude', 'id': 'p1'}):
+        with pytest.raises(ValueError):
+            sim.apply_event(bad)
+
+
+@pytest.mark.parametrize('name', ['S1', 'S9'])
+def test_shipped_scenarios_are_valid(name):
+    path = os.path.join(os.path.dirname(__file__), '..', 'scenarios', name + '.yaml')
+    with open(path) as fh:
+        data = yaml.safe_load(fh)
+    assert data['scenario_id'] == name
+    sim = HubSim(data, seed=1)
+    assert {'robot_1', 'bus_1'} <= set(sim.bodies)
+
+
+def test_s1_script_matches_assignment_counts():
+    """Assignment 8.3: stable queue counts 0, 3, 5, 4 and one crossing person."""
+    path = os.path.join(os.path.dirname(__file__), '..', 'scenarios', 'S1.yaml')
+    with open(path) as fh:
+        sim = HubSim(yaml.safe_load(fh), seed=1)
+
+    def in_queue():
+        return sum(2 <= p.x <= 6 and 5 <= p.y <= 7 for p in sim.pedestrians.values())
+    counts = {}
+    while sim.t < 25.0:
+        sim.step()
+        counts[round(sim.t, 2)] = (in_queue(), len(sim.pedestrians))
+    assert [counts[t][0] for t in (4.0, 8.0, 13.0, 18.0)] == [0, 3, 5, 4]
+    assert counts[22.0] == (4, 5) and counts[24.5] == (4, 4)
 
 
 def test_shipped_s9_scenario_is_valid():

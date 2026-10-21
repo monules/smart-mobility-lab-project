@@ -40,10 +40,29 @@ case "${1:-help}" in
     in_container "" "colcon test --base-paths src --parallel-workers 1 \
       --event-handlers console_direct+ ; colcon test-result --verbose" ;;
   s9)
+    # Evidence (assignment 17, 20.2): rosbag of the safety topics, parameter
+    # dump of every M5 node, metrics and s9_check.json, all under output/.
     # ros2 launch exits 0 even when the check fails, so the verdict is read
     # from the evidence file: no file or passed=false -> nonzero exit.
-    in_container "" "mkdir -p output && rm -f output/s9_check.json && \
-      ros2 launch smart_hub s9.launch.py seed:=${2:-9} output_dir:=/ws/output; \
+    SEED="${2:-9}"
+    in_container "" "set -m
+      mkdir -p output/params && rm -rf output/s9_check.json output/bag_S9_seed$SEED
+      ros2 bag record -o output/bag_S9_seed$SEED --topics /hub/estop /hub/safety \
+        /hub/events /robot/cmd_vel_candidate /robot/cmd_vel /robot/cmd_vel_applied \
+        /bus/cmd_vel_candidate /bus/cmd_vel /robot/odom /hub/vehicles /sim/truth \
+        > output/bag_record.log 2>&1 &
+      BAG=\$!
+      sleep 2
+      ros2 launch smart_hub s9.launch.py seed:=$SEED output_dir:=/ws/output &
+      LAUNCH=\$!
+      sleep 5
+      for n in scenario_runner safety_supervisor actuator_bridge metrics_logger \
+          dashboard_marker_publisher; do
+        ros2 param dump /\$n > output/params/\$n.yaml 2>/dev/null
+      done
+      wait \$LAUNCH
+      kill -INT \$BAG; wait \$BAG
+      ros2 bag info output/bag_S9_seed$SEED > output/bag_S9_info.txt 2>&1
       python3 -c \"import json, sys; r = json.load(open('output/s9_check.json')); \
 print('S9 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
   shell) in_container "-it" "exec bash" ;;
