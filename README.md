@@ -533,6 +533,7 @@ commit `40ae6ac` unless noted, simulation only):
 | `docker/hub.sh s1` (blob baseline) | **PASSED**: counts 0, 3, 5, 4, MAE 0.000 over 127 samples; 6 tracks for 6 people; invalid 1.04 s after camera freeze (≤ 1.2 s); crossing clear 2.48 s after leaving (0.4 s debounce + 2 s hold) |
 | `docker/hub.sh s1 hog` (pretrained HOG) | passes the thresholds only just: MAE 1.000 (limit ≤ 1), recall 4/6 people on the synthetic figures — HOG is meant for real video |
 | Camera / odometry rate with camera on | 10.00 Hz / 20.00 Hz |
+| Reset handshake + routes (`750248f`) | `/scenario/reset` → `acks=4` (`acks=5` with `perception:=true`), latch kept across the reset; a `/robot/route` Path appears on `/hub/markers`; full suite 178 passed, 2 xfailed; S9 PASSED (T16 0.7 ms); S1 PASSED (MAE 0.000) |
 | Nonzero output while latched | 0 |
 | M1-B S2 runtime with M5 stack | `/hub/demand` 1 Hz, valid after warm-up; dashboard shows the forecast |
 | M2-B / M3 against these interfaces | crossing granted, then denied with `SAFETY_STOP` after an e-stop; parking/edge states consumed (scratch workspace, not merged) |
