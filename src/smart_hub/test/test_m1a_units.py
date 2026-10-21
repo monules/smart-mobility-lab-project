@@ -139,3 +139,17 @@ def test_confidence_is_mean_detector_score():
     q = QueueLogic()
     run(q, [(3.0, 6.0, 0.6), (4.0, 6.0, 0.8)], 0.0, 1.0)
     assert math.isclose(q.state(1.0)['confidence'], 0.7, abs_tol=1e-9)
+
+
+def test_silent_feed_never_reports_a_valid_zero():
+    """Hold the count until the state turns invalid; never report a valid zero.
+
+    Found in the S1 count-vs-truth plot: after a freeze the count fell to 0
+    while still valid.
+    """
+    q = QueueLogic()
+    run(q, [(3.0, 6.0, 1.0), (4.0, 6.0, 1.0)], 0.0, 1.0)
+    for now in (1.2, 1.5, 1.8, 2.0):                    # no frames after 1.0 s
+        s = q.state(now)
+        assert s['valid'] and s['count'] == 2, (now, s)
+    assert not q.state(2.1)['valid']

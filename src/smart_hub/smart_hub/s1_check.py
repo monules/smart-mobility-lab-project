@@ -10,7 +10,8 @@ confirmations) while scenario S1 runs, then checks assignment 8.3:
   T02  invalid within 1.2 s of the camera freeze
   S1   crossing occupied while a person is in C and for the 2 s clear hold
 
-Writes <output_dir>/s1_check.json; exit code 0 only if every check passed.
+Writes <output_dir>/s1_check.json, s1_timeseries.csv and s1_count_vs_truth.png
+(the count-versus-truth plot of 8.3); exit code 0 only if every check passed.
 """
 import json
 import os
@@ -141,6 +142,43 @@ class S1Check(Node):
         return results
 
 
+def write_timeseries(node, out):
+    """Save truth and detector output over time, as CSV and as a plot."""
+    if not node.truth:
+        return
+    t0 = node.truth[0][0]
+    with open(os.path.join(out, 's1_timeseries.csv'), 'w') as fh:
+        fh.write('t,source,count,valid,crossing\n')
+        for t, q, c in node.truth:
+            fh.write('%.3f,truth,%d,1,%d\n' % (t - t0, q, c))
+        for t, count, valid, c in node.reported:
+            fh.write('%.3f,detector,%d,%d,%d\n' % (t - t0, count, valid, c))
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 4.5), sharex=True)
+    ax1.step([t - t0 for t, _, _ in node.truth], [q for _, q, _ in node.truth],
+             where='post', linewidth=2, label='truth (simulator)')
+    rep = [(t - t0, n) for t, n, valid, _ in node.reported if valid]
+    ax1.plot([t for t, _ in rep], [n for _, n in rep], '.', markersize=3,
+             label='passenger_detector (valid)')
+    if node.freeze_t is not None:
+        ax1.axvline(node.freeze_t - t0, color='red', linestyle='--', label='camera freeze')
+    ax1.set_ylabel('people in Q')
+    ax1.legend(loc='upper left', fontsize=8)
+    ax2.step([t - t0 for t, _, _ in node.truth], [int(c) for _, _, c in node.truth],
+             where='post', linewidth=2, label='truth: person in C')
+    ax2.plot([t - t0 for t, *_ in node.reported],
+             [int(c) for *_, c in node.reported], '.', markersize=3,
+             label='crossing_occupied (2 s hold; true while invalid)')
+    ax2.set_ylabel('crossing')
+    ax2.set_xlabel('time (s)')
+    ax2.legend(loc='upper left', fontsize=8)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out, 's1_count_vs_truth.png'), dpi=120)
+    plt.close(fig)
+
+
 def main(args=None):
     rclpy.init(args=args)
     node = S1Check()
@@ -155,6 +193,7 @@ def main(args=None):
         with open(path, 'w') as fh:
             json.dump({'passed': ok, 'checks': results,
                        'commit': os.environ.get('GIT_COMMIT', 'unknown')}, fh, indent=2)
+        write_timeseries(node, node.output_dir)
         print('S1 %s; evidence: %s' % ('PASSED' if ok else 'FAILED', path), flush=True)
     finally:
         node.destroy_node()
