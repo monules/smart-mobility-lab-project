@@ -21,7 +21,7 @@ from geometry_msgs.msg import Twist
 import rclpy
 from rclpy.node import Node
 from smart_hub.bridge_core import AGENTS, BridgeConfig, BridgeCore
-from smart_hub.ros_common import declare, R1, R100
+from smart_hub.ros_common import declare, R1, R100, reset_ack, RESET_REQUEST
 from smart_hub_interfaces.msg import HubEvent
 from std_msgs.msg import Bool
 
@@ -39,6 +39,7 @@ class ActuatorBridge(Node):
         self.run_id = p['run_id']
         self.barrier_requested = False
         self._tick = 0
+        self._reset_id = None
 
         self.out_pub = {a: self.create_publisher(Twist, '/%s/cmd_vel_applied' % a, R1)
                         for a in AGENTS}
@@ -51,11 +52,23 @@ class ActuatorBridge(Node):
         self.create_subscription(Bool, '/bus/door_request',
                                  lambda m: self.core.on_door_request(m.data), R1)
         self.create_subscription(Bool, '/parking/barrier_request', self.on_barrier, R1)
+        self.create_subscription(HubEvent, '/hub/events', self.on_hub_event, R100)
         self.create_timer(1.0 / p['rate_hz'], self.tick)
         self.get_logger().info('actuator_bridge ready (sim): %s' % self.core.cfg)
 
     def on_cmd(self, agent, msg):
         self.core.on_command(agent, msg.linear.x, msg.angular.z, time.monotonic())
+
+    def on_hub_event(self, msg):
+        if msg.event != RESET_REQUEST:
+            return
+        if msg.correlation_id != self._reset_id:    # once per run id
+            self._reset_id = msg.correlation_id
+            self.core.reset()                       # zero output, door closed
+            self.barrier_requested = False
+            self.tick()                             # publish the zeros now
+        self.event_pub.publish(reset_ack(self, msg.correlation_id,
+                                         'commands dropped, door closed'))
 
     def on_barrier(self, msg):
         # Simulated barrier follows the request; occupancy interlocks are in

@@ -54,6 +54,12 @@ class BridgeCore:
         self.cmd[agent] = (vx, wz, now)
         return True
 
+    def reset(self):
+        """Scenario reset: drop every command and close the door (outputs zero)."""
+        self.cmd = {a: None for a in AGENTS}
+        self.door_requested = self.door_open = False
+        self.bus_last_moving = -math.inf
+
     def on_door_request(self, want_open):
         self.door_requested = bool(want_open)
 

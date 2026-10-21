@@ -10,7 +10,8 @@ Publishes   /robot/odom        nav_msgs/Odometry       20 Hz, R10
             /hub/estop         std_msgs/Bool           10 Hz, R1T (if publish_estop)
             /camera/image_raw  sensor_msgs/Image bgr8  10 Hz, sensor QoS (if publish_camera)
             /hub/events        HubEvent                R100, scenario events
-Serves      /scenario/reset    ResetScenario
+Serves      /scenario/reset    ResetScenario (waits for RESET_ACK from every
+                               node in reset_participants, contract §7)
 
 The world advances by a fixed 0.05 s step per timer tick (assignment 3.2), so
 the same scenario file and seed give the same run. A "freeze" event stops the
@@ -22,15 +23,18 @@ Pedestrians are seen only by the camera; their true positions are in
 import json
 import math
 import os
+import time
 
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 import rclpy
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+from rclpy.task import Future
 from sensor_msgs.msg import Image
 from smart_hub import geometry as geo
-from smart_hub.ros_common import declare, R1, R10, R100, R1T
+from smart_hub.ros_common import declare, R1, R10, R100, R1T, RESET_ACK, RESET_REQUEST
 from smart_hub.sim_core import DT, HubSim
 from smart_hub_interfaces.msg import (HubEvent, SlotObservation, SlotObservationArray,
                                       VehicleState, VehicleStateArray)
@@ -40,6 +44,11 @@ import yaml
 
 # Floor outlines painted for the camera: queue Q and crossing C (assignment 2.1).
 CAMERA_FLOOR = ((2.0, 5.0, 6.0, 7.0), geo.CROSSING)
+# Nodes started by hub.launch.py that must acknowledge a reset. Launch files
+# add more (e.g. passenger_detector) through the reset_participants parameter.
+DEFAULT_PARTICIPANTS = ('safety_supervisor,actuator_bridge,metrics_logger,'
+                        'dashboard_marker_publisher')
+RESEND_SEC = 0.25    # /hub/events is volatile: repeat the request until all ack
 
 
 def default_scenario_dir():
@@ -65,8 +74,16 @@ class ScenarioRunner(Node):
         p = declare(self, {'scenario': 'S9', 'seed': 9, 'scenario_dir': '',
                            'publish_estop': True, 'robot_id': 'robot_1',
                            'bus_id': 'bus_1', 'input_timeout': 0.5,
-                           'publish_camera': True})
+                           'publish_camera': True,
+                           # nodes that must acknowledge /scenario/reset (comma list)
+                           'reset_participants': DEFAULT_PARTICIPANTS,
+                           'reset_ack_timeout': 2.0})
         self.dir = p['scenario_dir'] or default_scenario_dir()
+        self.participants = {n.strip() for n in p['reset_participants'].split(',') if n.strip()}
+        self.ack_timeout = float(p['reset_ack_timeout'])
+        if not 0.1 <= self.ack_timeout <= 10.0:
+            raise ValueError('reset_ack_timeout must be in [0.1, 10]')
+        self.pending = None                    # reset waiting for acknowledgements
         self.camera = None
         if p['publish_camera']:
             from smart_hub.camera_model import PinholeCamera   # needs OpenCV
@@ -76,7 +93,8 @@ class ScenarioRunner(Node):
         self.ids = {'robot': p['robot_id'], 'bus': p['bus_id']}
         self.input_timeout = float(p['input_timeout'])
         self.reset_count = 0
-        self._start(p['scenario'], int(p['seed']))
+        self._install(HubSim(load_scenario(self.dir, p['scenario']), int(p['seed']),
+                             self.input_timeout), p['scenario'])
 
         self.odom_pub = self.create_publisher(Odometry, '/robot/odom', R10)
         self.vehicles_pub = self.create_publisher(VehicleStateArray, '/hub/vehicles', R10)
@@ -86,23 +104,32 @@ class ScenarioRunner(Node):
         self.event_pub = self.create_publisher(HubEvent, '/hub/events', R100)
         self.camera_pub = self.create_publisher(Image, '/camera/image_raw',
                                                 qos_profile_sensor_data)
+        # One single-threaded executor runs everything, so callbacks never
+        # overlap and need no locks. The reset service is a coroutine in its
+        # own callback group: while it awaits the acknowledgements, the 20 Hz
+        # tick and the event listener (default group) keep running. In the
+        # default group the waiting service would block them (deadlock), and
+        # a multi-threaded executor slowed the tick to ~6 Hz.
         for agent in ('robot', 'bus'):
             self.create_subscription(Twist, '/%s/cmd_vel_applied' % agent,
                                      lambda m, a=agent: self.on_applied(a, m), R1)
         self.create_subscription(String, '/scenario/inject', self.on_inject, R10)
-        self.create_service(ResetScenario, '/scenario/reset', self.on_reset)
+        self.create_subscription(HubEvent, '/hub/events', self.on_event, R100)
+        self.create_service(ResetScenario, '/scenario/reset', self.on_reset,
+                            callback_group=MutuallyExclusiveCallbackGroup())
         self.create_timer(DT, self.tick)
         self._event('SCENARIO_STARTED', 'scenario_runner', 'seed=%d' % self.sim.seed)
         self.get_logger().info('scenario %s seed %d run %s' % (
             self.scenario_id, self.sim.seed, self.run_id))
 
-    def _start(self, scenario_id, seed):
-        # Load and validate first: a failed reset must leave the old run intact.
-        sim = HubSim(load_scenario(self.dir, scenario_id), seed, self.input_timeout)
+    def _install(self, sim, scenario_id):
+        """Make sim the running world with a new run id."""
         self.scenario_id, self.sim = scenario_id, sim
         self.reset_count += 1
-        self.run_id = '%s-s%d-r%d' % (scenario_id, seed, self.reset_count)
+        self.run_id = '%s-s%d-r%d' % (scenario_id, sim.seed, self.reset_count)
         self.completed = False
+        self.last_frame = None
+        return self.run_id
 
     # ------------------------------------------------------------- inputs
     def on_applied(self, agent, msg):
@@ -116,22 +143,69 @@ class ScenarioRunner(Node):
             return
         self._event('FAULT_INJECTED', 'scenario_runner', json.dumps(event, sort_keys=True))
 
-    def on_reset(self, req, res):
+    def on_event(self, msg):
+        pending = self.pending
+        if pending and msg.event == RESET_ACK and msg.correlation_id == pending['run_id']:
+            pending['acked'].add(msg.entity_id)
+            if self.participants <= pending['acked'] and not pending['done'].done():
+                pending['done'].set_result(True)
+
+    def _drive_handshake(self, now):
+        """Resend the reset request or give up; runs every tick while a reset waits."""
+        pending = self.pending
+        if pending is None or pending['done'].done():
+            return
+        if now >= pending['deadline']:
+            pending['done'].set_result(False)
+        elif now >= pending['resend_at']:
+            pending['resend_at'] = now + RESEND_SEC
+            self._request_reset()
+
+    def _request_reset(self):
+        self._event(RESET_REQUEST, 'scenario_runner',
+                    'participants=%s' % ','.join(sorted(self.participants)))
+
+    async def on_reset(self, req, res):
+        """Reset the world, ask every participant to reset, wait for their acks.
+
+        Assignment 7.1: ResetScenario "returns a new run identifier after all
+        nodes acknowledge reset". success=false if the scenario cannot be
+        loaded (old run untouched) or a participant did not acknowledge
+        within reset_ack_timeout (the new world is running; reason names the
+        silent nodes).
+        """
         scenario_id = req.scenario_id or self.scenario_id
         try:
-            self._start(scenario_id, req.seed)
+            # Load and validate first: a failed reset must leave the old run intact.
+            sim = HubSim(load_scenario(self.dir, scenario_id), req.seed, self.input_timeout)
         except (OSError, ValueError, yaml.YAMLError) as exc:
             res.success, res.run_id, res.reason = False, '', 'RESET_FAILED: %s' % exc
             return res
         # The new world starts with every body at rest; the stale command
         # timeout keeps it there until fresh commands arrive.
-        res.success, res.run_id = True, self.run_id
-        res.reason = 'RESET preserve_logs=%s' % req.preserve_logs
+        run_id = self._install(sim, scenario_id)
+        now = time.monotonic()
+        self.pending = {'run_id': run_id, 'acked': set(), 'done': Future(),
+                        'deadline': now + self.ack_timeout, 'resend_at': now + RESEND_SEC}
+        if self.participants:
+            self._request_reset()
+        else:
+            self.pending['done'].set_result(True)
+        await self.pending['done']           # tick() resends and enforces the timeout
+        missing = sorted(self.participants - self.pending['acked'])
+        self.pending = None
+        res.run_id, res.success = run_id, not missing
+        if missing:
+            res.reason = 'MISSING_ACK: %s' % ','.join(missing)
+        else:
+            res.reason = 'RESET preserve_logs=%s acks=%d' % (req.preserve_logs,
+                                                             len(self.participants))
         self._event('SCENARIO_RESET', 'scenario_runner', res.reason)
         return res
 
     # --------------------------------------------------------------- tick
     def tick(self):
+        self._drive_handshake(time.monotonic())
         for event in self.sim.step():
             self._event('SCENARIO_EVENT', 'scenario_runner', json.dumps(event, sort_keys=True))
         stamp = self.get_clock().now().to_msg()

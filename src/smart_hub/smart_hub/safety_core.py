@@ -316,6 +316,20 @@ class SafetyCore:
         self._last_holds = {n: list(r) for n, r in holds.items()}
 
     # ------------------------------------------------------------ reset
+    def reset_inputs(self):
+        """Forget all commands and sensor samples after a scenario reset.
+
+        The world was replaced, so old poses and commands describe nothing
+        real: every agent is held (stale) until fresh data arrives. The stop
+        latch and the e-stop input are kept on purpose: a scenario reset is
+        not a way around /safety/clear_stop (assignment 7.1).
+        """
+        for agent in self.agents.values():
+            agent.command = None
+            agent.pose = None
+        self.vehicles = self.crossing = self.door = None
+        return 'inputs cleared; stop_latched=%s' % self.latched
+
     def request_clear(self, now):
         """Validate /safety/clear_stop. Returns (success, reason).
 

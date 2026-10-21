@@ -7,30 +7,33 @@ Subscribes  /hub/vehicles     VehicleStateArray  R10   agents and obstacle O
             /hub/events       HubEvent           R100  last event text
             /hub/demand       DemandPrediction   R10   forecast text (M1-B)
             /traffic/edges    EdgeStateArray     R10   blocked/unknown/dense edges (M3)
+            /robot/route,
+            /bus/route        nav_msgs/Path      R1T   planned route lines (M4, M2-A)
 Publishes   /hub/markers      MarkerArray        R10, 5 Hz, frame 'map'
+            /hub/events       HubEvent           R100  RESET_ACK only
 
-Not drawn: planned routes. No interface carries them (ComputeRoute is a
-service between a manager and the planner, not a topic).
-
-No control authority: the node has exactly one publisher (/hub/markers) and
-never publishes any cmd_vel, request or service call. Marker content is built
-by MarkerCore; this file only converts it to visualization_msgs.
+No control authority: it publishes /hub/markers and, on a scenario reset,
+one RESET_ACK event; never any cmd_vel, request or service call. Marker
+content is built by MarkerCore; this file only converts it to
+visualization_msgs.
 """
 import time
 
 from builtin_interfaces.msg import Duration
 from geometry_msgs.msg import Point
+from nav_msgs.msg import Path
 import rclpy
 from rclpy.node import Node
 from smart_hub.marker_core import MarkerCore
-from smart_hub.ros_common import declare, R10, R100, R1T
+from smart_hub.ros_common import declare, R10, R100, R1T, reset_ack, RESET_REQUEST
 from smart_hub_interfaces.msg import (CrossingState, DemandPrediction, EdgeStateArray,
                                       HubEvent, ParkingState, SafetyState,
                                       VehicleStateArray)
 from visualization_msgs.msg import Marker, MarkerArray
 
 TYPES = {'cube': Marker.CUBE, 'cylinder': Marker.CYLINDER,
-         'line_list': Marker.LINE_LIST, 'text': Marker.TEXT_VIEW_FACING}
+         'line_list': Marker.LINE_LIST, 'line_strip': Marker.LINE_STRIP,
+         'text': Marker.TEXT_VIEW_FACING}
 
 
 class DashboardMarkerPublisher(Node):
@@ -43,8 +46,10 @@ class DashboardMarkerPublisher(Node):
         self.lifetime = Duration(sec=int(p['lifetime']),
                                  nanosec=int(p['lifetime'] % 1 * 1e9))
         self.core = MarkerCore(float(p['stale_after']))
+        self._reset_id = None
 
         self.pub = self.create_publisher(MarkerArray, '/hub/markers', R10)
+        self.event_pub = self.create_publisher(HubEvent, '/hub/events', R100)
         self.create_subscription(VehicleStateArray, '/hub/vehicles', self.on_vehicles, R10)
         self.create_subscription(CrossingState, '/crossing/state', self.on_crossing, R1T)
         self.create_subscription(ParkingState, '/parking/state', self.on_parking, R1T)
@@ -52,7 +57,20 @@ class DashboardMarkerPublisher(Node):
         self.create_subscription(HubEvent, '/hub/events', self.on_event, R100)
         self.create_subscription(DemandPrediction, '/hub/demand', self.on_demand, R10)
         self.create_subscription(EdgeStateArray, '/traffic/edges', self.on_edges, R10)
+        for agent in ('robot', 'bus'):
+            self.create_subscription(Path, '/%s/route' % agent,
+                                     lambda m, a=agent: self.on_route(a, m), R1T)
         self.create_timer(1.0 / float(p['rate_hz']), self.publish)
+
+    def on_route(self, agent, msg):
+        if msg.header.frame_id not in ('map', ''):
+            # Routes must be in the map frame (contract §3); never guess a transform.
+            self.get_logger().warning('ignoring %s route in frame %r'
+                                      % (agent, msg.header.frame_id),
+                                      throttle_duration_sec=5.0)
+            return
+        self.core.on_route(agent, [(p.pose.position.x, p.pose.position.y)
+                                   for p in msg.poses])
 
     def on_vehicles(self, msg):
         self.core.on_vehicles([(v.vehicle_id, v.kind, v.pose.x, v.pose.y, v.valid)
@@ -68,6 +86,11 @@ class DashboardMarkerPublisher(Node):
         self.core.on_safety(msg.stop_latched, msg.reason, time.monotonic())
 
     def on_event(self, msg):
+        if msg.event == RESET_REQUEST:
+            if msg.correlation_id != self._reset_id:     # once per run id
+                self._reset_id = msg.correlation_id
+                self.core.reset()
+            self.event_pub.publish(reset_ack(self, msg.correlation_id, 'display cleared'))
         self.core.on_event(msg.entity_id, msg.event, msg.reason)
 
     def on_demand(self, msg):

@@ -18,7 +18,7 @@ from geometry_msgs.msg import Twist
 import rclpy
 from rclpy.node import Node
 from smart_hub.metrics_core import MetricsCore
-from smart_hub.ros_common import declare, R10, R100, R1T
+from smart_hub.ros_common import declare, R10, R100, R1T, reset_ack, RESET_REQUEST
 from smart_hub_interfaces.msg import HubEvent, SafetyState, VehicleStateArray
 from std_msgs.msg import Bool
 
@@ -36,6 +36,8 @@ class MetricsLogger(Node):
         self.metrics = self._new_run(p['run_id'] or 'pending')
 
         self.create_subscription(HubEvent, '/hub/events', self.on_event, R100)
+        # Its only publisher: RESET_ACK events (no influence on motion).
+        self.event_pub = self.create_publisher(HubEvent, '/hub/events', R100)
         self.create_subscription(Bool, '/hub/estop', self.on_estop, R1T)
         self.create_subscription(SafetyState, '/hub/safety', self.on_safety, R1T)
         for agent in ('robot', 'bus'):
@@ -60,6 +62,10 @@ class MetricsLogger(Node):
                 self.metrics = self._new_run(msg.correlation_id)
         self.metrics.on_event(time.monotonic(), msg.entity_id, msg.event,
                               msg.reason, msg.correlation_id)
+        if msg.event == RESET_REQUEST:
+            self.flush()                     # old run safely on disk first
+            self.event_pub.publish(reset_ack(self, msg.correlation_id,
+                                             'previous run flushed'))
 
     def on_estop(self, msg):
         self.metrics.on_estop(time.monotonic(), msg.data)
