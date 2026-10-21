@@ -9,6 +9,7 @@
 #   docker/hub.sh s1 [blob|hog]  run the S1 passenger-counting check (~45 s)
 #   docker/hub.sh s3 [trials]    run the S3 bus docking check (M2-A, ~12 min)
 #   docker/hub.sh s4             run the S4 parking check (M3, ~45 s)
+#   docker/hub.sh t04            run the T04 bus dispatch check (M2-B, ~4 min)
 #   docker/hub.sh s5             run the S5 congestion check (M3, ~90 s)
 #   docker/hub.sh view [S1|S9]   live dashboard for Foxglove on ws://localhost:8765
 #   docker/hub.sh report         build docs/report/Smart_Mobility_Hub_Report.pdf
@@ -91,8 +92,8 @@ print('S1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
       ros2 launch smart_hub s3.launch.py output_dir:=/ws/output nominal_trials:=${2:-10}; \
       python3 -c \"import json, sys; r = json.load(open('output/s3_check.json')); \
 print('S3 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
-  s4|s5)
-    # S4 parking / S5 congestion (M3's nodes, checkers by M5).
+  s4|s5|t04)
+    # S4 parking / S5 congestion (M3's nodes), T04 dispatch (M2-B); checkers by M5.
     in_container "" "mkdir -p output && rm -f output/$1_check.json && \
       ros2 launch smart_hub $1.launch.py output_dir:=/ws/output; \
       python3 -c \"import json, sys; r = json.load(open('output/$1_check.json')); \
@@ -112,5 +113,5 @@ print('$1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
     in_container "" "python3 docs/report/build_report.py" ;;
   shell) in_container "-it" "exec bash" ;;
   run) in_container "" "${2:?usage: docker/hub.sh run '<command>'}" ;;
-  *) sed -n '2,16p' "$0" ;;
+  *) sed -n '2,17p' "$0" ;;
 esac

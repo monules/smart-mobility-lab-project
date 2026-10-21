@@ -78,7 +78,7 @@ Ridge beats persistence by −0.292 MAE (95 % CI −0.543 … −0.044), better 
 
 !img ../../src/smart_hub/results/forecast_examples.png | Figure 4 — S2 forecast examples (M1-B). | 14
 
-**TODO (M1-B):** T04 dispatch evidence together with the coordinator; restyle files for `ament_flake8`.
+T04 was run with the coordinator (section 7) using a checker in place of the forecaster; **TODO (M1-B):** restyle files for `ament_flake8`.
 
 ## 6. M2-A — bus manager and docking (S3)
 
@@ -92,7 +92,9 @@ The code and checker were written by M5 for M2-A; **TODO (M2-A):** review them, 
 
 ## 7. M2-B — hub coordinator (S8) — partially TODO
 
-`coordinator_core.py` implements crossing arbitration (one owner, 2 s clear debounce, lease HOLD instead of FREE) and the §9.3 dispatch hysteresis; 28 unit tests pass. Verified against the shared interfaces in a scratch workspace: a crossing was granted while `/hub/safety` was fresh and unlatched, and denied with `SAFETY_STOP` after an e-stop. The node now runs inside `hub.launch.py` with the rest of the hub. **TODO:** T04 live evidence and the T15 rush-hour run (needs S3 and S7).
+`coordinator_core.py` implements crossing arbitration (one owner, 2 s clear debounce, lease HOLD instead of FREE) and the §9.3 dispatch hysteresis; 28 unit tests pass. Verified against the shared interfaces in a scratch workspace: a crossing was granted while `/hub/safety` was fresh and unlatched, and denied with `SAFETY_STOP` after an e-stop. The node runs inside `hub.launch.py` with the rest of the hub; in S3 it granted and released crossing C for the bus and, with seven people in Q, dispatched the bus by itself.
+
+**T04 live** (`docker/hub.sh t04`, `evidence/m2b/t04/`, 6/6 passed). A checker publishes `/hub/demand` at 1 Hz and `/hub/queue` at 5 Hz; the real coordinator and bus_manager do the rest. Forecasts alternating around 6 (6.2, 5.8, 6.1, …) for 20 s gave no dispatch. A rising forecast gave exactly one dispatch (reason PREDICTED) 2.0 s after the first value ≥ 6, i.e. on the third consecutive sample; bus_manager accepted one goal and saw no second request while it was outstanding, and none followed in the 10 s after the mission while the forecast was 5 (escalated but below 6). `valid=false` forecasts (predicted 9) and a feed gap with an observed queue of 2 gave no dispatch; with no forecast and an observed queue of 7 the coordinator dispatched once with reason FALLBACK. During the work `demand_freshness_sec` (2.5 s) was added: the forecast arrives at 1 Hz, so with the shared 1.0 s freshness limit a forecast would go stale exactly when the next one was due (found by review, not observed). **TODO:** the T15 rush-hour run (needs S7).
 
 ## 8. M3 — parking and traffic (S4, S5)
 
@@ -159,7 +161,7 @@ Phases: start (0.3 s after moving off), cruise 0.20 m/s, turn (0.15 m/s, 0.5 rad
 | T01 | S1 counting | PASS (simulation, blob); real video TODO |
 | T02 | S1 occlusion / freeze | PASS (simulation) |
 | T03 | S2 prediction | PASS (held-out synthetic seeds) |
-| T04 | S2 dispatch | TODO (needs coordinator run) |
+| T04 | S2 dispatch | pass: live 6/6 (noise, one goal per mission, invalid forecast, feed gap, FALLBACK) |
 | T05, T06 | S3 docking, cancel | pass: 10/10 dockings (≤ 0.040 m, ≤ 0.004 rad); cancel → zero 0.043 s |
 | T07–T10 | S4, S5 | pass: unit tests (M3) and live S4 11/11, S5 9/9 (T07 p95 39 ms, T10 UNKNOWN 0.995 s) |
 | T11–T14 | S6, S7 | TODO (M4) |

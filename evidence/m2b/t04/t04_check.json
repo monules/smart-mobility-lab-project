@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "check": "T04 threshold noise",
+      "passed": true,
+      "detail": "0 dispatches in 20 s of forecasts alternating around 6 ([6.2, 5.8, 6.1, 5.9, 6.3, 5.7])"
+    },
+    {
+      "check": "T04 one dispatch per mission",
+      "passed": true,
+      "detail": "forecast >= 6 until boarding, then 5 for 10 s after the mission: 1 dispatch request(s) (PREDICTED), 1 goal(s) accepted by bus_manager, 0 BUSY rejections, result ['BUS_MISSION_SUCCEEDED']"
+    },
+    {
+      "check": "T04 three consecutive forecasts",
+      "passed": true,
+      "detail": "dispatch 2.0 s after the first forecast >= 6 (3 samples at 1 Hz)"
+    },
+    {
+      "check": "T04 no dispatch from invalid forecast",
+      "passed": true,
+      "detail": "0 dispatches in 15 s of valid=false forecasts (predicted 9) with an observed queue of 2"
+    },
+    {
+      "check": "T04 feed gap",
+      "passed": true,
+      "detail": "0 dispatches in 15 s without any /hub/demand, observed queue 2"
+    },
+    {
+      "check": "T04 explicit fallback",
+      "passed": true,
+      "detail": "no forecast, observed queue 7: 1 dispatch(es) with reason FALLBACK, result ['BUS_MISSION_SUCCEEDED']"
+    }
+  ],
+  "commit": "b6bf18e-dirty"
+}

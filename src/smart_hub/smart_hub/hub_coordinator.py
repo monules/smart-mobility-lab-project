@@ -14,6 +14,7 @@ from functools import partial
 import rclpy
 from action_msgs.msg import GoalStatus
 from rclpy.action import ActionClient
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
@@ -50,6 +51,10 @@ class HubCoordinator(Node):
         p('bus_id', 'bus_1'); p('bay_id', 'B'); p('dock_max_duration_sec', 120.0)
         p('lease_sec', 3.0); p('crossing_clear_sec', 2.0)
         p('freshness_sec', 1.0); p('future_tolerance_sec', 0.2)
+        # /hub/demand arrives at 1 Hz: with the 1.0 s limit a forecast is about
+        # to go stale exactly when the next one is due, so jitter could reset
+        # the dispatch counters (found by review while writing the T04 check)
+        p('demand_freshness_sec', 2.5)
         p('dispatch_high', 6.0); p('dispatch_low', 4.0)
         p('dispatch_need_high', 3); p('dispatch_need_low', 5)
         p('dispatch_cooldown_sec', 30.0)
@@ -61,6 +66,7 @@ class HubCoordinator(Node):
         self.bus_id, self.bay_id = g('bus_id'), g('bay_id')
         self.dock_max = float(g('dock_max_duration_sec'))
         self.fresh = float(g('freshness_sec'))
+        self.demand_fresh = float(g('demand_freshness_sec'))
         self.future_tol = float(g('future_tolerance_sec'))
         self.require_safety = bool(g('require_safety_state'))
 
@@ -98,6 +104,7 @@ class HubCoordinator(Node):
         if not 0.5 <= g('lease_sec') <= 30: bad.append('lease_sec')
         if not 0.5 <= g('crossing_clear_sec') <= 10: bad.append('crossing_clear_sec')
         if not 0.1 <= g('freshness_sec') <= 5: bad.append('freshness_sec')
+        if not 1.0 < g('demand_freshness_sec') <= 5: bad.append('demand_freshness_sec')
         if g('dispatch_low') >= g('dispatch_high'): bad.append('dispatch_low/high')
         if g('dispatch_need_high') < 1 or g('dispatch_need_low') < 1: bad.append('dispatch_need_*')
         if g('dispatch_cooldown_sec') < 0: bad.append('dispatch_cooldown_sec')
@@ -115,13 +122,14 @@ class HubCoordinator(Node):
         if item is None:
             return None
         rx, msg = item
-        if time.monotonic() - rx > self.fresh:
+        limit = self.demand_fresh if key == 'demand' else self.fresh
+        if time.monotonic() - rx > limit:
             return None
         stamp = msg.header.stamp
         if stamp.sec == 0 and stamp.nanosec == 0:
             return None                                   # unset stamp = unknown
         age = (self.get_clock().now() - Time.from_msg(stamp)).nanoseconds / 1e9
-        if age > self.fresh or age < -self.future_tol:
+        if age > limit or age < -self.future_tol:
             return None
         return msg
 
@@ -308,9 +316,12 @@ def main(args=None):
     node = HubCoordinator()
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass                      # Ctrl+C / launch shutdown: not an error
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():            # the signal handler may have shut down already
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
