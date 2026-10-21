@@ -8,13 +8,15 @@ Arguments (assignment 20.1: scenario, seed and simulation/hardware mode):
   mode           only 'sim' is implemented; the bridge refuses anything else
   output_dir     where metrics_logger writes <run_id>/events.csv, summary.json
   record_dashboard  true: save /hub/markers as PNGs + MP4 in <output_dir>/dashboard
+  coordination   true (default): also start hub_coordinator (M2-B),
+                 parking_manager and traffic_monitor (M3)
   perception     true: also start passenger_detector (M1-A) and demand_predictor
                  (M1-B) on the simulator camera; use with scenario:=S1
   publish_estop  true: scenario_runner publishes /hub/estop (10 Hz heartbeat);
                  false: an operator node publishes it instead
 
-Remaining teammates' nodes (bus/robot managers, coordinator, planner,
-parking, traffic) are added here once they are inside src/smart_hub.
+Remaining teammates' nodes (bus and robot managers, route planner) are added
+here once they are inside src/smart_hub.
 """
 import os
 
@@ -48,6 +50,7 @@ def generate_launch_description():
         DeclareLaunchArgument('publish_estop', default_value='true'),
         DeclareLaunchArgument('perception', default_value='false'),
         DeclareLaunchArgument('record_dashboard', default_value='false'),
+        DeclareLaunchArgument('coordination', default_value='true'),
         Node(package='smart_hub', executable='scenario_runner', name='scenario_runner',
              output='screen',
              parameters=[{'scenario': scenario, 'seed': seed, 'publish_estop': estop,
@@ -64,6 +67,15 @@ def generate_launch_description():
         Node(package='smart_hub', executable='dashboard_snapshot', name='dashboard_snapshot',
              output='screen', condition=IfCondition(LaunchConfiguration('record_dashboard')),
              parameters=[{'output_dir': out}]),
+        # coordination:=true: crossing arbiter + dispatch (M2-B), parking and
+        # traffic state (M3) on the simulator's /hub/vehicles and /parking/observed.
+        Node(package='smart_hub', executable='hub_coordinator', name='hub_coordinator',
+             output='screen', condition=IfCondition(LaunchConfiguration('coordination')),
+             parameters=[{'scenario_id': scenario}]),
+        Node(package='smart_hub', executable='parking_manager', name='parking_manager',
+             output='screen', condition=IfCondition(LaunchConfiguration('coordination'))),
+        Node(package='smart_hub', executable='traffic_monitor', name='traffic_monitor',
+             output='screen', condition=IfCondition(LaunchConfiguration('coordination'))),
         # perception:=true adds the S1/S2 chain on the simulator camera:
         # passenger_detector (M1-A) -> /hub/queue -> demand_predictor (M1-B).
         Node(package='smart_hub', executable='passenger_detector', name='passenger_detector',

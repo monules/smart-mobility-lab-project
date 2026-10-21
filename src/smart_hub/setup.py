@@ -32,6 +32,11 @@ setup(
             'video_publisher = smart_hub.video_publisher:main',
             's1_check = smart_hub.s1_check:main',
             'video_eval = smart_hub.video_eval:main',
+            # M2-B (hub coordinator, S8)
+            'hub_coordinator = smart_hub.hub_coordinator:main',
+            # M3 (parking, S4; traffic, S5)
+            'parking_manager = smart_hub.parking_manager:main',
+            'traffic_monitor = smart_hub.traffic_monitor:main',
             # M1-B (AI demand prediction, S2)
             'demand_predictor = smart_hub.demand_predictor:main',
             'fake_queue_publisher = smart_hub.fake_queue_publisher:main',

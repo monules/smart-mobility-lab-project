@@ -1,7 +1,7 @@
 import unittest
 
-from coordinator_core import (CrossingArbiter, DispatchPolicy,
-                              footprint_overlaps_crossing)
+from smart_hub.coordinator_core import (CrossingArbiter, DispatchPolicy,
+                                        footprint_overlaps_crossing)
 
 
 def clear_arbiter(t0=0.0, **kw):
