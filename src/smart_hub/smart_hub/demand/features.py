@@ -24,12 +24,12 @@ from collections import deque
 from typing import Deque, List, Optional, Sequence
 
 FEATURE_NAMES = (
-    "q_t",
-    "mean_10s",
-    "mean_30s",
-    "trend_10s",
-    "arrivals_30s",
-    "departures_30s",
+    'q_t',
+    'mean_10s',
+    'mean_30s',
+    'trend_10s',
+    'arrivals_30s',
+    'departures_30s',
 )
 
 # Samples needed to compute every feature: q_{t-30} .. q_t (31 samples gives
@@ -46,7 +46,7 @@ def extract_features(window: Sequence[float]) -> List[float]:
     """
     if len(window) < FEATURE_WINDOW:
         raise ValueError(
-            "need %d consecutive valid samples, got %d"
+            'need %d consecutive valid samples, got %d'
             % (FEATURE_WINDOW, len(window))
         )
     w = [float(x) for x in window[-FEATURE_WINDOW:]]
@@ -84,11 +84,11 @@ class DemandHistory:
     def __init__(self, history_sec: int = 60, warmup_sec: int = 60,
                  reset_gap_sec: int = 60):
         if warmup_sec < FEATURE_WINDOW:
-            raise ValueError("warmup_sec must be >= %d" % FEATURE_WINDOW)
+            raise ValueError('warmup_sec must be >= %d' % FEATURE_WINDOW)
         if history_sec < FEATURE_WINDOW:
-            raise ValueError("history_sec must be >= %d" % FEATURE_WINDOW)
+            raise ValueError('history_sec must be >= %d' % FEATURE_WINDOW)
         if reset_gap_sec < 1:
-            raise ValueError("reset_gap_sec must be >= 1")
+            raise ValueError('reset_gap_sec must be >= 1')
         self.history_sec = int(history_sec)
         self.warmup_sec = int(warmup_sec)
         self.reset_gap_sec = int(reset_gap_sec)
@@ -121,16 +121,16 @@ class DemandHistory:
         """Return 'OK' or the reason the forecast must be invalid."""
         if not self._samples or self._samples[-1] is None:
             if self.valid_total < self.warmup_sec:
-                return "WARMUP"
-            return "STALE_INPUT"
+                return 'WARMUP'
+            return 'STALE_INPUT'
         if self.valid_total < self.warmup_sec:
-            return "WARMUP"
+            return 'WARMUP'
         if self.tail_run < FEATURE_WINDOW:
-            return "GAP_RECOVERY"
-        return "OK"
+            return 'GAP_RECOVERY'
+        return 'OK'
 
     def feature_window(self) -> List[float]:
         """Newest FEATURE_WINDOW samples; only valid when status() == 'OK'."""
-        if self.status() != "OK":
-            raise RuntimeError("history not ready: " + self.status())
+        if self.status() != 'OK':
+            raise RuntimeError('history not ready: ' + self.status())
         return list(self._samples)[-FEATURE_WINDOW:]

@@ -224,7 +224,7 @@ low-confidence observation is UNKNOWN, never zero; a retained
 | 4 | Publishers of `/parking/entry_claim`, `/parking/entrance_clear` | M3, M5 |
 | 5 | Car id format | M3, M2-A |
 | 6 | ~~Moving M2-B's and M3's files into `src/smart_hub`~~ | **done** (git mv, owners informed) |
-| 7 | M1-B restyle for `ament_flake8` (834 findings, mostly quotes) | M1-B |
+| 7 | ~~M1-B restyle for `ament_flake8`~~ | **done** (`feature/m1b-style-reset`) |
 | 8 | Grading split (7 roles vs the assignment's 5) | team + instructor (M2-B README Q7) |
 
 ## 10. Changing this contract

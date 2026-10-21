@@ -24,19 +24,18 @@ import collections
 import os
 import time
 
-import rclpy
 from rcl_interfaces.msg import ParameterDescriptor, SetParametersResult
+import rclpy
 from rclpy.node import Node
 from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
                        ReliabilityPolicy)
-
+from smart_hub.demand.estimator import DemandEstimator
+from smart_hub.demand.models import load_model, PersistenceModel
+from smart_hub.ros_common import reset_ack, RESET_REQUEST
 from smart_hub_interfaces.msg import DemandPrediction, HubEvent, QueueState
 
-from smart_hub.demand.estimator import DemandEstimator
-from smart_hub.demand.models import PersistenceModel, load_model
-
-NODE_NAME = "demand_predictor"
-DEFAULT_MODEL_FILE = "demand_ridge_h30.json"
+NODE_NAME = 'demand_predictor'
+DEFAULT_MODEL_FILE = 'demand_ridge_h30.json'
 
 
 def _qos(depth):
@@ -52,34 +51,34 @@ def _stamp_to_sec(stamp):
 def default_model_path():
     try:
         from ament_index_python.packages import get_package_share_directory
-        share = get_package_share_directory("smart_hub")
-        return os.path.join(share, "models", DEFAULT_MODEL_FILE)
+        share = get_package_share_directory('smart_hub')
+        return os.path.join(share, 'models', DEFAULT_MODEL_FILE)
     except Exception:  # noqa: BLE001 - package not installed (dev checkout)
         here = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(os.path.dirname(here), "models", DEFAULT_MODEL_FILE)
+        return os.path.join(os.path.dirname(here), 'models', DEFAULT_MODEL_FILE)
 
 
 class DemandPredictor(Node):
     PARAMS = {
         # name: (default, description)
-        "model_path": ("", "model JSON; empty = installed default"),
-        "use_model": (True, "false = publish persistence baseline only"),
-        "require_model": (False, "true = refuse to start without the model"),
-        "prediction_horizon_sec": (30, "must equal the model horizon"),
-        "history_sec": (60, "length of the 1 Hz history buffer"),
-        "warmup_sec": (60, "valid samples needed before first forecast"),
-        "reset_gap_sec": (60, "missing seconds that clear the history"),
-        "stale_timeout_sec": (1.0, "queue age that makes input stale"),
-        "future_tolerance_sec": (0.5, "max accepted future source stamp"),
-        "queue_confidence_min": (0.5, "lower confidence = UNKNOWN"),
-        "queue_zone_id": ("Q", "zone_id accepted from /hub/queue"),
-        "publish_rate_hz": (1.0, "forecast publication rate"),
-        "latency_report_sec": (30.0, "period of the latency log line"),
-        "run_id": ("", "experiment run ID for /hub/events"),
-        "scenario_id": ("", "scenario ID for /hub/events"),
-        "queue_topic": ("/hub/queue", ""),
-        "demand_topic": ("/hub/demand", ""),
-        "events_topic": ("/hub/events", ""),
+        'model_path': ('', 'model JSON; empty = installed default'),
+        'use_model': (True, 'false = publish persistence baseline only'),
+        'require_model': (False, 'true = refuse to start without the model'),
+        'prediction_horizon_sec': (30, 'must equal the model horizon'),
+        'history_sec': (60, 'length of the 1 Hz history buffer'),
+        'warmup_sec': (60, 'valid samples needed before first forecast'),
+        'reset_gap_sec': (60, 'missing seconds that clear the history'),
+        'stale_timeout_sec': (1.0, 'queue age that makes input stale'),
+        'future_tolerance_sec': (0.5, 'max accepted future source stamp'),
+        'queue_confidence_min': (0.5, 'lower confidence = UNKNOWN'),
+        'queue_zone_id': ('Q', 'zone_id accepted from /hub/queue'),
+        'publish_rate_hz': (1.0, 'forecast publication rate'),
+        'latency_report_sec': (30.0, 'period of the latency log line'),
+        'run_id': ('', 'experiment run ID for /hub/events'),
+        'scenario_id': ('', 'scenario ID for /hub/events'),
+        'queue_topic': ('/hub/queue', ''),
+        'demand_topic': ('/hub/demand', ''),
+        'events_topic': ('/hub/events', ''),
     }
 
     def __init__(self, **node_kwargs):
@@ -92,18 +91,11 @@ class DemandPredictor(Node):
         self._validate(p)
         self.p = p
 
-        self.events = self.create_publisher(HubEvent, p["events_topic"],
+        self.events = self.create_publisher(HubEvent, p['events_topic'],
                                             _qos(100))
         self.model, model_note = self._load_model(p)
-        self.estimator = DemandEstimator(
-            self.model,
-            history_sec=int(p["history_sec"]),
-            warmup_sec=int(p["warmup_sec"]),
-            reset_gap_sec=int(p["reset_gap_sec"]),
-            stale_timeout_sec=float(p["stale_timeout_sec"]),
-            future_tolerance_sec=float(p["future_tolerance_sec"]),
-            confidence_min=float(p["queue_confidence_min"]),
-        )
+        self.estimator = self._new_estimator()
+        self._reset_id = ''
         self._stamps = collections.OrderedDict()  # float -> original Time
         self._last_state = None
         self._tick_ms = collections.deque(maxlen=600)
@@ -112,88 +104,116 @@ class DemandPredictor(Node):
         self._wrong_zone = 0
         self.last_output = None
 
-        self.pub = self.create_publisher(DemandPrediction, p["demand_topic"],
+        self.pub = self.create_publisher(DemandPrediction, p['demand_topic'],
                                          _qos(10))
-        self.sub = self.create_subscription(QueueState, p["queue_topic"],
+        self.sub = self.create_subscription(QueueState, p['queue_topic'],
                                             self.on_queue, _qos(10))
-        self.timer = self.create_timer(1.0 / float(p["publish_rate_hz"]),
+        self.timer = self.create_timer(1.0 / float(p['publish_rate_hz']),
                                        self.on_tick)
+        self.create_subscription(HubEvent, p['events_topic'], self.on_hub_event,
+                                 _qos(100))
         self.add_on_set_parameters_callback(self._reject_runtime_changes)
 
         self.get_logger().info(
-            "started: model_id=%s (%s); parameters=%s"
+            'started: model_id=%s (%s); parameters=%s'
             % (self.model.model_id, model_note,
-               {k: v for k, v in sorted(p.items())}))
+               dict(sorted(p.items()))))
+
+    def _new_estimator(self):
+        p = self.p
+        return DemandEstimator(
+            self.model,
+            history_sec=int(p['history_sec']),
+            warmup_sec=int(p['warmup_sec']),
+            reset_gap_sec=int(p['reset_gap_sec']),
+            stale_timeout_sec=float(p['stale_timeout_sec']),
+            future_tolerance_sec=float(p['future_tolerance_sec']),
+            confidence_min=float(p['queue_confidence_min']),
+        )
+
+    def on_hub_event(self, msg):
+        """Scenario reset (contract §7): drop the history, then acknowledge.
+
+        The queue history of the old run must not feed the new run's
+        forecast, so the estimator starts again from warm-up (valid=false).
+        """
+        if msg.event != RESET_REQUEST:
+            return
+        if msg.correlation_id != self._reset_id:     # once per run id
+            self._reset_id = msg.correlation_id
+            self.estimator = self._new_estimator()
+            self._stamps.clear()
+        self.events.publish(reset_ack(self, msg.correlation_id, 'history cleared'))
 
     # ------------------------------------------------------------ startup
     @staticmethod
     def _validate(p):
         def bad(msg):
-            raise ValueError("invalid parameter: " + msg)
-        if int(p["prediction_horizon_sec"]) != 30:
-            bad("prediction_horizon_sec must be 30 for the shipped model")
-        if not 31 <= int(p["history_sec"]) <= 600:
-            bad("history_sec must be in [31, 600]")
-        if not 31 <= int(p["warmup_sec"]) <= int(p["history_sec"]):
-            bad("warmup_sec must be in [31, history_sec]")
-        if not 1 <= int(p["reset_gap_sec"]) <= 3600:
-            bad("reset_gap_sec must be in [1, 3600]")
-        if not 0.1 <= float(p["stale_timeout_sec"]) <= 5.0:
-            bad("stale_timeout_sec must be in [0.1, 5]")
-        if not 0.0 <= float(p["future_tolerance_sec"]) <= 2.0:
-            bad("future_tolerance_sec must be in [0, 2]")
-        if not 0.0 <= float(p["queue_confidence_min"]) <= 1.0:
-            bad("queue_confidence_min must be in [0, 1]")
-        if abs(float(p["publish_rate_hz"]) - 1.0) > 1e-9:
+            raise ValueError('invalid parameter: ' + msg)
+        if int(p['prediction_horizon_sec']) != 30:
+            bad('prediction_horizon_sec must be 30 for the shipped model')
+        if not 31 <= int(p['history_sec']) <= 600:
+            bad('history_sec must be in [31, 600]')
+        if not 31 <= int(p['warmup_sec']) <= int(p['history_sec']):
+            bad('warmup_sec must be in [31, history_sec]')
+        if not 1 <= int(p['reset_gap_sec']) <= 3600:
+            bad('reset_gap_sec must be in [1, 3600]')
+        if not 0.1 <= float(p['stale_timeout_sec']) <= 5.0:
+            bad('stale_timeout_sec must be in [0.1, 5]')
+        if not 0.0 <= float(p['future_tolerance_sec']) <= 2.0:
+            bad('future_tolerance_sec must be in [0, 2]')
+        if not 0.0 <= float(p['queue_confidence_min']) <= 1.0:
+            bad('queue_confidence_min must be in [0, 1]')
+        if abs(float(p['publish_rate_hz']) - 1.0) > 1e-9:
             # Features are defined on one-second samples; another rate would
             # silently change their meaning.
-            bad("publish_rate_hz must be 1.0 (features are per-second)")
-        if float(p["latency_report_sec"]) <= 0:
-            bad("latency_report_sec must be positive")
+            bad('publish_rate_hz must be 1.0 (features are per-second)')
+        if float(p['latency_report_sec']) <= 0:
+            bad('latency_report_sec must be positive')
 
     def _load_model(self, p):
-        if not p["use_model"]:
-            return PersistenceModel(), "use_model=false"
-        path = p["model_path"] or default_model_path()
+        if not p['use_model']:
+            return PersistenceModel(), 'use_model=false'
+        path = p['model_path'] or default_model_path()
         try:
             model = load_model(path)
-            if model.horizon_sec != int(p["prediction_horizon_sec"]):
-                raise ValueError("model horizon %d != parameter %d" % (
-                    model.horizon_sec, int(p["prediction_horizon_sec"])))
+            if model.horizon_sec != int(p['prediction_horizon_sec']):
+                raise ValueError('model horizon %d != parameter %d' % (
+                    model.horizon_sec, int(p['prediction_horizon_sec'])))
         except Exception as exc:  # noqa: BLE001
-            if p["require_model"]:
+            if p['require_model']:
                 raise
             self.get_logger().error(
-                "model load failed (%s): %s -> persistence fallback"
+                'model load failed (%s): %s -> persistence fallback'
                 % (path, exc))
-            self._event("MODEL_FALLBACK", str(exc)[:200],
+            self._event('MODEL_FALLBACK', str(exc)[:200],
                         PersistenceModel.model_id)
-            return PersistenceModel(), "FALLBACK: " + str(exc)[:80]
-        self._event("MODEL_LOADED", path, model.model_id)
+            return PersistenceModel(), 'FALLBACK: ' + str(exc)[:80]
+        self._event('MODEL_LOADED', path, model.model_id)
         return model, path
 
     def _reject_runtime_changes(self, params):
         # Parameters are part of the experiment record: restart to change.
         # Only this node's own parameters are locked (use_sim_time etc. are
         # left to rclpy).
-        names = ", ".join(x.name for x in params if x.name in self.PARAMS)
+        names = ', '.join(x.name for x in params if x.name in self.PARAMS)
         if not names:
             return SetParametersResult(successful=True)
         return SetParametersResult(
             successful=False,
-            reason="demand_predictor parameters are fixed per run (%s); "
-                   "restart the node with new values" % names)
+            reason='demand_predictor parameters are fixed per run (%s); '
+                   'restart the node with new values' % names)
 
     # ----------------------------------------------------------- callbacks
     def on_queue(self, msg):
-        if msg.zone_id and msg.zone_id != self.p["queue_zone_id"]:
+        if msg.zone_id and msg.zone_id != self.p['queue_zone_id']:
             self._wrong_zone += 1
             return
         stamp = _stamp_to_sec(msg.header.stamp)
         result = self.estimator.on_queue(
             msg.count, msg.valid, msg.confidence, stamp,
             time.monotonic(), self._now())
-        if result == "ACCEPTED":
+        if result == 'ACCEPTED':
             self._stamps[stamp] = msg.header.stamp
             while len(self._stamps) > 20:
                 self._stamps.popitem(last=False)
@@ -205,7 +225,7 @@ class DemandPredictor(Node):
         try:
             self._tick()
         except Exception as exc:  # noqa: BLE001
-            self.get_logger().error("tick failed: %r" % (exc,),
+            self.get_logger().error('tick failed: %r' % (exc,),
                                     throttle_duration_sec=5.0)
 
     def _tick(self):
@@ -213,7 +233,7 @@ class DemandPredictor(Node):
         pred = self.estimator.tick(time.monotonic(), self._now())
 
         out = DemandPrediction()
-        out.header.frame_id = "map"
+        out.header.frame_id = 'map'
         if pred.source_stamp is not None and pred.source_stamp in self._stamps:
             out.header.stamp = self._stamps[pred.source_stamp]
         else:
@@ -228,15 +248,15 @@ class DemandPredictor(Node):
 
         state = (pred.valid, pred.reason)
         if state != self._last_state:
-            self._event("DEMAND_VALID" if pred.valid else "DEMAND_INVALID",
+            self._event('DEMAND_VALID' if pred.valid else 'DEMAND_INVALID',
                         pred.reason, pred.model_id)
             # Two separate call sites: rclpy forbids changing the severity
             # of one logging call site between calls (raises ValueError).
             if pred.valid:
-                self.get_logger().info("forecast valid (%s)" % pred.reason)
+                self.get_logger().info('forecast valid (%s)' % pred.reason)
             else:
                 self.get_logger().warning(
-                    "forecast INVALID (%s)" % pred.reason)
+                    'forecast INVALID (%s)' % pred.reason)
             self._last_state = state
 
         if pred.inference_ms is not None:
@@ -251,9 +271,9 @@ class DemandPredictor(Node):
     def _event(self, event, reason, correlation_id):
         msg = HubEvent()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "map"
-        msg.run_id = str(self.p["run_id"])
-        msg.scenario_id = str(self.p["scenario_id"])
+        msg.header.frame_id = 'map'
+        msg.run_id = str(self.p['run_id'])
+        msg.scenario_id = str(self.p['scenario_id'])
         msg.entity_id = NODE_NAME
         msg.event = event
         msg.reason = reason
@@ -262,18 +282,18 @@ class DemandPredictor(Node):
 
     def _maybe_log_latency(self):
         now = time.monotonic()
-        if now - self._last_latency_log < float(self.p["latency_report_sec"]):
+        if now - self._last_latency_log < float(self.p['latency_report_sec']):
             return
         self._last_latency_log = now
 
         def p(xs, q):
             if not xs:
-                return float("nan")
+                return float('nan')
             s = sorted(xs)
             return s[min(len(s) - 1, int(q * len(s)))]
         self.get_logger().info(
-            "latency ms: inference p50=%.3f p95=%.3f (n=%d); tick p95=%.3f; "
-            "rejected inputs=%s; wrong zone=%d" % (
+            'latency ms: inference p50=%.3f p95=%.3f (n=%d); tick p95=%.3f; '
+            'rejected inputs=%s; wrong zone=%d' % (
                 p(self._infer_ms, 0.5), p(self._infer_ms, 0.95),
                 len(self._infer_ms), p(self._tick_ms, 0.95),
                 dict(self.estimator.rejections), self._wrong_zone))
@@ -294,5 +314,5 @@ def main(args=None):
             rclpy.shutdown()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

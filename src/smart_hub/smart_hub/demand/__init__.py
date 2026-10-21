@@ -6,15 +6,15 @@ offline training script and the online node share exactly the same feature
 code. Only the training script needs numpy / scikit-learn.
 """
 
+from smart_hub.demand.estimator import DemandEstimator, Prediction  # noqa: F401
 from smart_hub.demand.features import (  # noqa: F401
-    FEATURE_NAMES,
-    FEATURE_WINDOW,
     DemandHistory,
     extract_features,
+    FEATURE_NAMES,
+    FEATURE_WINDOW,
 )
 from smart_hub.demand.models import (  # noqa: F401
     LinearDemandModel,
-    PersistenceModel,
     load_model,
+    PersistenceModel,
 )
-from smart_hub.demand.estimator import DemandEstimator, Prediction  # noqa: F401

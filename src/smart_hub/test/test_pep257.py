@@ -11,7 +11,6 @@ from ament_pep257.main import main
 import pytest
 
 PENDING_OWNER_RESTYLE = [
-    './test/test_demand_data.py',                          # M1-B
     './smart_hub/coordinator_core.py',                     # M2-B
     './smart_hub/hub_map.py', './smart_hub/parking_engine.py',      # M3
     './test/helpers.py', './test/ros_stubs.py', './test/traffic_sim.py',

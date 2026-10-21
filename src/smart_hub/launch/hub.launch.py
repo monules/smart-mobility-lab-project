@@ -39,11 +39,10 @@ def generate_launch_description():
     estop = LaunchConfiguration('publish_estop')
     perception = LaunchConfiguration('perception')
     bus = LaunchConfiguration('bus')
-    # Nodes that must acknowledge /scenario/reset (contract §7). M1-B's
-    # demand_predictor does not implement the handshake yet, so it is left out.
+    # Nodes that must acknowledge /scenario/reset (contract §7).
     participants = PythonExpression([
         "'safety_supervisor,actuator_bridge,metrics_logger,dashboard_marker_publisher'"
-        " + (',passenger_detector' if '", perception, "' == 'true' else '')"
+        " + (',passenger_detector,demand_predictor' if '", perception, "' == 'true' else '')"
         " + (',bus_manager' if '", bus, "' == 'true' else '')"])
     return LaunchDescription([
         DeclareLaunchArgument('scenario', default_value='S9'),
