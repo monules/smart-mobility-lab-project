@@ -551,11 +551,11 @@ One S9 run once exited 0 without writing `s9_check.json` (not reproduced in
 | `main` (origin) | team base: PR #1, M2-B coordinator (PR #2), M3 parking/traffic (PR #3, `146b8b2`). Not modified by integration work |
 | `m5-safety-supervisor` (local) | M5 development line (fast-forwarded to the integration base, then M5 commits) |
 | `feature/m1a-passenger-detector` (local) | M1-A's work, kept as its own branch and also merged here |
-| `integration/current-team-work` | this branch: M5 + M1-A + M1-B + current `main`, shared docs. An earlier version (`824cd60`) is on GitHub; newer commits here are local until pushed |
+| `integration/current-team-work` | this branch: M5 + M1-A + M1-B + current `main`, shared docs. Published on GitHub; check `git status` for local commits not pushed yet |
 | `origin/feature/m1b-demand-predictor` | M1-B's branch (merged here) |
 | `origin/feature/m2b-coordinator`, `origin/ARKARKYAW2003-patch-1`, `origin/m3-parking-traffic` | already merged into `main` (PR #2, #1, #3) |
 
-The integration branch is on GitHub (pushed at `824cd60`; push again to
+The integration branch is on GitHub (push again after local commits to
 share the newer commits). Teammates use:
 
 ```bash
