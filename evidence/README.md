@@ -34,13 +34,13 @@ frames) — see README_M1A.md.
 
 ## M2-A — bus docking (S3)
 
-Code and checker by M5 for M2-A (review pending). Commit `8235182` plus the
-uncommitted M2-A work (`8235182-dirty`); the picture was redrawn from the
-same CSV after a plotting fix.
+Code and checker by M5 for M2-A (review pending). Re-run on the M4 branch
+with the route planner in the loop (the JSON records the commit); the
+picture is drawn from the same CSV.
 
 | File | What it shows | Command |
 |---|---|---|
-| `m2a/s3/s3_check.json` | 12/12 checks + all 15 trials: T05 10/10 (≤ 0.040 m), door interlock, crossing grant/release, boarding 4/1, ETA error at 5 m (max 1.12 s), T06 cancel 0.043 s, pedestrian in C, blocked bay, stale pose 0.53 s, coordinator dispatch | `docker/hub.sh s3` |
+| `m2a/s3/s3_check.json` | 12/12 checks + all 15 trials: T05 10/10 (≤ 0.034 m, route from the planner), door interlock, crossing grant/release, boarding 4/1, ETA error at 5 m (max 0.94 s), T06 cancel 0.001 s, pedestrian in C, blocked bay, stale pose 0.535 s, coordinator dispatch | `docker/hub.sh s3` |
 | `m2a/s3/s3_trials.csv` | one row per trial (status, pose error, door time, boarding, ETA error) | same run |
 | `m2a/s3/s3_trace.csv` | bus path trace: position, heading, measured speed at 10 Hz (§10.3) | same run |
 | `m2a/s3/s3_events.csv` | action feedback and results, crossing grant/renew/release, door, docking, boarding events | same run |
@@ -54,6 +54,18 @@ Checker by M5, node by M2-B (two small changes, see README §10).
 |---|---|---|
 | `m2b/t04/t04_check.json` | 6/6: threshold noise → 0 dispatches; rising demand → exactly 1 (PREDICTED, third sample), no second goal; invalid forecast → 0; feed gap → 0; observed queue 7 → FALLBACK | `docker/hub.sh t04` |
 | `m2b/t04/t04_timeline.csv` | every forecast/queue value sent and every coordinator and bus event, per phase | same run |
+
+## M4 — routing and robot escort (S6, S7) and T18
+
+Code and checkers by M5 for M4 (review pending).
+
+| File | What it shows | Command |
+|---|---|---|
+| `m4/s6/s6_check.json` | 8/8: baseline 25 s vs detour 35 s, obstacle reroute, congestion by cost (115 s vs 35 s), T12 car and robot NO_ROUTE with zero motion, restore, T11 live oracle 5/5, p95 29 ms | `docker/hub.sh s6` |
+| `m4/s6/s6_routes.csv`, `s6_maps.png` | every service call (path, cost, latency, removed edges); edge-cost maps before/after each change | same run |
+| `m4/s7/s7_check.json`, `s7_trials.csv` | 9/9 and every trial: T13 10/10 (≤ 0.027 m), feedback 5 Hz, no-ready, obstacle detour 77.9 s vs 56.8 s, cancel, busy/duplicate, unreachable, odometry freeze | `docker/hub.sh s7` |
+| `m4/s7/s7_trace.csv`, `s7_events.csv`, `s7_paths.png` | robot path trace; phases, routes, reroutes, crossing, readiness, feedback | same run |
+| `m4/t18/t18_check.json` | 5/5: planner absent / late / slow-in-time, robot and bus | `docker/hub.sh t18` |
 
 ## M3 — parking and traffic (S4, S5)
 

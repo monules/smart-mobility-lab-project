@@ -1,0 +1,46 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "check": "S6 baseline costs",
+      "passed": true,
+      "detail": "car A->E A-Cs-J-E, 25.000 s; lower road 10 m / 0.40 m/s = 25 s, upper detour 14 m = 35.000 s (zero density, zero crossing wait)"
+    },
+    {
+      "check": "S6 obstacle reroute",
+      "passed": true,
+      "detail": "route A-N-Cn-B-U-E, Cs-J removed because OBSTACLE; returned edges checked against the removed set: none used"
+    },
+    {
+      "check": "S6 congestion by cost",
+      "passed": true,
+      "detail": "route A-N-Cn-B-U-E (14 m) chosen over the 10 m lower road: lower road 115.0 s vs 35.0 s; planner 35.0000 s, oracle 35.0000 s, edges valid True"
+    },
+    {
+      "check": "T12 car no route",
+      "passed": true,
+      "detail": "car A->E with Cs-J and Cn-B blocked: success=False reason=NO_ROUTE"
+    },
+    {
+      "check": "T12 robot stops on no route",
+      "passed": true,
+      "detail": "robot_1 NavigateTo E: result NO_ROUTE after 0.08 s, 0 nonzero candidates, moved 0.000 m"
+    },
+    {
+      "check": "S6 restore needs a new route",
+      "passed": true,
+      "detail": "car route back to A-Cs-J-E; robot NavigateTo W: route R-W validated, then ARRIVED (final error 0.028 m)"
+    },
+    {
+      "check": "T11 live oracle",
+      "passed": true,
+      "detail": "5/5 live answers equal the exhaustive simple-path oracle: planner 25.0000 s, oracle 25.0000 s, edges valid True; planner 35.0000 s, oracle 35.0000 s, edges valid True; planner 35.0000 s, oracle 35.0000 s, edges valid True; oracle no route; planner 25.0000 s, oracle 25.0000 s, edges valid True"
+    },
+    {
+      "check": "S6 planning latency",
+      "passed": true,
+      "detail": "p95 28.9 ms over 78 calls (limit 250 ms), max 29.3 ms"
+    }
+  ],
+  "commit": "4a82c57-dirty"
+}

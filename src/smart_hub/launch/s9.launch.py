@@ -32,7 +32,8 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'hub.launch.py')),
             launch_arguments={'scenario': 'S9', 'seed': LaunchConfiguration('seed'),
                               'output_dir': out, 'publish_estop': 'false',
-                              'record_dashboard': 'true'}.items()),
+                              # s9_fault_check plays the robot's manager itself
+                              'robot': 'false', 'record_dashboard': 'true'}.items()),
         check,
         RegisterEventHandler(OnProcessExit(
             target_action=check,

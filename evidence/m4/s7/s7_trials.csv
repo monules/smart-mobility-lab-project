@@ -1,0 +1,17 @@
+trial,kind,status,reason,final_node,travelled_m,duration_s,arrival_error_m,feedback_hz,feedback_max_gap_s,crossing_conflicts,crossing_ok,obstacle_contacts,escort_time_s,route
+1,nominal,SUCCEEDED,ARRIVED,D,10.78,57.06,0.027,5.02,0.205,0,True,0,56.85,R-W-Cn-Cs-J-D
+2,nominal,SUCCEEDED,ARRIVED,D,10.78,56.99,0.027,5.02,0.203,0,True,0,56.8,R-W-Cn-Cs-J-D
+3,nominal,SUCCEEDED,ARRIVED,D,10.78,56.99,0.026,5.02,0.208,0,True,0,56.8,R-W-Cn-Cs-J-D
+4,nominal,SUCCEEDED,ARRIVED,D,10.78,57.12,0.027,5.02,0.207,0,True,0,56.9,R-W-Cn-Cs-J-D
+5,nominal,SUCCEEDED,ARRIVED,D,10.78,56.92,0.026,5.02,0.218,0,True,0,56.8,R-W-Cn-Cs-J-D
+6,nominal,SUCCEEDED,ARRIVED,D,10.78,56.99,0.027,5.02,0.208,0,True,0,56.8,R-W-Cn-Cs-J-D
+7,nominal,SUCCEEDED,ARRIVED,D,10.78,57.03,0.026,5.02,0.207,0,True,0,56.8,R-W-Cn-Cs-J-D
+8,nominal,SUCCEEDED,ARRIVED,D,10.78,57.0,0.027,5.02,0.207,0,True,0,56.8,R-W-Cn-Cs-J-D
+9,nominal,SUCCEEDED,ARRIVED,D,10.78,57.03,0.027,5.02,0.207,0,True,0,56.8,R-W-Cn-Cs-J-D
+10,nominal,SUCCEEDED,ARRIVED,D,10.78,57.02,0.027,5.02,0.207,0,True,0,56.8,R-W-Cn-Cs-J-D
+11,no_ready,ABORTED,READY_TIMEOUT,R,0.0,20.03,7.81,5.05,0.207,0,True,0,,
+12,obstacle,SUCCEEDED,ARRIVED,D,14.65,78.07,0.027,5.01,0.208,0,True,0,77.9,R-W-Cn-Cs-J-D | BLOCKED:Cs-J: R-W-Cn-Cs-J-D -> W-Cn-B-U-E-J-D | W-Cn-B-U-E-J-D
+13,cancel,CANCELED,CANCELED,,0.81,4.03,7.196,5.26,0.205,0,True,0,,R-W-Cn-Cs-J-D
+14,busy_and_duplicate,CANCELED,CANCELED,R,0.0,0.61,7.81,0,-1,0,True,0,,
+15,unreachable,ABORTED,NO_ROUTE,R,0.0,0.32,7.81,0,-1,0,True,0,,
+16,odom_freeze,ABORTED,ODOM_STALE,,0.8,6.42,7.125,5.16,0.201,0,True,0,,R-W-Cn-Cs-J-D

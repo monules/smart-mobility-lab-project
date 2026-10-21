@@ -16,9 +16,12 @@ Calls       /crossing/request       RequestCrossing    (hub_coordinator, M2-B)
 The manager only proposes velocities; safety_supervisor decides the final
 /bus/cmd_vel. All docking logic is in bus_core.py (pure Python, unit tested).
 
-Route: /route/compute is asked for B (agent_type bus) when the service exists;
-if it is not available or does not answer within route_timeout_sec the
-baseline A-N-Cn-B from the map is used and a ROUTE_FALLBACK event says so.
+Route: /route/compute (M4's route_planner) is asked for the bay (agent_type
+bus). Each attempt waits route_timeout_sec (1 s); at most route_retries (2)
+retries, then the goal fails with PLANNER_UNAVAILABLE and the bus never moved
+(T18: no stale path). A NO_ROUTE answer fails the goal at once (T12). Answers
+to an abandoned attempt are ignored. Only with allow_route_fallback:=true is
+the baseline A-N-Cn-B used instead (ROUTE_FALLBACK event); off by default.
 
 One single-threaded executor: the action server has its own callback group
 and its execute callback awaits a future that the 20 Hz timer completes, so
@@ -54,6 +57,7 @@ class BusManager(Node):
         cfg = bus_core.BusConfig()
         p = declare(self, dict({'bus_id': 'bus_1', 'bay_id': 'B', 'run_id': '',
                                 'scenario_id': '', 'route_timeout_sec': 1.0,
+                                'route_retries': 2, 'allow_route_fallback': False,
                                 'future_tolerance_sec': 0.2},
                                **{k: float(getattr(cfg, k)) for k in CONFIG_KEYS}))
         for k in CONFIG_KEYS:
@@ -63,13 +67,17 @@ class BusManager(Node):
         self.bus_id, self.bay_id = p['bus_id'], p['bay_id']
         self.run_id, self.scenario_id = p['run_id'], p['scenario_id']
         self.route_timeout = float(p['route_timeout_sec'])
+        self.route_retries = int(p['route_retries'])
+        self.allow_fallback = bool(p['allow_route_fallback'])
+        if not 0 <= self.route_retries <= 5:
+            raise ValueError('route_retries must be in [0, 5]')
         self.future_tol = float(p['future_tolerance_sec'])
         if not 0.1 <= self.route_timeout <= 10.0:
             raise ValueError('route_timeout_sec must be in [0.1, 10]')
 
         self.goal = None            # active ServerGoalHandle
         self.goal_done = None       # Future the execute coroutine awaits
-        self.planning = None        # (start time, route future or None)
+        self.planning = None        # {'sent', 'future' (None: no planner), 'tries'}
         self.door_req = False
         self._reset_id = ''
         self._ticks = 0
@@ -155,12 +163,17 @@ class BusManager(Node):
 
     async def execute(self, goal_handle):
         self.goal, self.goal_done = goal_handle, Future()
-        request = None
-        if self.route_cli.service_is_ready():
-            request = self.route_cli.call_async(ComputeRoute.Request(
-                start_node='A', goal_node=self.bay_id, agent_type='bus'))
-        self.planning = (time.monotonic(), request)
+        self.planning = {'tries': 0}
+        self._ask_route(time.monotonic())
         return await self.goal_done
+
+    def _ask_route(self, now):
+        plan = self.planning
+        plan['tries'] += 1
+        plan['sent'] = now
+        plan['future'] = self.route_cli.call_async(ComputeRoute.Request(
+            start_node='A', goal_node=self.bay_id, agent_type='bus')) \
+            if self.route_cli.service_is_ready() else None
 
     def finish(self, done):
         success, final_state, reason = done
@@ -180,20 +193,31 @@ class BusManager(Node):
             self.goal_done.set_result(result)
 
     def _start_route(self, now):
-        started, request = self.planning
+        plan = self.planning
+        future = plan['future']
+        res = future.result() if future is not None and future.done() else None
         route = None
-        if request is not None and request.done():
-            res = request.result()
-            if res is not None and res.success and res.waypoints:
-                route = [(w.x, w.y) for w in res.waypoints]
-                self.event('ROUTE_PLANNED', '%s cost %.1f s'
-                           % ('-'.join(res.node_ids), res.estimated_cost_sec))
-        elif request is not None and now - started < self.route_timeout:
-            return                                       # still waiting for M4's planner
-        if route is None:
+        if res is not None and res.success and res.waypoints:
+            route = [(w.x, w.y) for w in res.waypoints]
+            self.event('ROUTE_PLANNED', '%s cost %.1f s'
+                       % ('-'.join(res.node_ids), res.estimated_cost_sec))
+        elif res is not None:                              # the planner said no
+            self.finish((False, bus_core.SAFE_STOP, res.reason or 'NO_ROUTE'))
+            return
+        elif now - plan['sent'] < self.route_timeout:
+            return                                         # still waiting
+        elif plan['tries'] <= self.route_retries:
+            self.event('PLANNER_RETRY', 'attempt %d %s' % (
+                plan['tries'], 'timed out' if future is not None else 'planner not ready'))
+            self._ask_route(now)                           # the old answer is dropped
+            return
+        elif self.allow_fallback:
             route = bus_core.node_route()
             self.event('ROUTE_FALLBACK', 'baseline %s (no route from /route/compute)'
                        % '-'.join(bus_core.BASELINE_ROUTE))
+        else:
+            self.finish((False, bus_core.SAFE_STOP, 'PLANNER_UNAVAILABLE'))
+            return
         self.planning = None
         try:
             self.core.start(route, now, self.goal.request.max_duration_sec)

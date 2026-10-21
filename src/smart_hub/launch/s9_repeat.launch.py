@@ -28,7 +28,8 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'hub.launch.py')),
             launch_arguments={'scenario': 'S9', 'seed': '100', 'output_dir': out,
-                              'publish_estop': 'false'}.items()),
+                              'publish_estop': 'false',
+                              'robot': 'false'}.items()),   # the check drives robot_1
         check,
         RegisterEventHandler(OnProcessExit(
             target_action=check,

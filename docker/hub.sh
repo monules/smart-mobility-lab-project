@@ -10,6 +10,9 @@
 #   docker/hub.sh s3 [trials]    run the S3 bus docking check (M2-A, ~12 min)
 #   docker/hub.sh s4             run the S4 parking check (M3, ~45 s)
 #   docker/hub.sh t04            run the T04 bus dispatch check (M2-B, ~4 min)
+#   docker/hub.sh s6             run the S6 routing check (M4, ~1.5 min)
+#   docker/hub.sh s7 [trials]    run the S7 robot escort check (M4, ~15 min)
+#   docker/hub.sh t18            run the T18 planner-loss check (M4 + M5, ~1 min)
 #   docker/hub.sh s5             run the S5 congestion check (M3, ~90 s)
 #   docker/hub.sh view [S1|S9]   live dashboard for Foxglove on ws://localhost:8765
 #   docker/hub.sh report         build docs/report/Smart_Mobility_Hub_Report.pdf
@@ -92,7 +95,13 @@ print('S1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
       ros2 launch smart_hub s3.launch.py output_dir:=/ws/output nominal_trials:=${2:-10}; \
       python3 -c \"import json, sys; r = json.load(open('output/s3_check.json')); \
 print('S3 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
-  s4|s5|t04)
+  s7)
+    # S7 robot escort (M4): 10 nominal escorts (or [trials]) + special trials.
+    in_container "" "mkdir -p output && rm -f output/s7_check.json && \
+      ros2 launch smart_hub s7.launch.py output_dir:=/ws/output nominal_trials:=${2:-10}; \
+      python3 -c \"import json, sys; r = json.load(open('output/s7_check.json')); \
+print('S7 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
+  s4|s5|s6|t04|t18)
     # S4 parking / S5 congestion (M3's nodes), T04 dispatch (M2-B); checkers by M5.
     in_container "" "mkdir -p output && rm -f output/$1_check.json && \
       ros2 launch smart_hub $1.launch.py output_dir:=/ws/output; \
@@ -102,7 +111,7 @@ print('$1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
     # Live dashboard for Foxglove (https://foxglove.dev): connect to
     # ws://localhost:8765, add a 3D panel, display frame 'map'. Ctrl+C stops.
     in_container "-it -p 8765:8765" "ros2 launch smart_hub hub.launch.py \
-      scenario:=${2:-S1} perception:=true > /tmp/hub.log 2>&1 &
+      scenario:=${2:-S1} perception:=true robot:=false > /tmp/hub.log 2>&1 &
       ros2 run smart_hub mock_candidate_publisher --ros-args -p linear_x:=0.1 \
         -p angular_z:=0.2 > /dev/null 2>&1 &
       echo 'Open Foxglove -> Open connection -> ws://localhost:8765'
@@ -113,5 +122,5 @@ print('$1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
     in_container "" "python3 docs/report/build_report.py" ;;
   shell) in_container "-it" "exec bash" ;;
   run) in_container "" "${2:?usage: docker/hub.sh run '<command>'}" ;;
-  *) sed -n '2,17p' "$0" ;;
+  *) sed -n '2,20p' "$0" ;;
 esac

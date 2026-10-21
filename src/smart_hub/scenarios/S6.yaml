@@ -1,0 +1,21 @@
+# Scenario S6: intelligent route replanning (owner M4; scenario file by M5).
+# Empty roads (no bus parked at A: traffic_monitor counts a standing vehicle
+# as slow traffic). s6_check asks /route/compute for a car from A to E and
+# injects the changes itself: obstacle O on Cs-J, slow cars on Cs-J
+# (congestion without blocking), O plus O2 on Cn-B (no route), then restores
+# the roads. robot_1 waits at R for the manager part of T12.
+scenario_id: S6
+duration_sec: 0
+observation_noise_m: 0.0
+estop: false
+agents:
+  robot_1: {kind: robot, x: 3.0, y: 6.0, theta: 0.0}
+obstacles:
+  O: {x: 7.0, y: 2.0, active: false}       # blocks Cs-J (assignment 2.1)
+  O2: {x: 6.5, y: 4.0, active: false}      # blocks Cn-B (13.3 step 4)
+parking:
+  P1: occupied
+  P2: free
+  P3: free
+events:
+  - {t: 0.5, type: note, text: "S6 start: empty roads"}

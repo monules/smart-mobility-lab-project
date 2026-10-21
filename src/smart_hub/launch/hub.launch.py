@@ -11,13 +11,14 @@ Arguments (assignment 20.1: scenario, seed and simulation/hardware mode):
   coordination   true (default): also start hub_coordinator (M2-B),
                  parking_manager and traffic_monitor (M3)
   bus            true (default): also start bus_manager (M2-A, DockBus server)
+  robot          true (default): also start robot_manager (M4, escort/navigate)
+  planner        true (default): also start route_planner (M4, /route/compute)
   perception     true: also start passenger_detector (M1-A) and demand_predictor
                  (M1-B) on the simulator camera; use with scenario:=S1
   publish_estop  true: scenario_runner publishes /hub/estop (10 Hz heartbeat);
                  false: an operator node publishes it instead
 
-Remaining teammates' nodes (robot manager, route planner) are added here once
-they are inside src/smart_hub.
+Every member's node is started here; arguments switch groups off for tests.
 """
 import os
 
@@ -39,11 +40,13 @@ def generate_launch_description():
     estop = LaunchConfiguration('publish_estop')
     perception = LaunchConfiguration('perception')
     bus = LaunchConfiguration('bus')
+    robot = LaunchConfiguration('robot')
     # Nodes that must acknowledge /scenario/reset (contract §7).
     participants = PythonExpression([
         "'safety_supervisor,actuator_bridge,metrics_logger,dashboard_marker_publisher'"
         " + (',passenger_detector,demand_predictor' if '", perception, "' == 'true' else '')"
-        " + (',bus_manager' if '", bus, "' == 'true' else '')"])
+        " + (',bus_manager' if '", bus, "' == 'true' else '')"
+        " + (',robot_manager' if '", robot, "' == 'true' else '')"])
     return LaunchDescription([
         DeclareLaunchArgument('scenario', default_value='S9'),
         DeclareLaunchArgument('seed', default_value='9'),
@@ -54,6 +57,8 @@ def generate_launch_description():
         DeclareLaunchArgument('record_dashboard', default_value='false'),
         DeclareLaunchArgument('coordination', default_value='true'),
         DeclareLaunchArgument('bus', default_value='true'),
+        DeclareLaunchArgument('robot', default_value='true'),
+        DeclareLaunchArgument('planner', default_value='true'),
         Node(package='smart_hub', executable='scenario_runner', name='scenario_runner',
              output='screen',
              parameters=[{'scenario': scenario, 'seed': seed, 'publish_estop': estop,
@@ -82,6 +87,12 @@ def generate_launch_description():
         # bus:=true: S3 bus docking (M2-A); idle until a DockBus goal arrives.
         Node(package='smart_hub', executable='bus_manager', name='bus_manager',
              output='screen', condition=IfCondition(bus),
+             parameters=[{'scenario_id': scenario}]),
+        # M4: route planner (S6) and escort robot (S7).
+        Node(package='smart_hub', executable='route_planner', name='route_planner',
+             output='screen', condition=IfCondition(LaunchConfiguration('planner'))),
+        Node(package='smart_hub', executable='robot_manager', name='robot_manager',
+             output='screen', condition=IfCondition(robot),
              parameters=[{'scenario_id': scenario}]),
         # perception:=true adds the S1/S2 chain on the simulator camera:
         # passenger_detector (M1-A) -> /hub/queue -> demand_predictor (M1-B).

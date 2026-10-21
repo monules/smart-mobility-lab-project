@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "check": "T18 robot: planner absent",
+      "passed": true,
+      "detail": "robot, planner absent: PLANNER_UNAVAILABLE after 3.08 s; 0 request(s) reached the planner, 5 retry event(s), 0 late answer(s) ignored; 0 nonzero candidates, moved 0.000 m"
+    },
+    {
+      "check": "T18 bus: planner absent",
+      "passed": true,
+      "detail": "bus, planner absent: PLANNER_UNAVAILABLE after 3.08 s; 0 request(s) reached the planner, 2 retry event(s), 0 late answer(s) ignored; 0 nonzero candidates, moved 0.000 m"
+    },
+    {
+      "check": "T18 robot: late replies ignored",
+      "passed": true,
+      "detail": "robot, replies after 1.5 s: PLANNER_UNAVAILABLE after 3.07 s; 3 request(s) reached the planner, 2 retry event(s), 3 late answer(s) ignored; 0 nonzero candidates, moved 0.000 m"
+    },
+    {
+      "check": "T18 bus: late replies ignored",
+      "passed": true,
+      "detail": "bus, replies after 1.5 s: PLANNER_UNAVAILABLE after 3.13 s; 3 request(s) reached the planner, 2 retry event(s), 0 late answer(s) ignored; 0 nonzero candidates, moved 0.000 m"
+    },
+    {
+      "check": "T18 robot: slow planner still works",
+      "passed": true,
+      "detail": "replies after 0.3 s: NavigateTo W ARRIVED after 11.8 s"
+    }
+  ],
+  "commit": "4a82c57-dirty"
+}

@@ -1,0 +1,19 @@
+# Scenario S7: autonomous robot passenger escort (owner M4; scenario file by
+# M5). robot_1 waits at pickup R facing east; destination D. s7_check sends
+# the EscortPassenger goals, presses /robot/confirm_ready (the simulated
+# button), and injects obstacle O on Cs-J or an odometry freeze at the right
+# moment. The scenario is reset before every trial (seed = trial number).
+scenario_id: S7
+duration_sec: 0
+observation_noise_m: 0.0
+estop: false
+agents:
+  robot_1: {kind: robot, x: 3.0, y: 6.0, theta: 0.0}
+obstacles:
+  O: {x: 7.0, y: 2.0, active: false}
+parking:
+  P1: occupied
+  P2: free
+  P3: free
+events:
+  - {t: 0.5, type: note, text: "S7 start: robot at R"}
