@@ -17,7 +17,21 @@
 >   Ctrl+C (catches the shutdown and calls `rclpy.shutdown()` only if
 >   `rclpy.ok()`).
 > - Q4 is answered: bus_manager publishes `state: IDLE` at 2 Hz when free.
-> - Still yours: S8/T15 (needs M4's robot), reset handshake, restyle.
+> - Still yours: reset handshake, restyle.
+>
+> **Update 3 (branch `feature/s8-integration`, by Saidumar/M5):**
+> - **Question 3 answered — the escort trigger:** the kiosk (in simulation:
+>   `scenario_runner`) publishes `ESCORT_REQUEST` on `/hub/events` with JSON
+>   `{request_id, passenger_id, pickup, destination}`; your coordinator now
+>   listens (`_on_hub_event`) and calls your `send_escort()`.
+> - **Reactive mode added** (your "still missing" list): parameter
+>   `dispatch_mode` = `predictive` (forecast, else FALLBACK on the observed
+>   queue) or `reactive` (observed queue only). S8/T15 compares both on the
+>   same ten seeds — `docker/hub.sh s8`.
+> - **Result: T15 PASSED** — 20/20 episodes with 0 collisions, 0 crossing
+>   conflicts, 0 double allocations, 0 duplicate dispatches; every mission
+>   completed; predictive dispatch on average 1.4 s earlier than reactive
+>   (`evidence/s8/`). Read `s8_check.py` and the S8 section of the report.
 
 ## Files and where they go in the repo
 | File | Goes to |

@@ -13,6 +13,10 @@ Arguments (assignment 20.1: scenario, seed and simulation/hardware mode):
   bus            true (default): also start bus_manager (M2-A, DockBus server)
   robot          true (default): also start robot_manager (M4, escort/navigate)
   planner        true (default): also start route_planner (M4, /route/compute)
+  dispatch_mode  predictive (default) or reactive: hub_coordinator bus dispatch
+                 on forecast+fallback or on the observed queue only (S8/T15)
+  bus_depart_to  '' (default) or an exit node, e.g. E: after docking the bus
+                 departs there as a separate transition (S8)
   perception     true: also start passenger_detector (M1-A) and demand_predictor
                  (M1-B) on the simulator camera; use with scenario:=S1
   publish_estop  true: scenario_runner publishes /hub/estop (10 Hz heartbeat);
@@ -59,6 +63,8 @@ def generate_launch_description():
         DeclareLaunchArgument('bus', default_value='true'),
         DeclareLaunchArgument('robot', default_value='true'),
         DeclareLaunchArgument('planner', default_value='true'),
+        DeclareLaunchArgument('dispatch_mode', default_value='predictive'),
+        DeclareLaunchArgument('bus_depart_to', default_value=''),
         Node(package='smart_hub', executable='scenario_runner', name='scenario_runner',
              output='screen',
              parameters=[{'scenario': scenario, 'seed': seed, 'publish_estop': estop,
@@ -79,7 +85,8 @@ def generate_launch_description():
         # traffic state (M3) on the simulator's /hub/vehicles and /parking/observed.
         Node(package='smart_hub', executable='hub_coordinator', name='hub_coordinator',
              output='screen', condition=IfCondition(LaunchConfiguration('coordination')),
-             parameters=[{'scenario_id': scenario}]),
+             parameters=[{'scenario_id': scenario,
+                          'dispatch_mode': LaunchConfiguration('dispatch_mode')}]),
         Node(package='smart_hub', executable='parking_manager', name='parking_manager',
              output='screen', condition=IfCondition(LaunchConfiguration('coordination'))),
         Node(package='smart_hub', executable='traffic_monitor', name='traffic_monitor',
@@ -87,7 +94,8 @@ def generate_launch_description():
         # bus:=true: S3 bus docking (M2-A); idle until a DockBus goal arrives.
         Node(package='smart_hub', executable='bus_manager', name='bus_manager',
              output='screen', condition=IfCondition(bus),
-             parameters=[{'scenario_id': scenario}]),
+             parameters=[{'scenario_id': scenario,
+                          'depart_to': LaunchConfiguration('bus_depart_to')}]),
         # M4: route planner (S6) and escort robot (S7).
         Node(package='smart_hub', executable='route_planner', name='route_planner',
              output='screen', condition=IfCondition(LaunchConfiguration('planner'))),

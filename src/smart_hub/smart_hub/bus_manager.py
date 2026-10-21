@@ -4,10 +4,12 @@ Serves      /bus/dock               DockBus action (client: hub_coordinator)
 Subscribes  /hub/vehicles           VehicleStateArray  R10 (bus pose, other bodies)
             /bus/door_open          std_msgs/Bool      R1  (measured, actuator_bridge)
             /hub/safety             SafetyState        R1T
+            /crossing/state         CrossingState      R1T (pedestrian in C: pause)
             /hub/events             HubEvent           R100 (scenario reset handshake)
 Publishes   /bus/cmd_vel_candidate  TwistStamped       R1, 20 Hz (zero while idle)
             /bus/door_request       std_msgs/Bool      R1, 20 Hz
-            /hub/bus_arrival        BusArrival         R10, 2 Hz
+            /hub/bus_arrival        BusArrival         R10, 2 Hz (IDLE only when free and
+                                                       located; UNAVAILABLE without a pose)
             /bus/route              nav_msgs/Path      R1T (empty path = no route)
             /hub/events             HubEvent           R100 (phases, crossing, docking)
 Calls       /crossing/request       RequestCrossing    (hub_coordinator, M2-B)
@@ -41,7 +43,8 @@ from smart_hub import bus_core
 from smart_hub.ros_common import (declare, R1, R10, R100, R1T, reset_ack,
                                   RESET_REQUEST, stamp_age)
 from smart_hub_interfaces.action import DockBus
-from smart_hub_interfaces.msg import BusArrival, HubEvent, SafetyState, VehicleStateArray
+from smart_hub_interfaces.msg import (BusArrival, CrossingState, HubEvent, SafetyState,
+                                      VehicleStateArray)
 from smart_hub_interfaces.srv import ComputeRoute, RequestCrossing
 from std_msgs.msg import Bool
 
@@ -58,6 +61,9 @@ class BusManager(Node):
         p = declare(self, dict({'bus_id': 'bus_1', 'bay_id': 'B', 'run_id': '',
                                 'scenario_id': '', 'route_timeout_sec': 1.0,
                                 'route_retries': 2, 'allow_route_fallback': False,
+                                # S8: after a completed docking, drive on to this exit
+                                # node as a separate DEPART transition ('' = stay)
+                                'depart_to': '',
                                 'future_tolerance_sec': 0.2},
                                **{k: float(getattr(cfg, k)) for k in CONFIG_KEYS}))
         for k in CONFIG_KEYS:
@@ -69,6 +75,9 @@ class BusManager(Node):
         self.route_timeout = float(p['route_timeout_sec'])
         self.route_retries = int(p['route_retries'])
         self.allow_fallback = bool(p['allow_route_fallback'])
+        self.depart_to = p['depart_to']
+        if self.depart_to and self.depart_to not in bus_core.geo.NODES:
+            raise ValueError('depart_to must be a map node or empty')
         if not 0 <= self.route_retries <= 5:
             raise ValueError('route_retries must be in [0, 5]')
         self.future_tol = float(p['future_tolerance_sec'])
@@ -91,6 +100,7 @@ class BusManager(Node):
         self.create_subscription(VehicleStateArray, '/hub/vehicles', self.on_vehicles, R10)
         self.create_subscription(Bool, '/bus/door_open', self.on_door, R1)
         self.create_subscription(SafetyState, '/hub/safety', self.on_safety, R1T)
+        self.create_subscription(CrossingState, '/crossing/state', self.on_crossing, R1T)
         self.create_subscription(HubEvent, '/hub/events', self.on_hub_event, R100)
         self.crossing_cli = self.create_client(RequestCrossing, '/crossing/request')
         self.route_cli = self.create_client(ComputeRoute, '/route/compute')
@@ -123,6 +133,9 @@ class BusManager(Node):
     def on_safety(self, msg):
         self.core.on_safety(msg.stop_latched)
 
+    def on_crossing(self, msg):
+        self.core.on_crossing_state(msg.pedestrian_present or not msg.valid, time.monotonic())
+
     def on_hub_event(self, msg):
         """Scenario reset (contract §7): end any goal, zero output, then acknowledge."""
         if msg.event != RESET_REQUEST:
@@ -146,7 +159,7 @@ class BusManager(Node):
             reason = 'UNKNOWN_BAY'
         elif not goal.max_duration_sec > 0:
             reason = 'INVALID_DURATION'
-        elif self.goal is not None or self.core.active:
+        elif self.goal is not None or self.core.active or self.planning is not None:
             reason = 'BUSY'
         elif not self.core._pose_fresh(time.monotonic()):
             reason = 'POSE_UNKNOWN'
@@ -163,7 +176,8 @@ class BusManager(Node):
 
     async def execute(self, goal_handle):
         self.goal, self.goal_done = goal_handle, Future()
-        self.planning = {'tries': 0}
+        self.planning = {'tries': 0, 'start': 'A', 'goal': self.bay_id, 'mode': 'dock',
+                         'duration': goal_handle.request.max_duration_sec}
         self._ask_route(time.monotonic())
         return await self.goal_done
 
@@ -172,7 +186,7 @@ class BusManager(Node):
         plan['tries'] += 1
         plan['sent'] = now
         plan['future'] = self.route_cli.call_async(ComputeRoute.Request(
-            start_node='A', goal_node=self.bay_id, agent_type='bus')) \
+            start_node=plan['start'], goal_node=plan['goal'], agent_type='bus')) \
             if self.route_cli.service_is_ready() else None
 
     def finish(self, done):
@@ -191,6 +205,18 @@ class BusManager(Node):
         self.publish_route([])
         if self.goal_done is not None and not self.goal_done.done():
             self.goal_done.set_result(result)
+        if success and self.depart_to:            # separate transition, reported alone
+            self.event('BUS_DEPART_REQUESTED', 'to %s' % self.depart_to)
+            self.planning = {'tries': 0, 'start': self.bay_id, 'goal': self.depart_to,
+                             'mode': 'depart', 'duration': 120.0}
+            self._ask_route(time.monotonic())
+
+    def _plan_failed(self, reason):
+        if self.planning['mode'] == 'dock':
+            self.finish((False, bus_core.SAFE_STOP, reason))
+        else:
+            self.planning = None
+            self.event('BUS_DEPART_FAILED', reason)
 
     def _start_route(self, now):
         plan = self.planning
@@ -202,7 +228,7 @@ class BusManager(Node):
             self.event('ROUTE_PLANNED', '%s cost %.1f s'
                        % ('-'.join(res.node_ids), res.estimated_cost_sec))
         elif res is not None:                              # the planner said no
-            self.finish((False, bus_core.SAFE_STOP, res.reason or 'NO_ROUTE'))
+            self._plan_failed(res.reason or 'NO_ROUTE')
             return
         elif now - plan['sent'] < self.route_timeout:
             return                                         # still waiting
@@ -211,18 +237,19 @@ class BusManager(Node):
                 plan['tries'], 'timed out' if future is not None else 'planner not ready'))
             self._ask_route(now)                           # the old answer is dropped
             return
-        elif self.allow_fallback:
+        elif self.allow_fallback and plan['mode'] == 'dock':
             route = bus_core.node_route()
             self.event('ROUTE_FALLBACK', 'baseline %s (no route from /route/compute)'
                        % '-'.join(bus_core.BASELINE_ROUTE))
         else:
-            self.finish((False, bus_core.SAFE_STOP, 'PLANNER_UNAVAILABLE'))
+            self._plan_failed('PLANNER_UNAVAILABLE')
             return
         self.planning = None
         try:
-            self.core.start(route, now, self.goal.request.max_duration_sec)
+            self.core.start(route, now, plan['duration'], plan['mode'])
         except (RuntimeError, ValueError) as exc:
-            self.finish((False, bus_core.SAFE_STOP, 'START_FAILED:%s' % exc))
+            self.planning = plan
+            self._plan_failed('START_FAILED:%s' % exc)
             return
         self.publish_route(self.core.path.p)
 
@@ -237,6 +264,8 @@ class BusManager(Node):
                     self.finish((False, bus_core.SAFE_STOP, 'CANCELED'))
                 else:
                     self._start_route(now)
+        elif self.planning is not None:                    # departure
+            self._start_route(now)
         out = self.core.step(now)
         self.last_out = out
         self.publish_cmd(*out.cmd)
@@ -258,6 +287,10 @@ class BusManager(Node):
             self.publish_arrival(out)
         if out.done and self.goal is not None:
             self.finish(out.done)
+        elif out.done:
+            self.event('BUS_DEPARTED' if out.done[0] else 'BUS_DEPART_FAILED',
+                       '%s %s' % out.done[1:])
+            self.publish_route([])
 
     # ------------------------------------------------------------- outputs
     def send_crossing(self, operation, token):
@@ -292,7 +325,12 @@ class BusManager(Node):
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'map'
         msg.bus_id = self.bus_id
-        msg.state = out.phase if self.goal is not None or out.done else bus_core.IDLE
+        if not self.core._pose_fresh(time.monotonic()):
+            msg.state = 'UNAVAILABLE'        # e.g. left the map at E: never dispatch
+        elif self.goal is not None or self.core.active or out.done or self.planning:
+            msg.state = out.phase if out.phase != bus_core.IDLE else 'PLANNING'
+        else:
+            msg.state = bus_core.IDLE
         msg.eta_valid = bool(out.eta_valid)
         msg.eta_sec = float(out.eta) if out.eta_valid else -1.0
         door = self.core.door_open

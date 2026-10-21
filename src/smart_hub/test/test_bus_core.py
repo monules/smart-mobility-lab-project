@@ -62,6 +62,8 @@ class Harness:
         elif not out.door_request:
             self.door = False
         self.sim.step()
+        if 'bus_1' not in self.sim.bodies:           # left the map at exit E
+            return out
         b = self.bus
         self.trace.append((t, b.x, b.y, abs(b.v), out.phase, self.door,
                            geo.circle_overlaps_rect(b.x, b.y, 0.30, geo.CROSSING)))
@@ -206,3 +208,33 @@ def test_path_geometry_and_config_validation():
     core = BusCore()
     with pytest.raises(RuntimeError):
         core.start(node_route(), 0.0, 60.0)          # no pose yet
+
+
+def test_departure_is_a_separate_trip_to_the_exit():
+    h = Harness()
+    start(h)
+    h.run(90.0)                                      # docked and boarded
+    h.core.start([geo.NODES[n] for n in ('B', 'U', 'E')], h.sim.t, 120.0, mode='depart')
+    assert h.core.phase == 'DEPART'
+    out = h.run(150.0)
+    assert out is not None and out.done == (True, 'DEPARTED', 'AT_EXIT')
+    x, y = h.trace[-1][1:3]
+    assert math.dist((x, y), geo.NODES['E']) < 0.2
+    assert 'bus_1' not in h.sim.bodies and h.sim.exits == ['bus_1']   # left at E
+
+
+def test_pedestrian_in_c_pauses_the_bus_even_with_permission():
+    h = Harness()
+    start(h)
+    while h.bus.x < 3.0 or abs(h.bus.y - 4.0) > 0.1:      # on N-Cn, permission coming
+        h.core.on_crossing_state(False, h.sim.t)
+        h.step()
+    while h.sim.t < 60.0:                                 # person steps onto C and stays
+        h.core.on_crossing_state(True, h.sim.t)
+        h.step()
+    assert h.core.token and h.core.phase == WAIT and h.core.reason == 'PEDESTRIAN_IN_C'
+    assert not any(c for *_, c in h.trace)                # never entered C
+    while h.sim.t < 130.0 and not h.outs[-1][1].done:     # person leaves
+        h.core.on_crossing_state(False, h.sim.t)
+        h.step()
+    assert h.outs[-1][1].done[0]

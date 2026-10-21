@@ -23,6 +23,9 @@ NavigateTo uses the same machinery with one leg (phase NAVIGATE).
 * Crossing C: ACQUIRE before the footprint reaches C (stop line otherwise,
   phase WAIT_CROSSING), RENEW every renew_period, RELEASE once clear. The
   permission is kept across replans while the robot is inside C.
+* A pedestrian reported in C pauses the robot even with a granted crossing:
+  it holds before C, or stands still inside C (S8: "existing movement stops
+  safely as needed").
 * Progress = travelled / (travelled + remaining on the current leg). It can
   DECREASE after a detour, because the remaining distance always follows
   the new route (14.3).
@@ -455,14 +458,21 @@ class RobotCore:
             self._planner(now, out)
         if self._obstacle_ahead(s):
             hold, pause = s, (BLOCKED, 'OBSTACLE_CLEARANCE')
-        if not self._crossing(now, s, x, y, out) and p.c_in is not None \
+        cs = self.view.crossing
+        ped = cs is not None and cs[1] and now - self.view.crossing_t <= 1.0 \
+            and p.c_in is not None and s < p.c_out
+        may_pass = self._crossing(now, s, x, y, out) and not ped
+        if ped and self._in_c(x, y):
+            hold, pause = s, (WAIT_CROSSING, 'PEDESTRIAN_IN_C')
+        if not may_pass and p.c_in is not None \
                 and s < p.c_in and not self._in_c(x, y):
             # outside C without permission: hold at the stop line, or right here
             # if a new route (e.g. a reversal) starts closer to C than that
             line = max(p.c_in - c.stop_margin, s)
             hold = line if hold is None else min(hold, line)
             if pause is None and line - s < 0.05:
-                pause = (WAIT_CROSSING, self.deny_reason or 'CROSSING_PENDING')
+                pause = (WAIT_CROSSING, 'PEDESTRIAN_IN_C' if ped else
+                         self.deny_reason or 'CROSSING_PENDING')
         if hold is not None:
             stops.append(hold)
 

@@ -67,6 +67,19 @@ Code and checkers by M5 for M4 (review pending).
 | `m4/s7/s7_trace.csv`, `s7_events.csv`, `s7_paths.png` | robot path trace; phases, routes, reroutes, crossing, readiness, feedback | same run |
 | `m4/t18/t18_check.json` | 5/5: planner absent / late / slow-in-time, robot and bus | `docker/hub.sh t18` |
 
+## S8 / T15 — integrated rush hour (everyone)
+
+Scenario, checker and summary by M5; every member's node runs.
+
+| File | What it shows | Command |
+|---|---|---|
+| `s8/s8_summary.json` | T15 verdict (passed), totals of every safety violation (all 0), per-mode completion, queue wait p50/p95, travel and crossing times, paired seeds | `docker/hub.sh s8` |
+| `s8/s8_runs.csv` | one row per episode (20): violations, missions, dispatch time and reason, parking, reroutes | same run |
+| `s8/s8_compare.png` | predictive vs reactive per seed | same run |
+| `s8/episodes/<mode>/seed<k>/` | `s8_episode.json` (checks, metrics, violation details) and `s8_timeline.csv` (every event + crossing owner changes) | same run |
+| `s8/bag_seed1_predictive/` | rosbag (MCAP, 3.1 MB) of seed 1 predictive: events, vehicles, truth, queue, demand, crossing, safety, parking, traffic, commands, routes | same run |
+| `s8/dashboard_seed1_predictive/` | overhead dashboard video (`dashboard.mp4`) and key frames of one rush hour (seed 1 predictive, re-recorded after the dashboard forecast-display fix; that episode also passed) | `ros2 launch smart_hub s8.launch.py seed:=1 record_dashboard:=true` |
+
 ## M3 — parking and traffic (S4, S5)
 
 Scenario files and checkers by M5; nodes by M3. Commit `72e2fde` plus the

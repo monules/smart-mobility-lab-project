@@ -281,3 +281,23 @@ def test_config_validation():
         RobotCore(RobotConfig(cruise_speed=0.3))
     with pytest.raises(ValueError):
         RobotCore(RobotConfig(replan_gain=1.5))
+
+
+def test_pedestrian_in_c_pauses_the_robot_even_with_permission():
+    h = Harness()
+    h.core.start('navigate', ['D'], h.sim.t, 200.0)
+    while not h.core.token:                               # permission granted first
+        h.step()
+    ped = {'on': True}
+    feed = h.feed
+
+    def feed_with_pedestrian(odom=True):
+        feed(odom)
+        h.view.on_crossing('robot_1', ped['on'], True, h.sim.t)
+    h.feed = feed_with_pedestrian
+    h.run(h.sim.t + 15.0, stop_when_done=False)
+    assert h.core.phase == WAIT_CROSSING and h.core.reason == 'PEDESTRIAN_IN_C'
+    assert h.core.token and not any(c for *_, c in h.trace)
+    ped['on'] = False
+    out = h.run(200.0)
+    assert out.done[:2] == (True, ARRIVED)
