@@ -7,34 +7,40 @@ Arguments (assignment 20.1: scenario, seed and simulation/hardware mode):
   seed           random seed for the simulator (9)
   mode           only 'sim' is implemented; the bridge refuses anything else
   output_dir     where metrics_logger writes <run_id>/events.csv, summary.json
+  perception     true: also start passenger_detector (M1-A) and demand_predictor
+                 (M1-B) on the simulator camera; use with scenario:=S1
   publish_estop  true: scenario_runner publishes /hub/estop (10 Hz heartbeat);
                  false: an operator node publishes it instead
 
-Teammates' nodes (detector, predictor, managers, coordinator, planner) are
-added here once they are merged; this branch contains only M5's nodes.
+Remaining teammates' nodes (bus/robot managers, coordinator, planner,
+parking, traffic) are added here once they are inside src/smart_hub.
 """
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    cfg = os.path.join(get_package_share_directory('smart_hub'), 'config', 'm5_safety.yaml')
+    share = get_package_share_directory('smart_hub')
+    cfg = os.path.join(share, 'config', 'm5_safety.yaml')
     scenario = LaunchConfiguration('scenario')
     seed = LaunchConfiguration('seed')
     mode = LaunchConfiguration('mode')
     out = LaunchConfiguration('output_dir')
     estop = LaunchConfiguration('publish_estop')
+    perception = LaunchConfiguration('perception')
     return LaunchDescription([
         DeclareLaunchArgument('scenario', default_value='S9'),
         DeclareLaunchArgument('seed', default_value='9'),
         DeclareLaunchArgument('mode', default_value='sim'),
         DeclareLaunchArgument('output_dir', default_value='output'),
         DeclareLaunchArgument('publish_estop', default_value='true'),
+        DeclareLaunchArgument('perception', default_value='false'),
         Node(package='smart_hub', executable='scenario_runner', name='scenario_runner',
              output='screen',
              parameters=[{'scenario': scenario, 'seed': seed, 'publish_estop': estop}]),
@@ -47,4 +53,14 @@ def generate_launch_description():
              parameters=[{'output_dir': out, 'scenario_id': scenario, 'seed': seed}]),
         Node(package='smart_hub', executable='dashboard_marker_publisher',
              name='dashboard_marker_publisher', output='screen'),
+        # perception:=true adds the S1/S2 chain on the simulator camera:
+        # passenger_detector (M1-A) -> /hub/queue -> demand_predictor (M1-B).
+        Node(package='smart_hub', executable='passenger_detector', name='passenger_detector',
+             output='screen', condition=IfCondition(perception),
+             parameters=[os.path.join(share, 'config', 'passenger_detector.yaml'),
+                         {'scenario_id': scenario}]),
+        Node(package='smart_hub', executable='demand_predictor', name='demand_predictor',
+             output='screen', condition=IfCondition(perception),
+             parameters=[os.path.join(share, 'config', 'demand_predictor.yaml'),
+                         {'scenario_id': scenario}]),
     ])
