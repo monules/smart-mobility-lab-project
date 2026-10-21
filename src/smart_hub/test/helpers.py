@@ -6,8 +6,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 
 from smart_hub.parking_engine import ParkingConfig, ParkingEngine  # noqa: E402
 
+# Test result files go to <repo>/output/m3 (git-ignored), not into src/.
 EVIDENCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            '..', '..', 'evidence')
+                            '..', '..', '..', 'output', 'm3')
 
 
 def percentile(values, q):

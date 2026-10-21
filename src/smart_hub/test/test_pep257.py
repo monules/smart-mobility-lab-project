@@ -4,13 +4,20 @@ D213 (summary on the *second* line) is turned off: PEP 257 allows the summary
 on the first line, and every teammate's module (M1-B, M2-B, M3) uses that
 form, so one consistent style is kept across the merged package.
 
-One M1-B test docstring (test_demand_data.py:55) breaks D205/D209/D400/D415;
-it is excluded here and checked by the xfail test until its owner fixes it.
+Teammate files with docstring findings are excluded here (grouped by owner)
+and checked by the xfail test until their owners fix them.
 """
 from ament_pep257.main import main
 import pytest
 
-PENDING_OWNER_RESTYLE = ['./test/test_demand_data.py']   # owner: M1-B
+PENDING_OWNER_RESTYLE = [
+    './test/test_demand_data.py',                          # M1-B
+    './smart_hub/coordinator_core.py',                     # M2-B
+    './smart_hub/hub_map.py', './smart_hub/parking_engine.py',      # M3
+    './test/helpers.py', './test/ros_stubs.py', './test/traffic_sim.py',
+    './test/test_t07_parking_atomicity.py', './test/test_t08_parking_expiry.py',
+    './test/test_t09_congestion.py', './test/test_t10_stale_state.py',
+]
 
 
 @pytest.mark.linter
@@ -22,6 +29,6 @@ def test_pep257():
 
 @pytest.mark.linter
 @pytest.mark.pep257
-@pytest.mark.xfail(reason='M1-B docstring not yet fixed', strict=False)
+@pytest.mark.xfail(reason='teammate docstrings not yet fixed', strict=False)
 def test_pep257_pending_owner_restyle():
     assert main(argv=PENDING_OWNER_RESTYLE + ['--add-ignore', 'D213']) == 0

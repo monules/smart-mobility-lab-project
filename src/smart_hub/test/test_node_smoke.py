@@ -10,8 +10,10 @@ import unittest
 
 import ros_stubs
 
-REAL_ROS = importlib.util.find_spec('rclpy') is not None and \
-    'rclpy.node' not in __import__('sys').modules
+# Integration fix: skip whenever real rclpy exists. The old condition ran the
+# stub test (replacing rclpy in sys.modules for every later test) once any
+# earlier test had imported the real rclpy.node.
+REAL_ROS = importlib.util.find_spec('rclpy') is not None
 
 
 @unittest.skipIf(REAL_ROS, 'real rclpy present: stub smoke test not applicable')
