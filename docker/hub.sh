@@ -7,6 +7,8 @@
 #   docker/hub.sh s9 [seed]      run the S9 fault demo (launch, ~20 s)
 #   docker/hub.sh s9x            S9 faults x 5 mission phases (~4 min)
 #   docker/hub.sh s1 [blob|hog]  run the S1 passenger-counting check (~45 s)
+#   docker/hub.sh s4             run the S4 parking check (M3, ~45 s)
+#   docker/hub.sh s5             run the S5 congestion check (M3, ~90 s)
 #   docker/hub.sh view [S1|S9]   live dashboard for Foxglove on ws://localhost:8765
 #   docker/hub.sh report         build docs/report/Smart_Mobility_Hub_Report.pdf
 #   docker/hub.sh shell          interactive shell, workspace sourced
@@ -81,6 +83,12 @@ print('S9 repeat verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 i
       ros2 launch smart_hub s1.launch.py detector:=${2:-blob} output_dir:=/ws/output; \
       python3 -c \"import json, sys; r = json.load(open('output/s1_check.json')); \
 print('S1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
+  s4|s5)
+    # S4 parking / S5 congestion (M3's nodes, checkers by M5).
+    in_container "" "mkdir -p output && rm -f output/$1_check.json && \
+      ros2 launch smart_hub $1.launch.py output_dir:=/ws/output; \
+      python3 -c \"import json, sys; r = json.load(open('output/$1_check.json')); \
+print('$1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
   view)
     # Live dashboard for Foxglove (https://foxglove.dev): connect to
     # ws://localhost:8765, add a 3D panel, display frame 'map'. Ctrl+C stops.
@@ -96,5 +104,5 @@ print('S1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
     in_container "" "python3 docs/report/build_report.py" ;;
   shell) in_container "-it" "exec bash" ;;
   run) in_container "" "${2:?usage: docker/hub.sh run '<command>'}" ;;
-  *) sed -n '2,13p' "$0" ;;
+  *) sed -n '2,15p' "$0" ;;
 esac

@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "check": "S4 sensors ready",
+      "passed": true,
+      "detail": "slots {'P1': 'OCCUPIED', 'P2': 'FREE', 'P3': 'FREE'} (want {'P1': 'OCCUPIED', 'P2': 'FREE', 'P3': 'FREE'})"
+    },
+    {
+      "check": "T07 concurrent requests",
+      "passed": true,
+      "detail": "C1 -> P2, C2 -> P3 (both preferred P2; one P2, the other the next free slot)"
+    },
+    {
+      "check": "S4 idempotent retry",
+      "passed": true,
+      "detail": "repeat of C1-r1 -> ('P2', '4456cd99') (first answer ('P2', '4456cd99'))"
+    },
+    {
+      "check": "S4 wrong-token release rejected",
+      "passed": true,
+      "detail": "bogus token -> UNKNOWN_TOKEN, C2 with C1 token -> VEHICLE_MISMATCH, P2 still RESERVED"
+    },
+    {
+      "check": "S4 arrival sensed",
+      "passed": true,
+      "detail": "P2 OCCUPIED 0.64 s after C1 parked (sensor debounce 0.5 s)"
+    },
+    {
+      "check": "S4 offline sensor -> UNKNOWN",
+      "passed": true,
+      "detail": "P3 UNKNOWN 0.18 s after its sensor went offline"
+    },
+    {
+      "check": "T08 expiry keeps sensed state",
+      "passed": true,
+      "detail": "expired ['P2', 'P3']; after expiry {'P1': 'OCCUPIED', 'P2': 'OCCUPIED', 'P3': 'UNKNOWN'} (want {'P1': 'OCCUPIED', 'P2': 'OCCUPIED', 'P3': 'UNKNOWN'})"
+    },
+    {
+      "check": "S4 full lot rejected",
+      "passed": true,
+      "detail": "C3 with no free slot -> success=False reason=FULL"
+    },
+    {
+      "check": "S4 lot emptied",
+      "passed": true,
+      "detail": "slots {'P1': 'FREE', 'P2': 'FREE', 'P3': 'FREE'}"
+    },
+    {
+      "check": "T07 no double allocation",
+      "passed": true,
+      "detail": "20 pairs, 0 double allocations, failures []"
+    },
+    {
+      "check": "T07 p95 latency",
+      "passed": true,
+      "detail": "p95 39.4 ms over 40 requests (limit 250 ms), max 132.6 ms"
+    }
+  ],
+  "commit": "72e2fde-dirty"
+}

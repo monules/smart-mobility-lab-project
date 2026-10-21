@@ -141,3 +141,59 @@ def test_shipped_s9_scenario_is_valid():
     assert data['scenario_id'] == 'S9'
     sim = HubSim(data, seed=9)
     assert {'robot_1', 'bus_1', 'O'} <= set(sim.bodies)
+
+
+def test_cruise_cars_loop_and_ignore_commands():
+    sim = HubSim({'agents': {'car_1': {'kind': 'car', 'x': 8.6, 'y': 2.0,
+                                       'cruise': 0.4, 'loop_x': [5.3, 8.7]}}}, seed=1)
+    car = sim.bodies['car_1']
+    sim.set_command('car_1', 0.0, 1.0)          # scripted traffic ignores commands
+    for _ in range(10):                         # 0.5 s at 0.4 m/s = 0.2 m
+        sim.step()
+    assert car.v == pytest.approx(0.4) and car.theta == pytest.approx(0.0)
+    assert car.x == pytest.approx(5.3 + 0.4 * DT * 2, abs=0.05)  # wrapped once
+    assert car.y == pytest.approx(2.0)
+
+
+def test_vehicle_events_add_and_remove():
+    sim = HubSim({'agents': {}, 'events': [
+        {'t': 0.5, 'type': 'vehicle', 'id': 'car_2', 'x': 6.0, 'y': 2.0, 'cruise': 0.1},
+        {'t': 1.0, 'type': 'vehicle', 'id': 'car_2', 'active': False}]}, seed=1)
+    seen = set()
+    while sim.t < 1.5:
+        sim.step()
+        seen.add(('car_2' in sim.bodies, round(sim.t, 2)))
+    assert (True, 0.75) in seen and 'car_2' not in sim.bodies
+    for bad in ({'type': 'vehicle', 'id': 'c'},
+                {'type': 'vehicle', 'id': 'c', 'x': 1, 'y': 1, 'kind': 'obstacle'}):
+        with pytest.raises(ValueError):
+            sim.apply_event(bad)
+
+
+def _scenario(name):
+    path = os.path.join(os.path.dirname(__file__), '..', 'scenarios', name + '.yaml')
+    with open(path) as fh:
+        return yaml.safe_load(fh)
+
+
+def test_s5_script_fills_cs_j_then_empties_it():
+    """Assignment 12: one car, then 4 cars on the 4-car edge Cs-J, then 1 again."""
+    sim = HubSim(_scenario('S5'), seed=5)
+
+    def on_cs_j():
+        return sum(1 for b in sim.bodies.values()
+                   if b.kind == 'car' and 5.0 <= b.x <= 9.0 and b.y == pytest.approx(2.0))
+    counts = {}
+    while sim.t < 62.0:
+        sim.step()
+        counts[round(sim.t, 2)] = on_cs_j()
+    assert [counts[t] for t in (10.0, 25.0, 34.0, 40.0)] == [1, 4, 4, 1]
+    assert sim.bodies['O'].active and sim.is_frozen('vehicles') is False
+
+
+def test_s4_script_starts_p1_occupied_and_takes_p3_offline():
+    sim = HubSim(_scenario('S4'), seed=4)
+    assert sim.parking == {'P1': 'occupied', 'P2': 'free', 'P3': 'free'}
+    while sim.t < 10.5:
+        sim.step()
+    assert sim.parking['P3'] == 'offline'

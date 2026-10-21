@@ -16,7 +16,8 @@ from smart_hub import geometry as geo
 
 DT = 0.05                      # s, 20 Hz
 MOVABLE = ('robot', 'bus', 'car')
-EVENT_TYPES = ('estop', 'freeze', 'obstacle', 'parking', 'note', 'pedestrian', 'occlude')
+EVENT_TYPES = ('estop', 'freeze', 'obstacle', 'parking', 'note', 'pedestrian', 'occlude',
+               'vehicle')
 # 'camera' silences /camera/image_raw; 'camera_repeat' keeps re-sending the
 # last frame with its old stamp (a frozen source, assignment 16.1).
 FREEZABLE = ('odom', 'vehicles', 'parking', 'camera', 'camera_repeat')
@@ -46,6 +47,8 @@ class Body:
     active: bool = True          # obstacles can be inserted/removed
     cmd: tuple = (0.0, 0.0)
     cmd_time: float = -math.inf  # sim time the command was received
+    cruise: float = None         # scripted traffic: constant speed, ignores commands
+    loop_x: tuple = None         # (xmin, xmax): wrap back to xmin after passing xmax
 
 
 def validate_event(event):
@@ -68,6 +71,12 @@ def validate_event(event):
             raise ValueError('pedestrian needs id, and x/y unless active: false')
     if kind == 'occlude' and ('id' not in event or float(event.get('duration', 0)) <= 0):
         raise ValueError('occlude needs id and duration > 0')
+    if kind == 'vehicle':
+        if 'id' not in event or (event.get('active', True) and not
+                                 ('x' in event and 'y' in event)):
+            raise ValueError('vehicle needs id, and x/y unless active: false')
+        if event.get('kind', 'car') not in MOVABLE:
+            raise ValueError('vehicle kind must be one of %s' % (MOVABLE,))
 
 
 class HubSim:
@@ -88,8 +97,7 @@ class HubSim:
         self.noise = float(sc.get('observation_noise_m', 0.0))
         self.bodies = {}
         for vid, spec in sc.get('agents', {}).items():
-            self.bodies[vid] = Body(vid, spec['kind'], float(spec['x']), float(spec['y']),
-                                    float(spec.get('theta', 0.0)))
+            self._add_vehicle(dict(spec, id=vid))
         for vid, spec in sc.get('obstacles', {}).items():
             self.bodies[vid] = Body(vid, 'obstacle', float(spec['x']), float(spec['y']),
                                     active=bool(spec.get('active', True)))
@@ -135,11 +143,25 @@ class HubSim:
                 self._place_pedestrian(event)
             else:
                 self.pedestrians.pop(event['id'], None)    # walked away
+        elif kind == 'vehicle':
+            if event.get('active', True):
+                self._add_vehicle(event)
+            else:
+                self.bodies.pop(event['id'], None)        # left the map
         elif kind == 'occlude':
             ped = self.pedestrians.get(event['id'])
             if ped is not None:
                 ped.hidden_until = self.t + float(event['duration'])
         return event
+
+    def _add_vehicle(self, spec):
+        loop = spec.get('loop_x')
+        cruise = spec.get('cruise')
+        self.bodies[spec['id']] = Body(
+            spec['id'], spec.get('kind', 'car'), float(spec['x']), float(spec['y']),
+            float(spec.get('theta', 0.0)),
+            cruise=None if cruise is None else float(cruise),
+            loop_x=None if loop is None else (float(loop[0]), float(loop[1])))
 
     def _place_pedestrian(self, spec):
         self.pedestrians[spec['id']] = Pedestrian(
@@ -155,13 +177,17 @@ class HubSim:
         for body in self.bodies.values():
             if body.kind not in MOVABLE:
                 continue
-            if self.t - body.cmd_time > self.input_timeout:
+            if body.cruise is not None:
+                body.v, body.w = body.cruise, 0.0   # scripted traffic (S5)
+            elif self.t - body.cmd_time > self.input_timeout:
                 body.v, body.w = 0.0, 0.0      # drive timeout: no fresh command
             else:
                 body.v, body.w = body.cmd
             body.x, body.y, body.theta = geo.predict_pose(
                 body.x, body.y, body.theta, body.v, body.w, DT)
             body.theta = math.atan2(math.sin(body.theta), math.cos(body.theta))
+            if body.loop_x and body.x > body.loop_x[1]:
+                body.x = body.loop_x[0]        # keep scripted traffic on its edge
         for ped in self.pedestrians.values():
             ped.x += ped.vx * DT
             ped.y += ped.vy * DT

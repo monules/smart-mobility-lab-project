@@ -49,6 +49,8 @@ setup(
             'dashboard_snapshot = smart_hub.dashboard_snapshot:main',
             # M5 test tools (never part of the integrated hub launch)
             'mock_candidate_publisher = smart_hub.mock_candidate_publisher:main',
+            's4_check = smart_hub.s4_check:main',
+            's5_check = smart_hub.s5_check:main',
             's9_fault_check = smart_hub.s9_fault_check:main',
             's9_repeat_check = smart_hub.s9_repeat_check:main',
         ],

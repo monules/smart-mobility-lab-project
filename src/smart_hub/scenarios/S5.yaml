@@ -1,0 +1,33 @@
+# Scenario S5: congestion detection and stale-state handling (owner M3,
+# scenario file and checker by M5). Map M1, metres. Traffic cars are scripted:
+# "cruise" drives at a fixed speed and ignores commands, "loop_x" wraps a car
+# back to the start of edge Cs-J (x 5.3 -> 8.7, y 2.0) so it never leaves it.
+# Edge Cs-J is 4 m long: capacity floor(4 / 1.0 m headway) = 4 cars, so the
+# density threshold 0.70 is crossed at 3 cars (0.75).
+scenario_id: S5
+duration_sec: 85
+observation_noise_m: 0.0
+estop: false
+agents:
+  car_1: {kind: car, x: 5.5, y: 2.0, cruise: 0.35, loop_x: [5.3, 8.7]}
+obstacles:
+  O: {x: 7.0, y: 2.0, active: false}
+parking:
+  P1: occupied
+  P2: free
+  P3: free
+events:
+  - {t: 3.0, type: note, text: "S5 start: one car at 0.35 m/s on Cs-J"}
+  # t=20: three slow cars join -> 4 cars on a 4-car edge (rho 1.0) at low speed
+  - {t: 20.0, type: vehicle, id: car_2, x: 5.6, y: 2.0, cruise: 0.10, loop_x: [5.3, 8.7]}
+  - {t: 20.0, type: vehicle, id: car_3, x: 6.6, y: 2.0, cruise: 0.10, loop_x: [5.3, 8.7]}
+  - {t: 20.0, type: vehicle, id: car_4, x: 7.6, y: 2.0, cruise: 0.10, loop_x: [5.3, 8.7]}
+  # t=35: the slow cars leave the map -> congestion must clear
+  - {t: 35.0, type: vehicle, id: car_2, active: false}
+  - {t: 35.0, type: vehicle, id: car_3, active: false}
+  - {t: 35.0, type: vehicle, id: car_4, active: false}
+  # t=45: the vehicle source freezes for 5 s -> every edge UNKNOWN within 1.2 s
+  - {t: 45.0, type: freeze, topic: vehicles, duration: 5.0}
+  # t=60: obstacle O on Cs-J -> BLOCKED within one publication; removed at 75
+  - {t: 60.0, type: obstacle, id: O, active: true}
+  - {t: 75.0, type: obstacle, id: O, active: false}

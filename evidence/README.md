@@ -32,6 +32,17 @@ killed → supervisor zero after 0.522 s; supervisor killed → bridge zero afte
 **Missing (TODO):** the §8.3 real-video evaluation (≥ 100 hand-labelled
 frames) — see README_M1A.md.
 
+## M3 — parking and traffic (S4, S5)
+
+Scenario files and checkers by M5; nodes by M3. Commit `72e2fde` plus the
+uncommitted S4/S5 work (recorded as `72e2fde-dirty` in the JSON).
+
+| File | What it shows | Command |
+|---|---|---|
+| `m3/s4/s4_check.json` | 11/11: concurrent requests, idempotent retry, wrong-token release, arrival, offline → UNKNOWN, T08 expiry keeps sensed state, full lot, T07 20 pairs: 0 double allocations, p95 39 ms | `docker/hub.sh s4` |
+| `m3/s5/s5_check.json` | 9/9: no false congestion, CONGESTED 0.29 s, clears 1.8 s, T10 UNKNOWN 0.995 s with −1.0 values, recovery, BLOCKED 0.33 s, unblocked 2.3 s | `docker/hub.sh s5` |
+| `m3/s5/s5_labels.png`, `s5_timeseries.csv` | Cs-J label and car count over the whole run | same run |
+
 ## Tests
 
 `tests/colcon_test_summary.txt`: 187 tests, 185 passed, 2 expected failures
