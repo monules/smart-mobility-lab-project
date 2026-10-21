@@ -24,7 +24,7 @@ import rclpy
 from builtin_interfaces.msg import Time
 from rclpy.callback_groups import (MutuallyExclusiveCallbackGroup,
                                    ReentrantCallbackGroup)
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
                        ReliabilityPolicy)
@@ -242,9 +242,13 @@ def main(args=None):
     executor.add_node(node)
     try:
         executor.spin()
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass                      # Ctrl+C / launch shutdown: not an error
     finally:
+        executor.shutdown()
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():            # the signal handler may have shut down already
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
