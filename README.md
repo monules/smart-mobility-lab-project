@@ -337,9 +337,11 @@ queue Q with forecast text (`demand +30s: …` or `prediction unavailable`),
 graph edges plus red **blocked** / dark-grey **unknown** / orange
 **density ≥ 0.70** overlays from `/traffic/edges`, crossing C coloured by
 `/crossing/state`, parking slots by `/parking/state`, vehicles and obstacle
-O as footprint cylinders, and safety/last-event text. Anything older than
-1 s is drawn grey/UNKNOWN. **Not drawn:** planned routes (no interface
-publishes them) and speed-based congestion (`EdgeState` has no label).
+O as footprint cylinders, planned routes from `/robot/route` and
+`/bus/route` (`nav_msgs/Path`) as coloured lines with a goal label, and
+safety/last-event text. Anything older than 1 s is drawn grey/UNKNOWN
+(routes are plans and stay until replaced or cleared). **Not drawn:**
+speed-based congestion (`EdgeState` has no label).
 In RViz set Fixed Frame `map` and add a *MarkerArray* display on
 `/hub/markers`. The dev image has no RViz/GUI; viewing it needs a desktop
 ROS 2 Jazzy install on the same `ROS_DOMAIN_ID` — not set up or tested on
@@ -380,6 +382,92 @@ Conventions used by every node in this package:
 Need a new message or field? Do **not** add it alone: follow
 [INTEGRATION_CONTRACT.md §10](docs/INTEGRATION_CONTRACT.md#10-changing-this-contract).
 
+## 6.1 Plugging your node into the hub (for the next members)
+
+Every mobile-agent manager and every stateful node follows the same five
+rules. Copy the snippets; all helpers are in `smart_hub.ros_common`.
+
+**1. Ask to move — never drive.** Publish a *stamped* candidate at 20 Hz;
+`safety_supervisor` decides and publishes `/robot/cmd_vel`, `/bus/cmd_vel`.
+```python
+from geometry_msgs.msg import TwistStamped
+from smart_hub.ros_common import R1
+self.cmd_pub = self.create_publisher(TwistStamped, '/robot/cmd_vel_candidate', R1)
+msg = TwistStamped()
+msg.header.stamp = self.get_clock().now().to_msg()   # stamp NOW, or it is rejected
+msg.header.frame_id = 'robot/base_link'
+msg.twist.linear.x, msg.twist.angular.z = v, w
+self.cmd_pub.publish(msg)
+```
+
+**2. Obey `/hub/safety`.** Missing, older than 1.0 s, or `stop_latched` ⇒
+stop sending nonzero candidates and `abort()` the running action (§7.2).
+```python
+from smart_hub_interfaces.msg import SafetyState
+from smart_hub.ros_common import R1T
+self.create_subscription(SafetyState, '/hub/safety', self.on_safety, R1T)
+```
+
+**3. Publish your planned route** (decided by M5, contract §3): the
+remaining waypoints from the current position to the goal, in `map`,
+every time you adopt or change a route; an empty `Path` clears it. The
+dashboard draws it; RViz can also show it directly as a *Path* display.
+```python
+from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
+from smart_hub.ros_common import R1T
+self.route_pub = self.create_publisher(Path, '/robot/route', R1T)   # '/bus/route' for the bus
+
+def publish_route(self, waypoints):          # [(x, y), ...] metres, map frame; [] = none
+    path = Path()
+    path.header.frame_id = 'map'
+    path.header.stamp = self.get_clock().now().to_msg()
+    for x, y in waypoints:
+        pose = PoseStamped()
+        pose.header = path.header
+        pose.pose.position.x, pose.pose.position.y = float(x), float(y)
+        pose.pose.orientation.w = 1.0
+        path.poses.append(pose)
+    self.route_pub.publish(path)
+```
+
+**4. Acknowledge scenario resets** (decided by M5, contract §7). On
+`SCENARIO_RESET_REQUEST`, reset your own state *once per run id*, then
+always answer with `RESET_ACK`. Then add your node name to
+`reset_participants` in `launch/hub.launch.py`.
+```python
+from smart_hub.ros_common import R100, reset_ack, RESET_REQUEST
+from smart_hub_interfaces.msg import HubEvent
+self.event_pub = self.create_publisher(HubEvent, '/hub/events', R100)
+self.create_subscription(HubEvent, '/hub/events', self.on_hub_event, R100)
+self._reset_id = None
+
+def on_hub_event(self, msg):
+    if msg.event != RESET_REQUEST:
+        return
+    if msg.correlation_id != self._reset_id:      # first request for this run
+        self._reset_id = msg.correlation_id
+        ...  # cancel/abort goals, stop candidates, release tokens, clear state
+    self.event_pub.publish(reset_ack(self, msg.correlation_id, 'goals cancelled'))
+```
+
+**5. Log transitions** on `/hub/events` (`HubEvent`, with a
+`correlation_id` such as the goal id) — never every tick.
+
+| Member | Publishes | Subscribes | Serves / calls | On reset |
+|---|---|---|---|---|
+| M2-A `bus_manager` | `/bus/cmd_vel_candidate`, `/bus/route`, `/hub/bus_arrival` (2 Hz, `state: IDLE` when free), `/bus/door_request` | `/hub/vehicles` (bus pose = `bus_1` entry), `/hub/safety`, `/crossing/state`, `/bus/door_open` (measured, from `actuator_bridge`) | serves `/bus/dock`; calls `/route/compute`, `/crossing/request` (`requester_id: bus_1`) | cancel the DockBus goal, close door, release crossing token |
+| M4 `robot_manager` | `/robot/cmd_vel_candidate`, `/robot/route` | `/robot/odom`, `/hub/safety`, `/crossing/state` | serves `/robot/escort`, `/robot/navigate_to`, `/robot/confirm_ready`; calls `/route/compute`, `/crossing/request` (`requester_id: robot_1`) | cancel goals, release crossing token |
+| M4 `route_planner` | — | `/traffic/edges` | serves `/route/compute` | nothing to clear (stateless) — still ack if listed |
+| M2-B `hub_coordinator` | `/crossing/state`, `/hub/events` | `/hub/demand`, `/hub/queue`, `/hub/vehicles`, `/hub/bus_arrival`, `/hub/safety` | serves `/crossing/request`; DockBus / EscortPassenger client | drop owner/token and dispatch counters |
+| M3 `parking_manager`, `traffic_monitor` | `/parking/state`, `/parking/barrier_request`, `/traffic/edges` | `/parking/observed`, `/parking/barrier_open`, `/hub/vehicles` | serves `/parking/reserve_slot`, `/parking/release_slot` | clear reservations (§7.1 "clears administrative resources") and edge windows |
+| M1-B `demand_predictor` | `/hub/demand` | `/hub/queue` | — | clear history (back to warm-up) |
+
+Test each new node first against the M5 stack (`hub.launch.py` starts
+simulator, supervisor, bridge, logger, dashboard), then remove the M5
+stand-in `mock_candidate_publisher` from your test setup — two publishers
+on one candidate topic fight each other.
+
 ## 7. Team integration standards
 
 Summary (details: [docs/INTEGRATION_CONTRACT.md](docs/INTEGRATION_CONTRACT.md),
@@ -395,7 +483,9 @@ copyable list: [docs/TEAM_STANDARDS.md](docs/TEAM_STANDARDS.md)):
 | Edge ids | sorted node names (`E-J`) | **Proposal** (M3 + M5) |
 | Stale `/hub/safety` (> 1 s) | treat as stop | **Proposal** (M2-B already does) |
 | Per-agent safety reasons | in `SafetyState.reason` (`robot:COMMAND_STALE`) | **Proposal**; per-agent field is **open** |
-| Reset acknowledgement, escort trigger, parking entrance topics | — | **Unresolved** (contract §9) |
+| Route topics | `/robot/route`, `/bus/route`: `nav_msgs/Path`, map frame, transient-local; empty = no route | **Decided by M5** (contract §3) |
+| Scenario reset | `SCENARIO_RESET_REQUEST` → every participant `RESET_ACK`; service answers after all acks or names the missing ones | **Decided by M5** (contract §7) |
+| Escort trigger, parking entrance topics | — | **Unresolved** (contract §9) |
 
 ## 8. Tests and acceptance criteria
 
@@ -410,6 +500,7 @@ Run everything: `docker/hub.sh test`.
 | **S9 / T16** | `test_s9_launch.py` (launch_testing) | full §16.3 sequence on the real launch file |
 | **M1-A S1 / T01, T02** | `test_m1a_pipeline.py`, `test_m1a_units.py`, `test_passenger_detector_node.py`, `test_s1_launch.py` | counts 0,3,5,4 through camera → detector → homography → tracker; occlusion; freeze; crossing hold; live S1 launch |
 | M5 camera | `test_camera_model.py` | projection, one figure per person, feet at the projected point |
+| M5 reset + routes | `test_reset_launch.py` (launch_testing), `test_scenario_runner_node.py` | live reset with all acks and the latch kept; missing/old acks; resend; route on `/hub/markers` |
 | M1-B S2 | `test_demand_*.py` | features, models, dispatch rule, estimator, T03 run, real-ROS node |
 | Linters | `test_flake8.py`, `test_pep257.py` | ament style; M1-B files tracked as xfail (owner restyle pending) |
 
@@ -503,8 +594,8 @@ are deliberately untracked). Merge into `main` only as a team decision.
 | S6–S7 / T11–T14 routing, escort | M4 | ❌ |
 | S9 / T16, T17 | M5 | ✅ verified in simulation |
 | T18 planner loss | M4 + M5 | ⛔ blocked (no planner) |
-| Simulator §3.2 (20 Hz, seeded, reset, fault injection, camera, pedestrians) | M5 | ✅ — no RViz routes |
-| Dashboard §4 | M5 | ✅ — routes not drawn (no interface) |
+| Simulator §3.2 (20 Hz, seeded, reset with acknowledgements, fault injection, camera, pedestrians) | M5 | ✅ |
+| Dashboard §4 (agents, routes, zone ownership, obstacles, parking, prediction text — §3.2) | M5 | ✅ routes appear once M2-A/M4 publish them |
 | Physical extension §22 | team | not started (optional) |
 
 **Next steps**
@@ -524,8 +615,8 @@ are deliberately untracked). Merge into `main` only as a team decision.
   §8.3 video MAE / precision / recall (tools: `video_publisher`, `detector:=hog`).
 - **M2-A, M4:** start from §6 above; use `robot_1`/`bus_1`; publish
   stamped candidates only. M4's planner unblocks T18.
-- **M5:** route markers once a route interface is agreed; reset
-  acknowledgements (contract §9); draw robot/bus in the synthetic camera if
-  the team wants vehicles in S1 images.
+- **M5:** done for simulation. Optional: draw robot/bus in the synthetic
+  camera if the team wants vehicles in S1 images. Everyone else: follow
+  [§6.1](#61-plugging-your-node-into-the-hub-for-the-next-members).
 - **Team:** answer [contract §9](docs/INTEGRATION_CONTRACT.md#9-open-decisions-who-must-answer)
   and decide when to push `integration/current-team-work`.

@@ -73,6 +73,7 @@ volatile; T = transient-local. "Status" is for this branch.
 | `/hub/safety` | SafetyState | 10 Hz, R1T | **safety_supervisor** (M5) | every manager, coordinator, dashboard | (Impl) see §4 |
 | `/hub/events` | HubEvent | on change, R100 | every decision node | metrics_logger, dashboard | (Impl) for M5, M1-B, M2-B, M3 |
 | `/hub/markers` | visualization_msgs/MarkerArray | 5 Hz, R10 | dashboard_marker_publisher (M5) | RViz | (Impl) read-only |
+| `/robot/route`, `/bus/route` | nav_msgs/Path | on every new/changed plan, R1T | robot_manager (M4) / bus_manager (M2-A) | dashboard_marker_publisher, RViz | **Decided by M5** (no assignment topic exists): frame `map`; poses = remaining waypoints current → goal; empty Path = no route. Dashboard side (Impl) |
 | `/scenario/inject` | std_msgs/String (JSON) | R10 | tests only | scenario_runner | (Impl) **test-only**, not part of the hub |
 | `/traffic/edge_labels` | std_msgs/String (JSON) | 2 Hz, R10 | traffic_monitor (M3) | dashboard (future) | M3 additive topic, not in §5 |
 | `/parking/entry_claim`, `/parking/entrance_clear` | String, Bool | — | (Open) | parking_manager | M3 additive inputs; no publisher decided |
@@ -180,8 +181,32 @@ every body at rest, and returns `success`, a new `run_id`
 (`<scenario>-s<seed>-r<n>`) and a reason. A failed reset (unknown scenario)
 returns `success: false` and leaves the running world unchanged. It does
 **not** clear the safety latch (that is `/safety/clear_stop`'s job).
-Gap (Open): §7.1 says reset returns "after all nodes acknowledge reset",
-but no interface for acknowledgements exists.
+**Reset handshake — decided by M5** (A §7.1 "returns a new run identifier
+after all nodes acknowledge reset"; no new message type, it reuses
+`HubEvent` on `/hub/events`):
+
+1. `scenario_runner` loads and installs the new world (bodies at rest), then
+   publishes `event: SCENARIO_RESET_REQUEST`, `correlation_id: <new run id>`.
+2. Every node in the runner's `reset_participants` parameter resets its own
+   state **once per run id** and publishes `event: RESET_ACK`,
+   `entity_id: <its node name>`, `correlation_id: <same run id>`
+   (`smart_hub.ros_common.reset_ack()`). A repeated request for the same run
+   id is only re-acknowledged.
+3. `/hub/events` is volatile, so the runner re-sends the request every
+   0.25 s until all acks arrive or `reset_ack_timeout` (2.0 s) passes.
+4. The service answers `success: true`, `reason: RESET … acks=<n>`; or
+   `success: false`, `reason: MISSING_ACK: <names>` (the new world is
+   running, the named nodes did not confirm); acks for another run id never
+   count. Then it publishes `SCENARIO_RESET`.
+
+Participants today (Impl): `safety_supervisor` (forgets all commands and
+samples so every agent is held until fresh data, **keeps the stop latch** —
+a reset is not a way around `/safety/clear_stop`), `actuator_bridge` (drops
+commands, closes the door), `metrics_logger` (flushes the old run),
+`dashboard_marker_publisher` (clears its picture), and with
+`perception:=true` `passenger_detector` (forgets tracks). The service runs
+as a coroutine in its own callback group, so the 20 Hz tick keeps running
+while it waits. Other members join by following README §6.1.
 
 ## 8. Freshness rule for everyone (A §5, §6)
 
@@ -195,7 +220,8 @@ low-confidence observation is UNKNOWN, never zero; a retained
 | # | Decision | Owners |
 |---|---|---|
 | 1 | Who starts the escort at t = 70 s in S8 | M2-B, M4, M5 |
-| 2 | Acknowledgement mechanism for `/scenario/reset` | M5 + all node owners |
+| 2 | ~~Acknowledgement mechanism for `/scenario/reset`~~ | **decided by M5**, see §7 |
+| 2b | ~~Topic for planned routes~~ | **decided by M5**: `/robot/route`, `/bus/route` (`nav_msgs/Path`), §3 |
 | 3 | Per-agent field in `SafetyState` (currently in `reason` only) | all (interface change) |
 | 4 | Publishers of `/parking/entry_claim`, `/parking/entrance_clear` | M3, M5 |
 | 5 | Car id format | M3, M2-A |

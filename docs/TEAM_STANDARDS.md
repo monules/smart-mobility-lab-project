@@ -29,6 +29,11 @@ SMART MOBILITY HUB — INTEGRATION DEFAULTS
    Build + test in Docker: docker/hub.sh build && docker/hub.sh test. All green before merging.
 11. Git: own feature branch; never force-push; never commit build/ install/ log/ output/ or
    the assignment PDFs; merge into integration/current-team-work, not main.
+12. Routes: publish your planned route on /robot/route or /bus/route (nav_msgs/Path, frame map,
+   transient-local) whenever it changes; an empty Path = no route.
+13. Reset: on HubEvent SCENARIO_RESET_REQUEST reset your state once per run id, then reply
+   HubEvent RESET_ACK (smart_hub.ros_common.reset_ack); add your node to reset_participants
+   in hub.launch.py. /scenario/reset fails with MISSING_ACK: <you> if you do not answer.
 ```
 
 ## Why each rule exists
@@ -47,6 +52,6 @@ SMART MOBILITY HUB — INTEGRATION DEFAULTS
 ## Needs a team decision (not decided by these defaults)
 
 See [INTEGRATION_CONTRACT.md §9](INTEGRATION_CONTRACT.md#9-open-decisions-who-must-answer):
-escort trigger at t = 70 s, reset acknowledgements, a per-agent field in
+escort trigger at t = 70 s, a per-agent field in
 `SafetyState`, the parking entrance topics, car id format, moving M2-B/M3
 files into the package, and M1-B's lint restyle.

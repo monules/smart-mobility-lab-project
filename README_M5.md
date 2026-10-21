@@ -92,7 +92,7 @@ it never publishes any `cmd_vel`, request or service call (§4.2).
 | `/hub/safety` (R1T), `/hub/events` (R100) | text above the map: `SAFETY: OK / STOP LATCHED (reason)`, last event |
 | `/hub/demand` (R10, M1-B) | text in queue Q: `demand +30s: X (now Y)`, or `prediction unavailable` if invalid/stale (§9.3) |
 | `/traffic/edges` (R10, M3) | edge overlays: red blocked, dark grey invalid, orange density ≥ 0.70 (no speed-based congestion: `EdgeState` has no label) |
-| — | **not drawn: planned routes** (no interface publishes them) |
+| `/robot/route`, `/bus/route` (`nav_msgs/Path`, R1T, M4/M2-A) | planned route as a coloured LINE_STRIP plus a goal label; empty Path clears; other frames than `map` ignored |
 | static (`geometry.py`) | site 12 × 8 m, queue Q x∈[2,6] y∈[5,7], graph edges as one LINE_LIST |
 
 Any state not received in the last 1 s (`stale_after`) is drawn as
@@ -149,9 +149,10 @@ drive timeout). Any one dying cannot leave a nonzero motor command.
 5. **Bridge ↔ simulator topics** `/robot/cmd_vel_applied`, `/bus/cmd_vel_applied`
    are M5-internal (both ends are M5's).
 6. **`/scenario/inject`** (`std_msgs/String`, JSON event) is test-only.
-7. **ResetScenario** resets the simulator and publishes `SCENARIO_RESET` with the
-   new run id; there is no interface for other nodes to *acknowledge* a reset
-   (§7.1 asks for it) — needs a team decision.
+7. **ResetScenario** handshake (M5 decision, contract §7): the runner broadcasts
+   `SCENARIO_RESET_REQUEST`, every node in `reset_participants` answers `RESET_ACK`
+   (resends every 0.25 s, timeout 2 s), the service reports `acks=<n>` or
+   `MISSING_ACK: <names>`. The supervisor keeps its latch across a reset.
 8. **Turn-rate caps** (robot 1.0, bus 0.5 rad/s) are M5 choices, not assignment values.
 
 ## 6. Verification (all run in the Docker container, 2026-10-21)
@@ -195,11 +196,10 @@ from `/parking/observed`; edge labels from `/hub/vehicles`; forecast
 - Merging with M1-B: done on `integration/current-team-work` (union of
   `setup.py` / `package.xml` entries; M5's interface package kept).
 - The synthetic camera draws only people (no robot/bus), so S1 images never
-  contain vehicles. `dashboard_marker_publisher` draws the demand forecast
-  and `/traffic/edges` overlays but not routes (no route topic exists) and
-  not speed-based congestion (`EdgeState` has no label).
-- `/scenario/reset` has no way to wait for other nodes' acknowledgements
-  (§7.1; needs a team interface decision).
+  contain vehicles. The dashboard does not draw speed-based congestion
+  (`EdgeState` has no label); routes appear once M2-A/M4 publish them.
+- Only M5 nodes and M1-A's detector acknowledge resets so far; the other
+  members join by following root README §6.1.
 - T18 (planner loss) needs M4's planner; `mode:=hardware` is refused on purpose.
 - Observation for M3: a vehicle parked at a node (bus at A) is labelled
   `A-Cs: CONGESTED` because speed 0 counts as slow.
