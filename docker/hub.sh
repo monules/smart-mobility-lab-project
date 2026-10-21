@@ -4,7 +4,8 @@
 #   docker/hub.sh image          build the dev image (once, ~3 min)
 #   docker/hub.sh build          colcon build every package under src/
 #   docker/hub.sh test           colcon test + result summary
-#   docker/hub.sh s9 [seed]      run the S9 fault demo (launch, ~40 s)
+#   docker/hub.sh s9 [seed]      run the S9 fault demo (launch, ~20 s)
+#   docker/hub.sh s1 [blob|hog]  run the S1 passenger-counting check (~45 s)
 #   docker/hub.sh shell          interactive shell, workspace sourced
 #   docker/hub.sh run '<cmd>'    run one command with the workspace sourced
 #
@@ -65,7 +66,13 @@ case "${1:-help}" in
       ros2 bag info output/bag_S9_seed$SEED > output/bag_S9_info.txt 2>&1
       python3 -c \"import json, sys; r = json.load(open('output/s9_check.json')); \
 print('S9 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
+  s1)
+    # S1 passenger counting (M1-A): detector blob (default) or hog.
+    in_container "" "mkdir -p output && rm -f output/s1_check.json && \
+      ros2 launch smart_hub s1.launch.py detector:=${2:-blob} output_dir:=/ws/output; \
+      python3 -c \"import json, sys; r = json.load(open('output/s1_check.json')); \
+print('S1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
   shell) in_container "-it" "exec bash" ;;
   run) in_container "" "${2:?usage: docker/hub.sh run '<command>'}" ;;
-  *) sed -n '2,13p' "$0" ;;
+  *) sed -n '2,10p' "$0" ;;
 esac

@@ -1,0 +1,23 @@
+# passenger_detector parameters (S1, owner M1-A). Validated at startup.
+passenger_detector:
+  ros__parameters:
+    detector: blob              # blob = documented baseline for the simulator camera;
+                                # hog = OpenCV pretrained people detector (real video)
+    hog_threshold: 0.5          # SVM score threshold for hog
+    hog_upscale: 1.5            # people must be ~128 px tall for the 64x128 HOG window
+    hog_foot_offset: 0.15       # HOG boxes extend ~15% below the feet
+    blob_max_gray: 110          # darker than this = person pixel (blob)
+    blob_min_area: 150          # px, smaller dark regions are noise
+    # Calibration: 4 floor points clicked in one camera frame (pixels) and
+    # their map coordinates (metres). Here: the painted corners of queue Q in
+    # the simulator camera. Re-measure for a real camera or video.
+    image_points: [187.9, 205.4, 428.1, 205.4, 416.6, 131.8, 201.9, 131.8]
+    map_points: [2.0, 5.0, 6.0, 5.0, 6.0, 7.0, 2.0, 7.0]
+    stale_timeout_sec: 1.0      # (A) 8.2: invalid after 1 s without fresh frames
+    confirm_sec: 0.4            # (A) 0.4 s appearance debounce
+    hold_sec: 0.4               # (A) 0.4 s disappearance debounce
+    occlusion_keep_sec: 0.5     # (A) 8.2: identity kept across 0.5 s occlusion
+    match_distance_m: 0.6       # association gate on the floor
+    crossing_clear_sec: 2.0     # (A) 8.2 step 6: C must be clear for 2 s
+    publish_rate_hz: 5.0        # (A) /hub/queue at 5 Hz
+    zone_id: Q
