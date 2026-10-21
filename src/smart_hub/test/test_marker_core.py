@@ -85,7 +85,8 @@ def test_demand_text_valid_invalid_and_stale():
     assert text_of(c.build(T0), 'queue', 2) == 'prediction unavailable'
     c.on_demand(True, 7.24, 5.0, 30, T0)
     assert text_of(c.build(T0), 'queue', 2) == 'demand +30s: 7.2 (now 5)'
-    assert text_of(c.build(T0 + 1.5), 'queue', 2) == 'prediction unavailable'   # stale
+    assert text_of(c.build(T0 + 1.5), 'queue', 2).startswith('demand +30s')    # 1 Hz feed
+    assert text_of(c.build(T0 + 2.6), 'queue', 2) == 'prediction unavailable'   # stale
     c.on_demand(False, -1.0, -1.0, 30, T0)                                   # warm-up
     assert text_of(c.build(T0), 'queue', 2) == 'prediction unavailable'
 

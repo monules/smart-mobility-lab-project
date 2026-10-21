@@ -12,7 +12,8 @@ observable, reproducible evidence (assignment §1).
 > package, built, tested and started together by `hub.launch.py`. M3's S4
 > and S5 pass live (checkers written by M5); M2-A's bus (S3) passes 12/12
 > live; M2-B's T04 dispatch passes 6/6 live; M4's routing (S6 8/8), escort
-> (S7 9/9) and T18 (5/5) pass live. **Left: S8/T15.** See
+> (S7 9/9) and T18 (5/5) pass live; the integrated rush hour **S8/T15 passes
+> 20/20** episodes with zero safety violations. **Left: Husan's real video.** See
 > [§10 Status](#10-current-status-and-next-steps).
 
 Platform: **ROS 2 Jazzy, Ubuntu 24.04, Python `rclpy`**, run in Docker
@@ -131,7 +132,7 @@ velocities, and only `safety_supervisor` publishes final commands (§4.2).
 | M1-A Husan | Perception | `passenger_detector` | S1 | ✅ merged (branch `feature/m1a-passenger-detector`) |
 | M1-B Tuymurod | Demand prediction | `demand_predictor` | S2 | ✅ merged |
 | M2-A Fazliddin | Bus & docking | `bus_manager` | S3 | ✅ S3 12/12 live, T05 10/10, T06 ([README_M2A](README_M2A.md), [evidence/m2a](evidence/m2a)) |
-| M2-B Arkar | Hub coordinator | `hub_coordinator` | S8 | ✅ 28 tests + T04 6/6 live ([evidence/m2b](evidence/m2b)); ⏳ S8 not built yet |
+| M2-B Arkar | Hub coordinator | `hub_coordinator` | S8 | ✅ 28 tests + T04 6/6 live ([evidence/m2b](evidence/m2b)); ✅ S8/T15 20/20 ([evidence/s8](evidence/s8)) |
 | M3 Carla | Parking & traffic | `parking_manager`, `traffic_monitor` | S4, S5 | ✅ code in the package + 59 tests; ✅ S4 11/11 and S5 9/9 live ([evidence/m3](evidence/m3)) |
 | M4 Aidil | Routing & robot | `route_planner`, `robot_manager` | S6, S7 | ✅ S6 8/8, S7 9/9, T18 5/5 live ([README_M4](README_M4.md), [evidence/m4](evidence/m4)) |
 | M5 Saidumar | Simulator, safety, infra | `scenario_runner`, `safety_supervisor`, `actuator_bridge`, `metrics_logger`, `dashboard_marker_publisher` | S9 | ✅ complete for simulation |
@@ -291,6 +292,7 @@ docker/hub.sh build
 | S6 routing (~1.5 min, M4) | `docker/hub.sh s6` | `s6 verdict: PASSED`; `output/s6_check.json`, `s6_routes.csv`, `s6_maps.png` |
 | S7 robot escort (~15 min, M4) | `docker/hub.sh s7` (or `s7 1`) | `S7 verdict: PASSED`; `output/s7_check.json`, `s7_trials.csv`, `s7_trace.csv`, `s7_events.csv`, `s7_paths.png` |
 | T18 planner loss (~1 min, M4 + M5) | `docker/hub.sh t18` | `t18 verdict: PASSED`; `output/t18_check.json` |
+| S8 rush hour + T15 (~90 min, everyone) | `docker/hub.sh s8` (or `s8 2` for 2 seeds) | `T15 PASSED`; `output/s8/s8_summary.json`, `s8_runs.csv`, `s8_compare.png`, one folder per episode, rosbag + dashboard video of seed 1 |
 | S9 faults × 5 mission phases (~4 min) | `docker/hub.sh s9x` | `S9 repeat verdict: PASSED`; `output/repeat/s9_repeat.{json,csv}` |
 | Live dashboard (Foxglove) | `docker/hub.sh view` | connect Foxglove to `ws://localhost:8765` |
 | Team report PDF | `docker/hub.sh report` | `docs/report/Smart_Mobility_Hub_Report.pdf` |
@@ -614,7 +616,7 @@ are deliberately untracked). Merge into `main` only as a team decision.
 | Interfaces §6–7 (all) | M5 | ✅ |
 | S1 / T01–T02 detection, occlusion | M1-A | ✅ simulation (blob exact; HOG MAE 1.0); ⚠️ 100 annotated real-video frames still needed |
 | S2 / T03 prediction (+ T04 reference policy) | M1-B | ✅ merged, tests pass |
-| T04 dispatch hysteresis, S8 / T15 | M2-B | ✅ T04 6/6 live: noise around 6 → 0 dispatches; rising demand → exactly 1 (PREDICTED, 2.0 s after the first forecast ≥ 6), 0 BUSY rejections, none after the mission while the forecast sat at 5; invalid forecast → 0; feed gap → 0; no forecast + queue 7 → 1 with reason FALLBACK (`docker/hub.sh t04`); ⏳ S8/T15 need M4 |
+| T04 dispatch hysteresis, S8 / T15 | M2-B | ✅ T04 6/6 live: noise around 6 → 0 dispatches; rising demand → exactly 1 (PREDICTED, 2.0 s after the first forecast ≥ 6), 0 BUSY rejections, none after the mission while the forecast sat at 5; invalid forecast → 0; feed gap → 0; no forecast + queue 7 → 1 with reason FALLBACK (`docker/hub.sh t04`); ✅ S8/T15: 20/20 rush-hour episodes, 0 collisions / crossing conflicts / double allocations / duplicate dispatches, 100 % completion, predictive dispatch 62.7 s vs reactive 64.1 s (`docker/hub.sh s8`) |
 | S3 / T05–T06 docking, cancel | M2-A | ✅ S3 12/12 live (`docker/hub.sh s3`, `evidence/m2a/`); code written by M5 for Fazliddin, ⚠️ he must review it |
 | S4–S5 / T07–T10 parking, congestion | M3 | ✅ nodes in the package, 59 tests pass; ✅ S4 11/11 and S5 9/9 live (`docker/hub.sh s4`, `s5`; `evidence/m3/`) |
 | S6–S7 / T11–T14 routing, escort | M4 | ✅ S6 8/8 (T11 live 5/5 + 20 seeds, T12, p95 29 ms), S7 9/9 (T13 10/10 ≤ 0.027 m, T14) — code by M5 for Aidil, ⚠️ he must review |
@@ -628,8 +630,9 @@ are deliberately untracked). Merge into `main` only as a team decision.
 - **M2-B:** T04 runs live and passes (`t04_check.py`, written by M5; branch
   `feature/m2b-t04-dispatch`). Two small changes to `hub_coordinator.py`:
   `demand_freshness_sec` (2.5 s, the forecast comes at 1 Hz) and a clean
-  Ctrl+C exit. Left: the S8 run (needs M4); answer resets (§6.1); restyle
-  for `ament_flake8`.
+  Ctrl+C exit. S8/T15 passes (branch `feature/s8-integration`: escort
+  trigger `ESCORT_REQUEST` and `dispatch_mode` added to your node). Left:
+  answer resets (§6.1); restyle for `ament_flake8`.
 - **M3:** your files were moved too; one integration fix in
   `test_node_smoke.py` (stub install could replace the real rclpy) and test
   outputs now go to `output/m3/`. S4 and S5 now run live and pass
@@ -658,8 +661,8 @@ are deliberately untracked). Merge into `main` only as a team decision.
   [README_M4.md](README_M4.md), review the code, confirm the report section.
   The bus now takes its route from the planner (fallback off by default).
 - **M5:** done for simulation (incl. §16.3 repetition, dashboard viewing,
-  evidence, report draft, T18). Left: the S8 rush-hour scenario file +
-  integrated launch (every node exists now).
+  evidence, report draft, T18, S8/T15). Left: Husan's real-video evaluation
+  once the video arrives.
   Everyone else: follow
   [§6.1](#61-plugging-your-node-into-the-hub-for-the-next-members) and
   [§11](#11-the-finish-line--whats-left-ez-mode-).
@@ -689,9 +692,9 @@ it has copy-paste code and a table of what each person connects.
   [README_M2A.md](README_M2A.md), own it, write your report part.
 - **Aidil (M4):** `route_planner` + `robot_manager` written and passing ✅ —
   read [README_M4.md](README_M4.md), own it, confirm your report part.
-- **Arkar (M2-B):** T04 passes live ✅ (`docker/hub.sh t04`, proof in
-  `evidence/m2b/`). Read `t04_check.py` + the two changes in your node.
-  S8 waits for Aidil's part.
+- **Arkar (M2-B):** T04 ✅ and S8/T15 ✅ (`docker/hub.sh t04`, `docker/hub.sh s8`,
+  proof in `evidence/m2b/` and `evidence/s8/`). Read `t04_check.py`,
+  `s8_check.py` and the changes in your node (README_M2B.md updates 2 + 3).
 - **Carla (M3):** files are in the package already ✅ and S4/S5 now pass
   live ✅ (`docker/hub.sh s4`, `docker/hub.sh s5`, proof in `evidence/m3/`).
   Your report section is drafted (§8 of `docs/report/REPORT.md`) — read it
@@ -718,9 +721,10 @@ Instructions in [README_M1A.md](README_M1A.md). Record → label 100+ frames
 by hand → `video_eval`. Or record + send it and the 4 corner measurements;
 the rest can be done for him, but **he** checks the labels.
 
-**Step 5 — the big team test** 🔗
-When everyone's node is in: Saidumar writes `scenarios/S8.yaml` (the
-rush-hour script of §15.1), then the team runs S8 / T15 together. Fix what breaks. Repeat until green.
+**Step 5 — the big team test** 🔗 ✅ done
+`scenarios/S8.yaml` + `docker/hub.sh s8`: 10 rush hours × predictive and
+reactive dispatch, all 20 with zero safety violations (T15). Re-run it after
+any change to your node (~90 min).
 
 **Step 6 — collect the proof** 📊
 Run `docker/hub.sh s9`, `s9x`, `s1`, `test` (and the new S2–S8 checks).

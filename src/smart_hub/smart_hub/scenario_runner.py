@@ -10,8 +10,11 @@ Publishes   /robot/odom        nav_msgs/Odometry       20 Hz, R10
             /parking/observed  SlotObservationArray    5 Hz, R10
             /hub/estop         std_msgs/Bool           10 Hz, R1T (if publish_estop)
             /camera/image_raw  sensor_msgs/Image bgr8  10 Hz, sensor QoS (if publish_camera)
-            /hub/events        HubEvent                R100, scenario events and
-                                                       PASSENGER_BOARDED (one per person)
+            /hub/events        HubEvent                R100, scenario events,
+                                                       PASSENGER_BOARDED (one per person),
+                                                       ESCORT_REQUEST, VEHICLE_EXIT
+Calls       /robot/confirm_ready  std_srvs/Trigger (scenario 'ready' event: the
+                               simulated passenger button, S8)
 Serves      /scenario/reset    ResetScenario (waits for RESET_ACK from every
                                node in reset_participants, contract §7)
 
@@ -42,6 +45,7 @@ from smart_hub_interfaces.msg import (HubEvent, SlotObservation, SlotObservation
                                       VehicleState, VehicleStateArray)
 from smart_hub_interfaces.srv import ResetScenario
 from std_msgs.msg import Bool, String
+from std_srvs.srv import Trigger
 import yaml
 
 # Floor outlines painted for the camera: queue Q and crossing C (assignment 2.1).
@@ -117,6 +121,7 @@ class ScenarioRunner(Node):
                                      lambda m, a=agent: self.on_applied(a, m), R1)
         self.create_subscription(Bool, '/bus/door_open',
                                  lambda m: self.sim.set_door(m.data), R1)
+        self.ready_cli = self.create_client(Trigger, '/robot/confirm_ready')
         self.create_subscription(String, '/scenario/inject', self.on_inject, R10)
         self.create_subscription(HubEvent, '/hub/events', self.on_event, R100)
         self.create_service(ResetScenario, '/scenario/reset', self.on_reset,
@@ -212,6 +217,15 @@ class ScenarioRunner(Node):
         self._drive_handshake(time.monotonic())
         for event in self.sim.step():
             self._event('SCENARIO_EVENT', 'scenario_runner', json.dumps(event, sort_keys=True))
+            if event['type'] == 'escort':          # a passenger asks at the kiosk (S8)
+                self._event('ESCORT_REQUEST', event['passenger_id'], json.dumps(
+                    {k: event[k] for k in ('request_id', 'passenger_id', 'pickup',
+                                           'destination')}, sort_keys=True))
+            elif event['type'] == 'ready':         # the passenger presses "ready"
+                self._press_ready()
+        for vid in self.sim.exits:
+            self._event('VEHICLE_EXIT', vid, 'left the map at E')
+        self.sim.exits = []
         for pid, t in self.sim.pop_boardings():
             self._event('PASSENGER_BOARDED', pid, 't=%.2f' % t)
         stamp = self.get_clock().now().to_msg()
@@ -297,6 +311,17 @@ class ScenarioRunner(Node):
                 slot_id=slot, occupied=(state == 'occupied'), confidence=1.0,
                 valid=(state != 'offline')))
         self.parking_pub.publish(msg)
+
+    def _press_ready(self):
+        """Press the simulated passenger button: call /robot/confirm_ready (14.1)."""
+        if not self.ready_cli.service_is_ready():
+            self._event('READY_PRESSED', 'passenger', 'failed: no /robot/confirm_ready')
+            return
+        future = self.ready_cli.call_async(Trigger.Request())
+        future.add_done_callback(lambda f: self._event(
+            'READY_PRESSED', 'passenger', '%s %s' % (
+                'accepted' if f.result() and f.result().success else 'refused',
+                f.result().message if f.result() else 'no answer')))
 
     def _event(self, event, entity, reason):
         msg = HubEvent()

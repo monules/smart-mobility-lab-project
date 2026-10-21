@@ -244,3 +244,23 @@ def test_vehicle_edges_match_m3_and_exclude_the_crossing():
     # still be reported on a road
     assert geo.nearest_edge(5.0, 3.99, edges=geo.VEHICLE_EDGES) in ('B-Cn', 'Cn-N')
     assert geo.nearest_edge(5.0, 3.99) == 'Cn-Cs'
+
+
+def test_event_jitter_is_seeded_and_escort_events_validate():
+    sc = {'agents': {}, 'events': [{'t': 50.0, 'type': 'note', 'text': 'x', 'jitter': 3.0}]}
+    times = {seed: HubSim(sc, seed=seed).pending[0]['t'] for seed in range(1, 6)}
+    assert all(47.0 <= t <= 53.0 for t in times.values()) and len(set(times.values())) > 1
+    assert HubSim(sc, seed=2).pending[0]['t'] == times[2]          # reproducible
+    with pytest.raises(ValueError):
+        HubSim({'events': [{'t': 1, 'type': 'escort', 'request_id': 'r'}]}, seed=1)
+    ok = {'t': 1, 'type': 'escort', 'request_id': 'r', 'passenger_id': 'p',
+          'pickup': 'R', 'destination': 'D'}
+    assert HubSim({'events': [ok]}, seed=1).pending[0]['type'] == 'escort'
+
+
+def test_vehicle_stopped_at_exit_e_leaves_the_map():
+    sim = HubSim({'agents': {'bus_1': {'kind': 'bus', 'x': 10.9, 'y': 2.0},
+                             'robot_1': {'kind': 'robot', 'x': 11.0, 'y': 2.1}}}, seed=1)
+    sim.step()
+    assert 'bus_1' not in sim.bodies and sim.exits == ['bus_1']
+    assert 'robot_1' in sim.bodies                       # robots do not "exit"

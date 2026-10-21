@@ -18,7 +18,7 @@ The assignment asks for a simulation-first transport hub in ROS 2: passenger det
 | S3 bus docking | M2-A | S3 12/12 live, T05 10/10, T06 passed (code by M5, review by M2-A pending) |
 | S4/S5 parking, congestion | M3 | nodes in the ROS package with unit tests; S4 11/11 and S5 9/9 pass live |
 | S6/S7 routing, escort | M4 | S6 8/8, S7 9/9, T18 5/5 live (code by M5, review by M4 pending) |
-| S8 integration | M2-B | coordinator node in the ROS package with unit tests; full run needs S3/S7 |
+| S8 integration | M2-B (+ all) | T15 passed: 20 rush-hour episodes (10 seeds × predictive/reactive), 0 safety violations, 100 % completion |
 | S9 faults, e-stop | M5 | implemented, verified in simulation (T16, T17, 25-trial repetition) |
 
 ## 2. Map, coordinates and frames
@@ -96,11 +96,33 @@ T04 was run with the coordinator (section 7) using a checker in place of the for
 
 **Limitations.** Departure after COMPLETE (a separate transition, §10.2 step 6) is not implemented; in the tests the scenario is reset and the bus starts at A again. Only bay B is supported. Without an answer from `/route/compute` the bus does not move (T18). A cancel while inside C stops the bus there and keeps renewing the crossing until a new goal drives it out (not tested live). The simulated bus has no inertia.
 
-## 7. M2-B — hub coordinator (S8) — partially TODO
+## 7. M2-B — hub coordinator and S8 integration
 
 `coordinator_core.py` implements crossing arbitration (one owner, 2 s clear debounce, lease HOLD instead of FREE) and the §9.3 dispatch hysteresis; 28 unit tests pass. Verified against the shared interfaces in a scratch workspace: a crossing was granted while `/hub/safety` was fresh and unlatched, and denied with `SAFETY_STOP` after an e-stop. The node runs inside `hub.launch.py` with the rest of the hub; in S3 it granted and released crossing C for the bus and, with seven people in Q, dispatched the bus by itself.
 
-**T04 live** (`docker/hub.sh t04`, `evidence/m2b/t04/`, 6/6 passed). A checker publishes `/hub/demand` at 1 Hz and `/hub/queue` at 5 Hz; the real coordinator and bus_manager do the rest. Forecasts alternating around 6 (6.2, 5.8, 6.1, …) for 20 s gave no dispatch. A rising forecast gave exactly one dispatch (reason PREDICTED) 2.0 s after the first value ≥ 6, i.e. on the third consecutive sample; bus_manager accepted one goal and saw no second request while it was outstanding, and none followed in the 10 s after the mission while the forecast was 5 (escalated but below 6). `valid=false` forecasts (predicted 9) and a feed gap with an observed queue of 2 gave no dispatch; with no forecast and an observed queue of 7 the coordinator dispatched once with reason FALLBACK. During the work `demand_freshness_sec` (2.5 s) was added: the forecast arrives at 1 Hz, so with the shared 1.0 s freshness limit a forecast would go stale exactly when the next one was due (found by review, not observed). **TODO:** the T15 rush-hour run (needs S7).
+**T04 live** (`docker/hub.sh t04`, `evidence/m2b/t04/`, 6/6 passed). A checker publishes `/hub/demand` at 1 Hz and `/hub/queue` at 5 Hz; the real coordinator and bus_manager do the rest. Forecasts alternating around 6 (6.2, 5.8, 6.1, …) for 20 s gave no dispatch. A rising forecast gave exactly one dispatch (reason PREDICTED) 2.0 s after the first value ≥ 6, i.e. on the third consecutive sample; bus_manager accepted one goal and saw no second request while it was outstanding, and none followed in the 10 s after the mission while the forecast was 5 (escalated but below 6). `valid=false` forecasts (predicted 9) and a feed gap with an observed queue of 2 gave no dispatch; with no forecast and an observed queue of 7 the coordinator dispatched once with reason FALLBACK. During the work `demand_freshness_sec` (2.5 s) was added: the forecast arrives at 1 Hz, so with the shared 1.0 s freshness limit a forecast would go stale exactly when the next one was due (found by review, not observed).
+
+**S8 / T15 — integrated rush hour** (`docker/hub.sh s8`, `evidence/s8/`, **T15 passed**, Figures 9 and 10). Every node runs together: camera → passenger_detector → demand_predictor → hub_coordinator → bus_manager, plus parking_manager, traffic_monitor, route_planner, robot_manager and the M5 stack. The script (`scenarios/S8.yaml`) follows §15.1: warm-up with three passengers, arrivals rising so the observed queue reaches 7 at about 61 s, two cars requesting parking at the same moment at 65 s, an escort request at 70 s (a kiosk event, see below), the passenger's ready press at 75 s, a pedestrian in C from 80 to 85 s, obstacle O on Cs-J from 90 to 120 s, and the remaining passengers walking away from 160 s; each seed jitters the arrival times. After docking the bus departs to exit E as a separate, separately reported transition. Ten seeds were run in both dispatch modes, each episode in a fresh launch (20 episodes × 240 s).
+
+| | predictive | reactive |
+|---|---|---|
+| safe episodes (0 collisions, 0 crossing conflicts, 0 double allocations, 0 duplicate dispatches) | 10/10 | 10/10 |
+| completion (bus docked + departed, escort arrived, both parking requests answered) | 10/10 | 10/10 |
+| dispatch time, mean (range) | 62.7 s (61.8–65.6) | 64.1 s (62.8–64.8) |
+| dispatch reason | PREDICTED | FALLBACK (observed queue) |
+| queue wait to boarding, p50 / p95 (40 boarded passengers) | 77.5 s / 98.4 s | 79.2 s / 99.2 s |
+| bus travel A→B / robot escort ready→arrival, mean | 37.8 s / 82.3 s | 37.4 s / 83.3 s |
+| crossing waiting time per episode, mean | 9.8 s | 9.5 s |
+
+In all 20 episodes the forecast became valid only after warm-up (59.7–62.7 s); exactly one bus mission was dispatched; C1 and C2 asking for P2 at once received P2 and P3; the bus was granted C first and the robot after it (never overlapping, never an owner change without release); both paused for the pedestrian in C; and the robot rerouted around O (`W-Cn-B-U-E-J-D` or `Cn-B-U-E-J-D` depending on where it was) and arrived. Paired by seed, predictive dispatch was earlier in 7 of 10 seeds, later in 2 and equal in 1; the gain is small (1.4 s earlier dispatch, 1.7 s lower median wait) because in this script the queue jumps from 3 to 7 within about 9 s, so the 30 s forecast has little lead, and the waits are dominated by passengers who arrived during warm-up plus the 38 s bus trip. Capacity is 4, so 3 passengers per episode were not served before walking away; they are excluded from the wait statistics (censored), not counted as zero. These are simulation results on one fixed rush-hour shape; they do not establish a transport benefit beyond it.
+
+!img ../../evidence/s8/s8_compare.png | Figure 9 — S8 / T15: bus dispatch time and median queue wait per seed, predictive vs reactive dispatch on identical seeds. | 15
+
+!img ../../evidence/s8/dashboard_seed1_predictive/frame_0093.1.png | Figure 10 — S8 dashboard at t = 93 s (seed 1, re-recorded after the dashboard fix below; the measured episodes are unaffected): the bus has just left crossing C, the robot waits at its stop line for the 2 s clear debounce, obstacle O blocks Cs-J (red), P2 and P3 are reserved by C1 and C2, forecast 7.0 for +30 s. | 12
+
+**Escort trigger (open question answered).** The assignment defines no interface for "escort request at 70 s". A kiosk publishes `ESCORT_REQUEST` on `/hub/events` with JSON `{request_id, passenger_id, pickup, destination}` (in simulation the scenario_runner does it); the coordinator turns it into one EscortPassenger goal, and the simulated passenger button calls `/robot/confirm_ready`. The coordinator gained a `dispatch_mode` parameter (predictive / reactive) for the comparison.
+
+**One difficult integration failure and its correction.** The first S8 episode showed zero safety violations, yet the bus and the robot never moved: the bus timed out and the escort never finished. The log showed the actuator bridge exiting at start-up with "only mode:=sim is implemented". The S8 launch file had a `mode` argument (predictive / reactive), and ROS 2 launch arguments share one scope with included files, so `mode:=predictive` also reached hub.launch.py's `mode` (sim / hardware) and the bridge refused to drive — the fail-safe behaved as designed, but the whole run was meaningless. The argument was renamed `dispatch`; the next episode completed every mission. The same integration pass found three more problems: (1) a parked bus counted as traffic on its own edge (route_planner, section 9); (2) the dashboard dropped the 1 Hz forecast after 1.0 s and flickered to "prediction unavailable" (now a 2.5 s limit for the forecast, like the coordinator; display only); (3) the T15 batch script hung after the first episode because a background rosbag recorder without job control ignores SIGINT (`set -m` added). Robot and bus also needed one behaviour added for §15.1: an agent that already owns C pauses while a pedestrian is reported in it (holding before C, or standing still inside), because the arbiter only blocks *new* grants.
 
 ## 8. M3 — parking and traffic (S4, S5)
 
@@ -144,7 +166,7 @@ The scenario files and both checkers were written by M5 (simulator owner). Both 
 
 **Problems found and fixed during development.** (1) A NavigateTo to the node the robot already stood on never finished. (2) When a reroute turned the robot back towards C, the normal stop line was already behind it, so it would have entered C without permission; it now holds where it is and asks first. (3) Found by re-running S3 with the planner: in 3 of 15 trials the bus took A-Cs-J-E-U-B and docked facing west (2 nominal dockings failed the yaw check). Cause: the bus parked at A is itself a vehicle at 0 m/s on A-N (or A-Cs, decided by observation noise), so `traffic_monitor` marked its own first edge congested and the planner priced A-N at 80 s. The planner now removes the requesting agent from every edge whose corridor contains it (one vehicle less in the density, its own speed ignored when nobody else is left). A first fix used the vehicle's edge label instead of its position and did not help: at node A the label flips between A-N and A-Cs with observation noise, so the third S3 run still failed the same way and the fix was changed to use the position. (4) The bus fell back to a fixed route when the planner was missing, which violates T18; the bus now uses the same timeout/retry/fail rule (the fallback is an off-by-default parameter). Four test expectations were wrong and were corrected after checking the behaviour (zero command after the 0.5 s odometry timeout, not instantly; the planning tick has no distance; an obstacle 0.55 m from R-W correctly removes the edge; the reroute measurement window).
 
-**Limitations.** No coordinator trigger sends escort goals yet (the assignment defines none; needed for S8). Congestion replanning is unit-tested but not exercised live. A cancel inside C stops the robot there and keeps the crossing until it leaves. The robot is counted by `traffic_monitor` on shared roads, so standing on Cs-J can briefly mark it congested.
+**Limitations.** Congestion replanning is unit-tested but not exercised live. A cancel inside C stops the robot there and keeps the crossing until it leaves. The robot is counted by `traffic_monitor` on shared roads, so standing on Cs-J can briefly mark it congested.
 
 ## 10. M5 — simulator, safety supervisor and infrastructure (S9)
 
@@ -199,7 +221,7 @@ Phases: start (0.3 s after moving off), cruise 0.20 m/s, turn (0.15 m/s, 0.5 rad
 | T05, T06 | S3 docking, cancel | pass: 10/10 dockings (≤ 0.034 m, ≤ 0.006 rad); cancel → zero 0.001 s |
 | T07–T10 | S4, S5 | pass: unit tests (M3) and live S4 11/11, S5 9/9 (T07 p95 39 ms, T10 UNKNOWN 0.995 s) |
 | T11–T14 | S6, S7 | pass: T11 oracle (5 live + 20 seeds), T12 NO_ROUTE with zero motion, T13 10/10 (≤ 0.027 m), T14 busy/no-ready/cancel/stale/unreachable |
-| T15 | S8 integration | TODO (needs all nodes) |
+| T15 | S8 integration | pass: 20/20 episodes with 0 collisions, 0 crossing conflicts, 0 double allocations, 0 duplicate dispatches; predictive vs reactive on identical seeds |
 | T16 | S9 stop latch | PASS (simulation) |
 | T17 | S9 watchdog | PASS (simulation, process kill) |
 | T18 | S9 service loss | pass: absent and late planner → PLANNER_UNAVAILABLE after 1 s × 3, no motion, late answers ignored (robot and bus) |

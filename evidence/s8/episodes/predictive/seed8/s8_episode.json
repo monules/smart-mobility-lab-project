@@ -1,0 +1,79 @@
+{
+  "passed": true,
+  "seed": 8,
+  "mode": "predictive",
+  "safety_violations": {
+    "collisions": 0,
+    "crossing": 0,
+    "double_allocation": 0,
+    "duplicate_dispatch": 0
+  },
+  "violation_details": {
+    "collisions": [],
+    "crossing": [],
+    "double_allocation": [],
+    "duplicate_dispatch": []
+  },
+  "metrics": {
+    "passengers_seen": 7,
+    "passengers_boarded": 4,
+    "queue_wait_p50_s": 77.50177907699981,
+    "queue_wait_p95_s": 98.40968400400016,
+    "queue_waits_s": [
+      54.0,
+      77.5,
+      86.01,
+      98.41
+    ],
+    "dispatches": 1,
+    "dispatch_t_s": 62.79,
+    "dispatch_source": "PREDICTED",
+    "forecast_valid_t_s": 60.75,
+    "bus_mission": "SUCCEEDED",
+    "bus_travel_s": 38.02,
+    "bus_departed": false,
+    "robot_mission": "SUCCEEDED",
+    "robot_travel_s": 82.35,
+    "robot_reroutes": [
+      "BLOCKED:Cs-J: R-W-Cn-Cs-J-D -> Cn-B-U-E-J-D"
+    ],
+    "parking": [
+      [
+        "C1",
+        true,
+        "P2",
+        "OK",
+        0.0055
+      ],
+      [
+        "C2",
+        true,
+        "P3",
+        "OK",
+        0.0053
+      ]
+    ],
+    "parking_answered": true,
+    "crossing_wait_s": 10.6,
+    "crossing_grants": [
+      [
+        72.7,
+        "bus_1"
+      ],
+      [
+        80.7,
+        "bus_1"
+      ],
+      [
+        87.5,
+        "bus_1"
+      ],
+      [
+        94.1,
+        "robot_1"
+      ]
+    ],
+    "completed": true
+  },
+  "commit": "420f739-dirty"
+}

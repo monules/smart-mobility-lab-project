@@ -69,7 +69,7 @@ volatile; T = transient-local. "Status" is for this branch.
 | `/parking/barrier_request` / `_open` | std_msgs/Bool | R1 | parking_manager (M3) / actuator_bridge (M5) | bridge / parking_manager | (A) §11.3; bridge mirrors request (sim) |
 | `/hub/estop` | std_msgs/Bool | event + 10 Hz, R1T | operator / scenario_runner | safety_supervisor, metrics | (Impl) see §5 |
 | `/hub/safety` | SafetyState | 10 Hz, R1T | **safety_supervisor** (M5) | every manager, coordinator, dashboard | (Impl) see §4 |
-| `/hub/events` | HubEvent | on change, R100 | every decision node | metrics_logger, dashboard | (Impl) for M5, M1-B, M2-B, M3 |
+| `/hub/events` | HubEvent | on change, R100 | every decision node | metrics_logger, dashboard | (Impl) for every node. **Escort trigger (decided by M5, S8):** event `ESCORT_REQUEST`, reason = JSON `{request_id, passenger_id, pickup, destination}`, published by the kiosk (scenario_runner in simulation); hub_coordinator answers with one EscortPassenger goal. The simulated passenger button calls `/robot/confirm_ready` |
 | `/hub/markers` | visualization_msgs/MarkerArray | 5 Hz, R10 | dashboard_marker_publisher (M5) | RViz | (Impl) read-only |
 | `/robot/route`, `/bus/route` | nav_msgs/Path | on every new/changed plan, R1T | robot_manager (M4) / bus_manager (M2-A) | dashboard_marker_publisher, RViz | **Decided by M5** (no assignment topic exists): frame `map`; poses = remaining waypoints current → goal; empty Path = no route. Dashboard side (Impl) |
 | `/scenario/inject` | std_msgs/String (JSON) | R10 | tests only | scenario_runner | (Impl) **test-only**, not part of the hub |
@@ -88,7 +88,7 @@ volatile; T = transient-local. "Status" is for this branch.
 | `/safety/clear_stop` | ClearSafetyStop | safety_supervisor (M5) | operator | (Impl) see §6 |
 | `/robot/confirm_ready` | std_srvs/Trigger | robot_manager (M4) | button / dashboard | (Impl) accepted only in WAIT_READY |
 | `/bus/dock` | DockBus action | bus_manager (M2-A) | coordinator | (Impl); bay B only; `final_state` COMPLETE or SAFE_STOP |
-| `/robot/escort` | EscortPassenger action | robot_manager (M4) | coordinator | (Impl); trigger at t=70 s is still (Open) (M2-B Q3) |
+| `/robot/escort` | EscortPassenger action | robot_manager (M4) | coordinator | (Impl); started by hub_coordinator on an `ESCORT_REQUEST` event (below) |
 | `/robot/navigate_to` | NavigateTo action | robot_manager (M4) | internal, tests | (Impl) |
 
 Service rules (A) §7.1: normal response ≤ 250 ms, client timeout 1 s,
@@ -217,7 +217,7 @@ low-confidence observation is UNKNOWN, never zero; a retained
 
 | # | Decision | Owners |
 |---|---|---|
-| 1 | Who starts the escort at t = 70 s in S8 | M2-B, M4, M5 |
+| 1 | ~~Who starts the escort at t = 70 s in S8~~ | **decided by M5**: `ESCORT_REQUEST` event → hub_coordinator (see `/hub/events`) |
 | 2 | ~~Acknowledgement mechanism for `/scenario/reset`~~ | **decided by M5**, see §7 |
 | 2b | ~~Topic for planned routes~~ | **decided by M5**: `/robot/route`, `/bus/route` (`nav_msgs/Path`), §3 |
 | 3 | Per-agent field in `SafetyState` (currently in `reason` only) | all (interface change) |

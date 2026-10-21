@@ -17,7 +17,10 @@ from smart_hub import geometry as geo
 DT = 0.05                      # s, 20 Hz
 MOVABLE = ('robot', 'bus', 'car')
 EVENT_TYPES = ('estop', 'freeze', 'obstacle', 'parking', 'note', 'pedestrian', 'occlude',
-               'vehicle')
+               'vehicle', 'escort', 'ready')
+# 'escort' and 'ready' do not change the world: scenario_runner turns them into
+# an ESCORT_REQUEST event and a /robot/confirm_ready press (S8 stimuli).
+EXIT = (11.0, 2.0)            # exit E: a bus or car stopped here leaves the map (2.1)
 # 'camera' silences /camera/image_raw; 'camera_repeat' keeps re-sending the
 # last frame with its old stamp (a frozen source, assignment 16.1).
 FREEZABLE = ('odom', 'vehicles', 'parking', 'camera', 'camera_repeat')
@@ -79,6 +82,11 @@ def validate_event(event):
             raise ValueError('pedestrian needs id, and x/y unless active: false')
     if kind == 'occlude' and ('id' not in event or float(event.get('duration', 0)) <= 0):
         raise ValueError('occlude needs id and duration > 0')
+    needed = ('request_id', 'passenger_id', 'pickup', 'destination')
+    if kind == 'escort' and not all(event.get(k) for k in needed):
+        raise ValueError('escort needs request_id, passenger_id, pickup, destination')
+    if 'jitter' in event and not 0 <= float(event['jitter']) <= 30:
+        raise ValueError('jitter must be in [0, 30] s')
     if kind == 'vehicle':
         if 'id' not in event or (event.get('active', True) and not
                                  ('x' in event and 'y' in event)):
@@ -109,8 +117,15 @@ class HubSim:
         for vid, spec in sc.get('obstacles', {}).items():
             self.bodies[vid] = Body(vid, 'obstacle', float(spec['x']), float(spec['y']),
                                     active=bool(spec.get('active', True)))
-        # sort is stable, so events with equal times keep file order
-        self.pending = sorted(sc.get('events', []), key=lambda e: float(e['t']))
+        # 'jitter: j' moves an event by a seeded uniform offset in [-j, j], so
+        # every seed is a different but reproducible episode (S8). Sort is
+        # stable, so events with equal times keep file order.
+        events = []
+        for e in sc.get('events', []):
+            j = float(e.get('jitter', 0.0))
+            t = max(0.0, float(e['t']) + (self.rng.uniform(-j, j) if j > 0 else 0.0))
+            events.append(dict(e, t=round(t, 2)))
+        self.pending = sorted(events, key=lambda e: float(e['t']))
         self.frozen_until = {}
         self.estop = bool(sc.get('estop', False))
         self.parking = dict(sc.get('parking', {}))
@@ -121,6 +136,7 @@ class HubSim:
         self.door_since = None
         self.boarded_this_stop = 0
         self.boardings = []          # (person id, sim time) not yet reported
+        self.exits = []              # vehicle ids that left the map at E, not yet reported
 
     # --------------------------------------------------------------- inputs
     def set_command(self, vehicle_id, v, w):
@@ -231,6 +247,11 @@ class HubSim:
             ped.x += ped.vx * DT
             ped.y += ped.vy * DT
         self._board()
+        for vid in [v for v, b in self.bodies.items() if b.kind in ('bus', 'car')
+                    and b.cruise is None and abs(b.v) < 0.02
+                    and math.hypot(b.x - EXIT[0], b.y - EXIT[1]) <= BAY_TOLERANCE]:
+            del self.bodies[vid]                  # completed its trip at exit E
+            self.exits.append(vid)
         self.steps += 1
         self.t = self.steps * DT               # no float drift over long runs
         return applied

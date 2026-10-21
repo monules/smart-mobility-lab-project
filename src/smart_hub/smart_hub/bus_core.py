@@ -15,6 +15,11 @@ State machine (assignment 10.2):
 * BOARD: door requested only when docked; the 8 s boarding interval starts
   when the bridge reports the door open; then the door is closed and the goal
   completes once the door is measured closed.
+* DEPART: optional, after COMPLETE and only when asked (S8): drive to the exit
+  with no docking or door; ends as DEPARTED. Reported on its own, never as
+  part of the finished DockBus goal.
+* A pedestrian reported in C (/crossing/state) pauses the bus even with a
+  granted crossing: it holds at the stop line, or stands still inside C.
 * SAFE_STOP: zero command. A stale bus pose holds the bus and resumes when
   the pose is fresh again (abort after stale_abort_sec); cancel, timeout, a
   latched safety stop or a door / docking failure end the goal here.
@@ -33,6 +38,7 @@ from smart_hub import geometry as geo
 
 IDLE, APPROACH, WAIT, DOCK, BOARD = 'IDLE', 'APPROACH', 'WAIT', 'DOCK', 'BOARD'
 COMPLETE, SAFE_STOP = 'COMPLETE', 'SAFE_STOP'
+DEPART, DEPARTED = 'DEPART', 'DEPARTED'      # separate transition after COMPLETE (10.2 step 6)
 MOVING = (APPROACH, WAIT, DOCK)
 BASELINE_ROUTE = ('A', 'N', 'Cn', 'B')
 
@@ -157,6 +163,7 @@ class BusCore:
         self.others = []            # [(id, x, y)] other bodies, latest snapshot
         self.door_open = None       # (bool, t) measured
         self.safety_latched = False
+        self.pedestrian = None      # (bool, t) pedestrian in C, from /crossing/state
         self.events = []            # (event, reason) for /hub/events
         self.token = ''             # crossing permission held (survives a goal end)
         self.cross_inflight = False
@@ -174,6 +181,9 @@ class BusCore:
 
     def on_safety(self, latched):
         self.safety_latched = bool(latched)
+
+    def on_crossing_state(self, pedestrian, now):
+        self.pedestrian = (bool(pedestrian), now)
 
     def on_crossing_response(self, operation, granted, token, reason, now):
         self.cross_inflight = False
@@ -210,13 +220,14 @@ class BusCore:
         self.before_stale = None
         self.cancel_requested = False
         self.final_error = None     # (position m, yaw rad) when docked
+        self.mode = 'dock'
 
     @property
     def active(self):
         return self.phase not in (IDLE, COMPLETE) and self.path is not None
 
-    def start(self, route, now, max_duration):
-        """Begin a docking goal on route [(x, y), ...] ending at the bay."""
+    def start(self, route, now, max_duration, mode='dock'):
+        """Begin a docking goal (mode 'dock') or a departure ('depart') on route."""
         if self.active:
             raise RuntimeError('a goal is already active')
         if self.pose is None:
@@ -228,7 +239,8 @@ class BusCore:
         self._clear_goal()
         self.path = Path(pts, self.cfg.radius)
         self.goal_start, self.deadline = now, now + float(max_duration)
-        self._set(APPROACH, 'GOAL_ACCEPTED')
+        self.mode = mode
+        self._set(DEPART if mode == 'depart' else APPROACH, 'GOAL_ACCEPTED')
 
     def cancel(self):
         self.cancel_requested = True
@@ -357,6 +369,11 @@ class BusCore:
         remaining = max(0.0, p.total - s)
         out.distance_remaining = remaining
         may_pass = self._crossing(now, s, x, y, out)
+        ped = self.pedestrian is not None and self.pedestrian[0] and \
+            now - self.pedestrian[1] <= c.pose_timeout * 2
+        if ped and p.c_in is not None and s < p.c_out:
+            may_pass = False                 # permission kept, but nobody enters
+            self.deny_reason = 'PEDESTRIAN_IN_C'
         door = self._door_state(now)
         if door is not False:              # propulsion only with a confirmed closed door
             out.phase, out.reason = self.phase, 'DOOR_NOT_CLOSED'
@@ -392,11 +409,21 @@ class BusCore:
         w = max(-c.turn_rate, min(c.turn_rate, c.heading_gain * err))
         if abs(err) > c.align_tol:
             v = 0.0                        # turn in place first
+        in_c_ped = ped and self._in_c(x, y)
+        if in_c_ped:
+            v, w = 0.0, 0.0                # already in C: stand still for the pedestrian
         out.cmd = (v, w)
 
         # phase and ETA
         at_line = line is not None and line - s < 0.05 and speed < c.stopped_speed
-        if at_line:
+        if self.mode == 'depart':
+            self._set(WAIT if in_c_ped else DEPART, 'PEDESTRIAN_IN_C' if in_c_ped else 'TO_EXIT')
+            if remaining < 0.05:             # at the exit; the simulator removes the
+                out.cmd = (0.0, 0.0)         # bus once it stands there, so do not wait
+                return self._end(out, True, DEPARTED, 'AT_EXIT')
+            out.phase, out.reason = self.phase, self.reason
+            return out
+        if at_line or in_c_ped:
             self._set(WAIT, self.deny_reason or 'CROSSING_PENDING')
         elif remaining <= c.dock_zone:
             self._set(DOCK, 'FINAL_APPROACH')

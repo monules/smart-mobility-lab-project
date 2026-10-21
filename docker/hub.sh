@@ -13,6 +13,7 @@
 #   docker/hub.sh s6             run the S6 routing check (M4, ~1.5 min)
 #   docker/hub.sh s7 [trials]    run the S7 robot escort check (M4, ~15 min)
 #   docker/hub.sh t18            run the T18 planner-loss check (M4 + M5, ~1 min)
+#   docker/hub.sh s8 [seeds]     S8 rush hour + T15: seeds x predictive/reactive (~90 min)
 #   docker/hub.sh s5             run the S5 congestion check (M3, ~90 s)
 #   docker/hub.sh view [S1|S9]   live dashboard for Foxglove on ws://localhost:8765
 #   docker/hub.sh report         build docs/report/Smart_Mobility_Hub_Report.pdf
@@ -95,6 +96,31 @@ print('S1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
       ros2 launch smart_hub s3.launch.py output_dir:=/ws/output nominal_trials:=${2:-10}; \
       python3 -c \"import json, sys; r = json.load(open('output/s3_check.json')); \
 print('S3 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
+  s8)
+    # S8 / T15: every seed in both dispatch modes, one fresh launch per
+    # episode (no state carried over); seed 1 predictive also records a
+    # rosbag and the dashboard video. Then the summary and the T15 verdict.
+    N="${2:-10}"
+    # set -m: without job control a background job ignores SIGINT, so the
+    # rosbag recorder would never stop and the loop would hang (first T15 run)
+    in_container "" "set -m; rm -rf output/s8 && mkdir -p output/s8
+      for MODE in predictive reactive; do for SEED in \$(seq 1 $N); do
+        OUT=/ws/output/s8/\$MODE/seed\$SEED; mkdir -p \$OUT; EXTRA=''
+        if [ \$SEED = 1 ] && [ \$MODE = predictive ]; then
+          EXTRA='record_dashboard:=true'
+          ros2 bag record -o output/s8/bag_seed1_predictive --topics /hub/events \
+            /hub/vehicles /sim/truth /hub/queue /hub/demand /crossing/state /hub/safety \
+            /parking/state /traffic/edges /robot/cmd_vel /bus/cmd_vel /robot/route \
+            /bus/route /hub/bus_arrival > output/s8/bag.log 2>&1 &
+          BAG=\$!; sleep 2
+        fi
+        echo \"== S8 \$MODE seed \$SEED\"
+        ros2 launch smart_hub s8.launch.py seed:=\$SEED dispatch:=\$MODE \
+          output_dir:=\$OUT \$EXTRA > \$OUT/launch.log 2>&1
+        grep -h 'S8 seed' \$OUT/launch.log | cut -c1-160
+        if [ -n \"\${BAG:-}\" ]; then kill -INT \$BAG; wait \$BAG; unset BAG; fi
+      done; done
+      ros2 run smart_hub s8_summary --root output/s8" ;;
   s7)
     # S7 robot escort (M4): 10 nominal escorts (or [trials]) + special trials.
     in_container "" "mkdir -p output && rm -f output/s7_check.json && \
@@ -122,5 +148,5 @@ print('$1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
     in_container "" "python3 docs/report/build_report.py" ;;
   shell) in_container "-it" "exec bash" ;;
   run) in_container "" "${2:?usage: docker/hub.sh run '<command>'}" ;;
-  *) sed -n '2,20p' "$0" ;;
+  *) sed -n '2,21p' "$0" ;;
 esac

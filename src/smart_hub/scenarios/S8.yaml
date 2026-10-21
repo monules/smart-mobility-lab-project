@@ -1,0 +1,52 @@
+# Scenario S8: integrated smart hub coordination, one rush hour (assignment
+# 15.1; scenario file by M5, coordinator M2-B). Every node runs: camera ->
+# passenger_detector -> demand_predictor -> hub_coordinator -> bus_manager,
+# parking_manager, traffic_monitor, route_planner, robot_manager and the M5
+# stack. "jitter: j" moves an event by a seeded offset in [-j, j] s, so each
+# seed is a different but reproducible episode. The script only sets inputs;
+# s8_check judges the outcomes from what it observes.
+#
+#   0-60 s   warm-up: 3 people arrive; P1 occupied, P2/P3 free
+#   ~52-61 s arrivals rise; the observed queue reaches 7 -> one bus mission
+#   65 s     s8_check: cars C1 and C2 request parking at the same moment
+#   70 s     escort request R -> D (kiosk event -> hub_coordinator)
+#   75 s     passenger presses "ready" (/robot/confirm_ready)
+#   80-85 s  a pedestrian stands in crossing C
+#   90 s     obstacle O on the lower road Cs-J; removed at 120 s
+#   160-200  the people left in the queue walk away; run ends at 240 s
+scenario_id: S8
+duration_sec: 240
+observation_noise_m: 0.01
+estop: false
+agents:
+  bus_1: {kind: bus, x: 1.0, y: 2.0, theta: 1.5708}
+  robot_1: {kind: robot, x: 3.0, y: 6.0, theta: 0.0}
+obstacles:
+  O: {x: 7.0, y: 2.0, active: false}
+parking:
+  P1: occupied
+  P2: free
+  P3: free
+events:
+  - {t: 0.5, type: note, text: "S8 start"}
+  # warm-up queue history (two rows in Q, clear of the robot's R-W path at y=6)
+  - {t: 5.0, type: pedestrian, id: q1, x: 2.4, y: 6.6, jitter: 2.0}
+  - {t: 15.0, type: pedestrian, id: q2, x: 3.3, y: 6.6, jitter: 3.0}
+  - {t: 30.0, type: pedestrian, id: q3, x: 4.2, y: 6.6, jitter: 3.0}
+  # rush: the queue reaches 7
+  - {t: 52.0, type: pedestrian, id: q4, x: 5.1, y: 6.6, jitter: 2.0}
+  - {t: 55.0, type: pedestrian, id: q5, x: 5.9, y: 6.6, jitter: 2.0}
+  - {t: 58.0, type: pedestrian, id: q6, x: 2.8, y: 5.3, jitter: 2.0}
+  - {t: 61.0, type: pedestrian, id: q7, x: 4.6, y: 5.3, jitter: 1.0}
+  - {t: 65.0, type: note, text: "parking requests C1 C2"}
+  - {t: 70.0, type: escort, request_id: S8-esc-1, passenger_id: anon-1, pickup: R,
+     destination: D}
+  - {t: 75.0, type: ready}
+  - {t: 80.0, type: pedestrian, id: c1, x: 5.0, y: 3.0}
+  - {t: 85.0, type: pedestrian, id: c1, active: false}
+  - {t: 90.0, type: obstacle, id: O, active: true}
+  - {t: 120.0, type: obstacle, id: O, active: false}
+  # demand subsides: whoever is still waiting walks away
+  - {t: 160.0, type: pedestrian, id: q5, active: false, jitter: 5.0}
+  - {t: 175.0, type: pedestrian, id: q6, active: false, jitter: 5.0}
+  - {t: 190.0, type: pedestrian, id: q7, active: false, jitter: 5.0}

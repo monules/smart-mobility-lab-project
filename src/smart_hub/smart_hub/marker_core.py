@@ -59,8 +59,11 @@ def slot_rect(name):
 
 
 class MarkerCore:
-    def __init__(self, stale_after=1.0):
+    def __init__(self, stale_after=1.0, demand_stale_after=2.5):
         self.stale_after = stale_after
+        # /hub/demand comes at 1 Hz: with the 1.0 s limit the text flickered to
+        # 'prediction unavailable' between two valid forecasts (seen in S8)
+        self.demand_stale_after = demand_stale_after
         self.vehicles = None     # (list of (id, kind, x, y, valid), receipt time)
         self.crossing = None     # ((state, owner_id), receipt time)
         self.parking = None      # ({slot_id: state}, receipt time)
@@ -72,7 +75,7 @@ class MarkerCore:
 
     def reset(self):
         """Scenario reset: forget every received state (redrawn as UNKNOWN)."""
-        self.__init__(self.stale_after)
+        self.__init__(self.stale_after, self.demand_stale_after)
 
     def on_route(self, agent, points):
         """Store the current route of agent from /<agent>/route; empty = no route.
@@ -116,7 +119,8 @@ class MarkerCore:
 
     def _demand_text(self, now):
         """Forecast text; assignment 9.3 asks for an explicit 'unavailable'."""
-        demand = self._fresh(self.demand, now)
+        demand = self.demand[0] if self.demand is not None and \
+            now - self.demand[1] <= self.demand_stale_after else None
         if demand is None or not demand[0]:
             return 'prediction unavailable'
         _, predicted, baseline, horizon = demand

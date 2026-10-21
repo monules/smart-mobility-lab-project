@@ -1,0 +1,173 @@
+t,source,event,detail
+-0.00,robot,SAFETY_RELEASE,ODOM_STALE
+-0.00,system,SAFETY_RELEASE,VEHICLES_STALE
+-0.00,system,SAFETY_RELEASE,ESTOP_SIGNAL_STALE
+-0.00,robot,SAFETY_RELEASE,COMMAND_STALE
+-0.00,bus,SAFETY_RELEASE,POSE_STALE
+-0.00,bus,SAFETY_RELEASE,COMMAND_STALE
+-0.00,passenger_detector,QUEUE_VALID,OK
+-0.00,A-Cs,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0
+-0.00,Cs-J,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0
+-0.00,E-J,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0
+-0.00,A-N,NORMAL,UNKNOWN->NORMAL rho=0.50 v=0.00 n=1
+-0.00,Cn-N,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0
+-0.00,B-Cn,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0
+-0.00,B-U,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0
+-0.00,E-U,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0
+0.50,scenario_runner,SCENARIO_EVENT,"{""t"": 0.5, ""text"": ""S8 start"", ""type"": ""note""}"
+0.75,P1,SLOT_STATE,UNKNOWN->OCCUPIED
+0.75,P2,SLOT_STATE,UNKNOWN->FREE
+0.75,P3,SLOT_STATE,UNKNOWN->FREE
+0.77,demand_predictor,DEMAND_INVALID,WARMUP
+1.80,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+2.79,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1
+5.50,scenario_runner,SCENARIO_EVENT,"{""id"": ""q1"", ""jitter"": 2.0, ""t"": 5.49, ""type"": ""pedestrian"", ""x"": 2.4, ""y"": 6.6}"
+6.09,passenger_detector,TRACK_CONFIRMED,1
+6.31,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+7.29,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0
+9.29,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1
+10.29,A-N,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0
+11.79,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1
+13.29,A-N,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0
+13.79,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+14.79,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0
+16.29,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+16.45,scenario_runner,SCENARIO_EVENT,"{""id"": ""q2"", ""jitter"": 3.0, ""t"": 16.45, ""type"": ""pedestrian"", ""x"": 3.3, ""y"": 6.6}"
+16.89,passenger_detector,TRACK_CONFIRMED,2
+20.79,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1
+23.29,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+24.29,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0
+27.81,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+30.79,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1
+31.79,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+31.80,scenario_runner,SCENARIO_EVENT,"{""id"": ""q3"", ""jitter"": 3.0, ""t"": 31.77, ""type"": ""pedestrian"", ""x"": 4.2, ""y"": 6.6}"
+32.49,passenger_detector,TRACK_CONFIRMED,3
+32.79,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1
+35.36,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+36.29,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1
+39.29,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+40.84,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1
+41.79,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+43.30,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0
+44.79,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+47.79,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0
+53.80,scenario_runner,SCENARIO_EVENT,"{""id"": ""q4"", ""jitter"": 2.0, ""t"": 53.77, ""type"": ""pedestrian"", ""x"": 5.1, ""y"": 6.6}"
+53.87,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+54.50,passenger_detector,TRACK_CONFIRMED,4
+55.30,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0
+56.00,scenario_runner,SCENARIO_EVENT,"{""id"": ""q5"", ""jitter"": 2.0, ""t"": 55.96, ""type"": ""pedestrian"", ""x"": 5.9, ""y"": 6.6}"
+56.49,passenger_detector,TRACK_CONFIRMED,5
+56.79,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+57.86,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1
+59.70,scenario_runner,SCENARIO_EVENT,"{""id"": ""q6"", ""jitter"": 2.0, ""t"": 59.69, ""type"": ""pedestrian"", ""x"": 2.8, ""y"": 5.3}"
+60.10,scenario_runner,SCENARIO_EVENT,"{""id"": ""q7"", ""jitter"": 1.0, ""t"": 60.06, ""type"": ""pedestrian"", ""x"": 4.6, ""y"": 5.3}"
+60.29,passenger_detector,TRACK_LOST,1
+60.29,passenger_detector,TRACK_CONFIRMED,6
+60.29,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+60.69,passenger_detector,TRACK_CONFIRMED,7
+60.78,demand_predictor,DEMAND_VALID,OK
+62.29,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1
+62.79,bus_1,BUS_DISPATCH_REQUESTED,PREDICTED
+62.79,bus_1,DOCK_GOAL_ACCEPTED,OK
+62.79,bus_1,BUS_DISPATCH_ACCEPTED,OK
+62.84,bus_1,ROUTE_PLANNED,A-N-Cn-B cost 22.5 s
+62.84,bus_1,BUS_PHASE,IDLE->APPROACH GOAL_ACCEPTED
+65.00,scenario_runner,SCENARIO_EVENT,"{""t"": 65.0, ""text"": ""parking requests C1 C2"", ""type"": ""note""}"
+65.05,P2,RESERVED,OK
+65.05,P2,SLOT_STATE,FREE->RESERVED
+65.05,P3,RESERVED,OK
+65.05,P3,SLOT_STATE,FREE->RESERVED
+70.00,scenario_runner,SCENARIO_EVENT,"{""destination"": ""D"", ""passenger_id"": ""anon-1"", ""pickup"": ""R"", ""request_id"": ""S8-esc-1"", ""t"": 70.0, ""type"": ""escort""}"
+70.00,anon-1,ESCORT_REQUEST,"{""destination"": ""D"", ""passenger_id"": ""anon-1"", ""pickup"": ""R"", ""request_id"": ""S8-esc-1""}"
+70.01,anon-1,ESCORT_REQUESTED,OK
+70.01,robot_1,ESCORT_GOAL_ACCEPTED,S8-esc-1 OK
+70.05,robot_1,ROBOT_PHASE,IDLE->WAIT_READY PROMPT_PASSENGER
+70.05,robot_1,PASSENGER_PROMPT,press /robot/confirm_ready within 20 s
+72.39,bus_1,CROSSING_GRANTED,OK
+72.44,bus_1,CROSSING_GRANTED,OK
+75.00,scenario_runner,SCENARIO_EVENT,"{""t"": 75.0, ""type"": ""ready""}"
+75.00,passenger,READY_PRESSED,accepted READY_ACCEPTED
+75.05,robot_1,PASSENGER_READY,confirmed
+75.05,robot_1,ROBOT_PHASE,WAIT_READY->ESCORT PLANNING
+75.10,robot_1,ROUTE,R-W-Cn-Cs-J-D
+80.00,scenario_runner,SCENARIO_EVENT,"{""id"": ""c1"", ""t"": 80.0, ""type"": ""pedestrian"", ""x"": 5.0, ""y"": 3.0}"
+80.50,passenger_detector,TRACK_CONFIRMED,8
+80.64,bus_1,BUS_PHASE,APPROACH->WAIT PEDESTRIAN_IN_C
+81.35,robot_1,CROSSING_DENIED,PEDESTRIAN_PRESENT
+84.30,Cn-N,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1
+85.00,scenario_runner,SCENARIO_EVENT,"{""active"": false, ""id"": ""c1"", ""t"": 85.0, ""type"": ""pedestrian""}"
+85.69,passenger_detector,TRACK_LOST,8
+87.64,bus_1,BUS_PHASE,WAIT->APPROACH ON_ROUTE
+87.80,robot_1,CROSSING_DENIED,OWNED_BY_OTHER
+90.00,scenario_runner,SCENARIO_EVENT,"{""active"": true, ""id"": ""O"", ""t"": 90.0, ""type"": ""obstacle""}"
+90.10,robot_1,ROUTE_INVALID,edge Cs-J removed (OBSTACLE)
+90.10,robot_1,ROBOT_PHASE,ESCORT->BLOCKED ROUTE_BLOCKED:Cs-J
+90.15,robot_1,REROUTE,BLOCKED:Cs-J: R-W-Cn-Cs-J-D -> Cn-B-U-E-J-D
+90.15,robot_1,ROUTE,Cn-B-U-E-J-D
+90.15,robot_1,ROBOT_PHASE,BLOCKED->ESCORT ON_ROUTE
+90.30,robot_1,ROBOT_PHASE,ESCORT->WAIT_CROSSING OWNED_BY_OTHER
+90.37,Cs-J,BLOCKED,NORMAL->BLOCKED rho=0.00 v=0.40 n=0
+90.37,Cn-N,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0
+91.99,bus_1,CROSSING_RELEASED,OK
+92.03,bus_1,CROSSING_RELEASED,OK
+92.05,robot_1,CROSSING_DENIED,CLEAR_DEBOUNCE
+94.20,robot_1,CROSSING_GRANTED,OK
+94.25,robot_1,CROSSING_GRANTED,OK
+94.25,robot_1,ROBOT_PHASE,WAIT_CROSSING->ESCORT ON_ROUTE
+95.18,bus_1,BUS_PHASE,APPROACH->DOCK FINAL_APPROACH
+100.89,bus_1,BUS_DOCKED,pos_err=0.046 yaw_err=0.007
+100.89,bus_1,BUS_PHASE,DOCK->BOARD DOCKED
+100.94,bus_1,DOOR_REQUEST,open
+101.37,bus,DOOR_OPENED,BUS_STOPPED
+101.38,B-Cn,CONGESTED,NORMAL->CONGESTED rho=0.67 v=0.14 n=2
+101.39,bus_1,DOOR_OPENED,boarding 8 s
+101.42,bus,SAFETY_HOLD,DOOR_OPEN
+102.40,q1,PASSENGER_BOARDED,t=102.40
+103.90,q2,PASSENGER_BOARDED,t=103.90
+104.50,passenger_detector,TRACK_LOST,2
+104.50,robot_1,CROSSING_RELEASED,OK
+104.55,robot_1,CROSSING_RELEASED,OK
+105.40,q3,PASSENGER_BOARDED,t=105.40
+106.10,passenger_detector,TRACK_LOST,3
+106.90,q4,PASSENGER_BOARDED,t=106.90
+107.50,passenger_detector,TRACK_LOST,4
+109.44,bus_1,DOOR_REQUEST,close
+109.47,bus,DOOR_CLOSED,REQUESTED
+109.49,bus_1,DOOR_CLOSED,boarding done
+109.49,bus_1,BUS_PHASE,BOARD->COMPLETE DOCKED_AND_BOARDED
+109.49,bus_1,DOCK_RESULT,success COMPLETE DOCKED_AND_BOARDED
+109.49,bus_1,BUS_DEPART_REQUESTED,to E
+109.49,bus_1,BUS_MISSION_SUCCEEDED,DOCKED_AND_BOARDED
+109.52,bus,SAFETY_RELEASE,DOOR_OPEN
+109.54,bus_1,ROUTE_PLANNED,B-U-E cost 12.5 s
+109.54,bus_1,BUS_PHASE,IDLE->DEPART GOAL_ACCEPTED
+110.32,B-Cn,NORMAL,CONGESTED->NORMAL rho=0.33 v=0.22 n=1
+120.00,scenario_runner,SCENARIO_EVENT,"{""active"": false, ""id"": ""O"", ""t"": 120.0, ""type"": ""obstacle""}"
+122.30,Cs-J,NORMAL,BLOCKED->NORMAL rho=0.00 v=0.40 n=0
+125.05,P2,RESERVATION_EXPIRED,TTL_ELAPSED (sensor: FREE)
+125.05,P2,SLOT_STATE,RESERVED->FREE
+125.15,P3,RESERVATION_EXPIRED,TTL_ELAPSED (sensor: FREE)
+125.15,P3,SLOT_STATE,RESERVED->FREE
+127.89,bus_1,BUS_PHASE,DEPART->DEPARTED AT_EXIT
+127.89,bus_1,BUS_DEPARTED,DEPARTED AT_EXIT
+127.96,bus_1,VEHICLE_EXIT,left the map at E
+127.97,bus,SAFETY_HOLD,POSE_STALE
+157.70,robot_1,ROBOT_ARRIVED,D error 0.027 m
+157.70,robot_1,ROBOT_PHASE,ESCORT->ARRIVED ARRIVED
+157.70,robot_1,ROBOT_RESULT,escort success ARRIVED ARRIVED final_error=0.027 travelled=14.66
+157.70,anon-1,ESCORT_SUCCEEDED,ARRIVED
+159.71,scenario_runner,SCENARIO_EVENT,"{""active"": false, ""id"": ""q5"", ""jitter"": 5.0, ""t"": 159.66, ""type"": ""pedestrian""}"
+160.30,passenger_detector,TRACK_LOST,5
+179.46,scenario_runner,SCENARIO_EVENT,"{""active"": false, ""id"": ""q6"", ""jitter"": 5.0, ""t"": 179.43, ""type"": ""pedestrian""}"
+180.10,passenger_detector,TRACK_LOST,6
+191.51,scenario_runner,SCENARIO_EVENT,"{""active"": false, ""id"": ""q7"", ""jitter"": 5.0, ""t"": 191.49, ""type"": ""pedestrian""}"
+192.10,passenger_detector,TRACK_LOST,7
+239.96,scenario_runner,SCENARIO_COMPLETE,t=240.00
+-0.00,crossing_state,OWNER,owner=- pedestrian=False valid=False
+-0.00,crossing_state,OWNER,owner=- pedestrian=False valid=True
+72.48,crossing_state,OWNER,owner=bus_1 pedestrian=False valid=True
+80.59,crossing_state,OWNER,owner=bus_1 pedestrian=True valid=True
+87.59,crossing_state,OWNER,owner=bus_1 pedestrian=False valid=True
+92.08,crossing_state,OWNER,owner=- pedestrian=False valid=True
+94.28,crossing_state,OWNER,owner=robot_1 pedestrian=False valid=True
+104.59,crossing_state,OWNER,owner=- pedestrian=False valid=True

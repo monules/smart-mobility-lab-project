@@ -56,6 +56,8 @@ setup(
             's4_check = smart_hub.s4_check:main',
             's6_check = smart_hub.s6_check:main',
             's7_check = smart_hub.s7_check:main',
+            's8_check = smart_hub.s8_check:main',
+            's8_summary = smart_hub.s8_summary:main',
             't18_check = smart_hub.t18_check:main',
             't04_check = smart_hub.t04_check:main',
             's5_check = smart_hub.s5_check:main',

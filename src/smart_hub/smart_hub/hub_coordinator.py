@@ -8,6 +8,7 @@ Everything runs in the default mutually-exclusive callback group, so service,
 timer, subscription and action-client callbacks never run at the same time.
 Callbacks are short; nothing blocks.
 """
+import json
 import time
 from functools import partial
 
@@ -59,6 +60,10 @@ class HubCoordinator(Node):
         p('dispatch_need_high', 3); p('dispatch_need_low', 5)
         p('dispatch_cooldown_sec', 30.0)
         p('require_safety_state', True)
+        # 'predictive': forecast when valid, observed queue as FALLBACK (9.3);
+        # 'reactive': observed queue only (the S8 / T15 comparison baseline)
+        p('dispatch_mode', 'predictive')
+        p('escort_max_duration_sec', 240.0)
         g = lambda n: self.get_parameter(n).value
         self._validate(g)
 
@@ -69,6 +74,8 @@ class HubCoordinator(Node):
         self.demand_fresh = float(g('demand_freshness_sec'))
         self.future_tol = float(g('future_tolerance_sec'))
         self.require_safety = bool(g('require_safety_state'))
+        self.dispatch_mode = g('dispatch_mode')
+        self.escort_max = float(g('escort_max_duration_sec'))
 
         self.arbiter = CrossingArbiter(g('lease_sec'), g('crossing_clear_sec'))
         self.policy = DispatchPolicy(g('dispatch_high'), g('dispatch_low'),
@@ -83,6 +90,8 @@ class HubCoordinator(Node):
             self.create_subscription(VehicleStateArray, '/hub/vehicles', partial(self._rx, 'vehicles'), R10),
             self.create_subscription(BusArrival, '/hub/bus_arrival', partial(self._rx, 'bus'), R10),
             self.create_subscription(SafetyState, '/hub/safety', partial(self._rx, 'safety'), R1T),
+            # escort trigger (S8): a passenger request arrives as ESCORT_REQUEST
+            self.create_subscription(HubEvent, '/hub/events', self._on_hub_event, R100),
         ]
         self.crossing_pub = self.create_publisher(CrossingState, '/crossing/state', R1T)
         self.event_pub = self.create_publisher(HubEvent, '/hub/events', R100)
@@ -109,6 +118,8 @@ class HubCoordinator(Node):
         if g('dispatch_need_high') < 1 or g('dispatch_need_low') < 1: bad.append('dispatch_need_*')
         if g('dispatch_cooldown_sec') < 0: bad.append('dispatch_cooldown_sec')
         if g('dock_max_duration_sec') <= 0: bad.append('dock_max_duration_sec')
+        if g('dispatch_mode') not in ('predictive', 'reactive'): bad.append('dispatch_mode')
+        if g('escort_max_duration_sec') <= 0: bad.append('escort_max_duration_sec')
         if bad:
             raise ValueError('invalid parameter(s): ' + ', '.join(bad))
 
@@ -184,7 +195,7 @@ class HubCoordinator(Node):
 
     # --------------------------------------------------------------- dispatch
     def _dispatch_tick(self):
-        d = self._fresh_msg('demand')
+        d = self._fresh_msg('demand') if self.dispatch_mode == 'predictive' else None
         q = self._fresh_msg('queue')
         b = self._fresh_msg('bus')
         s = self._fresh_msg('safety')
@@ -244,12 +255,26 @@ class HubCoordinator(Node):
             self._event('LATE_RESULT_IGNORED', self.bus_id, 'DOCK', corr)
 
     # ---------------------------------------------------------------- escort
+    def _on_hub_event(self, msg):
+        """Start an escort for every ESCORT_REQUEST event (answers README Q3).
+
+        The kiosk/scenario publishes JSON {request_id, passenger_id, pickup,
+        destination}.
+        """
+        if msg.event != 'ESCORT_REQUEST':
+            return
+        try:
+            req = json.loads(msg.reason)
+            self.send_escort(req['request_id'], req['passenger_id'], req['pickup'],
+                             req['destination'], self.escort_max)
+        except (ValueError, KeyError, TypeError) as exc:
+            self._event('ESCORT_REJECTED', msg.entity_id, 'BAD_REQUEST:%s' % exc, '')
+
     def send_escort(self, request_id, passenger_id, pickup='R', destination='D',
                     max_duration_sec=240.0):
         """Send one escort goal. One outstanding at a time.
 
-        TODO(team): decide who calls this at t=70 s (scenario_runner request?).
-        The assignment lists no trigger interface, so none is invented here.
+        Called for every ESCORT_REQUEST event on /hub/events (_on_hub_event).
         """
         if self.escort_outstanding:
             self._event('ESCORT_REJECTED', passenger_id, 'BUSY', request_id)
