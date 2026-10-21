@@ -18,7 +18,7 @@ disagree, the files win and this document must be fixed.
 | Package / location | Type | Owner | Status on this branch |
 |---|---|---|---|
 | `src/smart_hub_interfaces` | ament_cmake, rosidl | M5 (shared contract) | (Impl) all 14 msg, 6 srv, 3 action |
-| `src/smart_hub` | ament_python | everyone (one package, §19.1) | M1-B S2 and M5 nodes present |
+| `src/smart_hub` | ament_python | everyone (one package, §19.1) | M1-A S1, M1-B S2 and M5 nodes present |
 | `coordinator_core.py`, `hub_coordinator.py`, `test_coordinator_core.py` (repo root) | loose files, **not built** | M2-B | on `main`; not yet moved into `src/smart_hub` (owner's README says where) |
 | `smart_hub/`, `tests/` (repo root) | loose files, **not built** | M3 | merged into `main` (PR #3) and into this branch; not yet moved into `src/smart_hub` |
 
@@ -51,8 +51,8 @@ volatile; T = transient-local. "Status" is for this branch.
 
 | Topic | Type | Rate / QoS | Publisher (owner) | Subscribers | Status |
 |---|---|---|---|---|---|
-| `/camera/image_raw` | sensor_msgs/Image | 10 Hz, sensor | camera / runner | passenger_detector | **missing** (M1-A; runner does not render images) |
-| `/hub/queue` | QueueState | 5 Hz, R10 | passenger_detector (M1-A) | demand_predictor, coordinator, safety | stand-in: M1-B `fake_queue_publisher` |
+| `/camera/image_raw` | sensor_msgs/Image | 10 Hz, sensor | scenario_runner synthetic camera (M5) or `video_publisher` (M1-A) | passenger_detector | (Impl) bgr8 640×480; freeze modes `camera`, `camera_repeat` |
+| `/hub/queue` | QueueState | 5 Hz, R10 | passenger_detector (M1-A) | demand_predictor, coordinator, safety | (Impl) stamp = frame time; invalid ⇒ count 0, `crossing_occupied` true; M1-B `fake_queue_publisher` remains a test stand-in |
 | `/hub/demand` | DemandPrediction | 1 Hz, R10 | demand_predictor (M1-B) | coordinator, dashboard | (Impl) |
 | `/hub/vehicles` | VehicleStateArray | 10 Hz, R10 | scenario_runner (M5) | bus_manager, traffic_monitor, safety, coordinator, dashboard | (Impl) observed state; `valid` per entry |
 | `/sim/truth` | VehicleStateArray | 10 Hz, R10 | scenario_runner (M5) | metrics_logger, tests | (Impl) M5-internal, private ground truth (§3.2) |

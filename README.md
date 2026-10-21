@@ -6,19 +6,21 @@ demand, dock a bus, manage parking, route traffic, escort a passenger with a
 robot — and stop safely when anything goes wrong. Every decision must leave
 observable, reproducible evidence (assignment §1).
 
-> **Status (branch `integration/current-team-work`, local only).** M5
-> (simulator, safety, infrastructure) and M1-B (demand prediction) are
-> integrated, built and tested here. M2-B's coordinator and M3's parking and
-> traffic code are merged from `main` but still sit at the repository root,
-> outside the ROS package, so they are not built or launched yet; **M1-A,
-> M2-A and M4 have no code yet**. See [§10 Status](#10-current-status-and-next-steps).
+> **Status (branch `integration/current-team-work`).** M5 (simulator,
+> safety, infrastructure), M1-A (passenger counting) and M1-B (demand
+> prediction) are integrated, built and tested here. M2-B's coordinator and
+> M3's parking and traffic code are merged from `main` but still sit at the
+> repository root, outside the ROS package, so they are not built or
+> launched yet; **M2-A and M4 have no code yet**. See
+> [§10 Status](#10-current-status-and-next-steps).
 
 Platform: **ROS 2 Jazzy, Ubuntu 24.04, Python `rclpy`**, run in Docker
 (verified on Apple Silicon `aarch64`). Requirements and section numbers (§)
 refer to `Smart_Mobility_Hub_Assignment.pdf`; roles come from the
 7-person role document. Both PDFs are kept out of git.
 
-**Contents:** [1 Overview](#1-project-overview) ·
+**Contents:** [0 Like you are 5](#0-explained-like-you-are-5) ·
+[1 Overview](#1-project-overview) ·
 [2 Repository map](#2-repository-map) ·
 [3 Architecture](#3-architecture-and-data-flow) ·
 [4 Setup](#4-environment-setup) ·
@@ -31,6 +33,87 @@ refer to `Smart_Mobility_Hub_Assignment.pdf`; roles come from the
 
 ---
 
+## 0. Explained like you are 5
+
+**What are we building?** A tiny pretend bus station inside the computer.
+People wait in a line, a bus comes to pick them up, cars look for parking,
+and a little robot walks people across the road. Nothing is real: a
+computer program pretends to be the whole world, like a video game.
+
+**Who does what?** Think of the computer programs as helpers. Each helper
+has one job, and they talk by sending little notes (ROS *messages*) to each
+other.
+
+| Helper (program) | Its one job | Like a… | Who made it |
+|---|---|---|---|
+| `scenario_runner` | pretends to be the whole world and moves everything 20 times a second | the game world | M5 |
+| camera (inside `scenario_runner`) | takes 10 pictures a second of the waiting line | eyes | M5 |
+| `passenger_detector` | looks at the pictures and counts the people in the line | someone counting | M1-A |
+| `demand_predictor` | guesses how many people will be waiting in 30 seconds | a weather forecaster | M1-B |
+| `hub_coordinator` | decides when to send the bus and who may cross the road | a traffic police officer | M2-B |
+| `bus_manager` | drives the bus to the stop and opens its door | a bus driver | M2-A (not written yet) |
+| `parking_manager`, `traffic_monitor` | keeps track of free parking spaces and traffic jams | parking attendant, traffic reporter | M3 |
+| `route_planner`, `robot_manager` | finds the best path and walks the robot | a map app, a guide | M4 (not written yet) |
+| `safety_supervisor` | checks every move before it happens; says STOP if anything is wrong | a lifeguard | M5 |
+| `actuator_bridge` | turns the wheels, but stops by itself if the lifeguard goes quiet | the brakes | M5 |
+| `metrics_logger` | writes down everything that happened | a diary | M5 |
+| `dashboard_marker_publisher` | draws the picture of the station for people to watch | a TV screen | M5 |
+
+**The most important rule:** the drivers (bus and robot) may only *ask* to
+move. The lifeguard (`safety_supervisor`) decides. If someone presses the
+big red STOP button, everything stops, and it stays stopped until a grown-up
+checks that everything is safe and presses "reset".
+
+### How do we make the simulation?
+
+1. **Get the toy box ready once:** install Docker Desktop, open it, then
+   run `docker/hub.sh image`. This builds a little Linux computer with
+   ROS 2 inside your computer.
+2. **Build the helpers:** `docker/hub.sh build`.
+3. **Check that nothing is broken:** `docker/hub.sh test`. Every test must
+   pass before you share your work.
+4. **Play a story (a *scenario*):**
+   - `docker/hub.sh s1` — people walk into the line; the counter must say
+     0, 3, 5, 4. (M1-A's story)
+   - `docker/hub.sh s9` — the robot drives, someone presses STOP, and we
+     check it stops in time and only restarts safely. (M5's story)
+5. **Watch the whole chain:** `docker/hub.sh shell`, then
+   `ros2 launch smart_hub hub.launch.py scenario:=S1 perception:=true`
+   (camera → counter → forecaster → screen).
+6. **Look at the proof:** everything that happened is written in `output/`
+   (pass/fail files, diaries, recordings called *bags*).
+
+A story is a small file in `src/smart_hub/scenarios/` that says *what
+happens when* (for example "at 5 seconds, three people arrive"). The same
+story with the same *seed* always plays out exactly the same way, so we can
+repeat any test.
+
+### How do we hand in the assignment? (§24)
+
+Think of it as packing five boxes for the teacher:
+
+1. **The code box.** The whole repository at one commit: all packages, the
+   message files, launch files, settings, scenario stories and tests. Write
+   the commit hash in the report. (`git log -1`)
+2. **The report box** (12–18 pages): what we had to build, the map, the
+   ROS graph, why each message/service/action was chosen, the state
+   machines, how the AI model was trained and tested, the safety rules,
+   **every test T01–T18 with its result** (including the ones that failed
+   or are blocked, with the reason), what does not work yet, and a table of
+   who did what.
+3. **The proof box** (evidence): videos, rosbag recordings, the CSV/JSON
+   files from `output/`, the training scripts and the model file.
+4. **The 8-minute show:** 1 min map and design → 2 min detection, dispatch,
+   docking, parking → 2 min robot and rerouting → 2 min faults, cancel and
+   reset → 1 min numbers and limitations.
+5. **The individual talk:** each person explains one message path they
+   built, one service or action from start to end, and one test that failed
+   and how they fixed it. You must understand your own code line by line.
+
+Rules from the teacher: never delete a failed test from the report (explain
+it instead), say clearly what is only proven in simulation, and grading is
+80 points team + 20 points individual.
+
 ## 1. Project overview
 
 Nine scenarios on one 12 m × 8 m map (§2): S1 passenger counting, S2 AI
@@ -41,7 +124,7 @@ velocities, and only `safety_supervisor` publishes final commands (§4.2).
 
 | Member | Role | Nodes (§4, role doc) | Scenario | Code in this branch |
 |---|---|---|---|---|
-| M1-A Husan | Perception | `passenger_detector` | S1 | ❌ none yet |
+| M1-A Husan | Perception | `passenger_detector` | S1 | ✅ merged (branch `feature/m1a-passenger-detector`) |
 | M1-B Tuymurod | Demand prediction | `demand_predictor` | S2 | ✅ merged |
 | M2-A Fazliddin | Bus & docking | `bus_manager` | S3 | ❌ none yet |
 | M2-B Arkar | Hub coordinator | `hub_coordinator` | S8 | ⚠️ root files from `main`, not in the package |
@@ -71,9 +154,13 @@ velocities, and only `safety_supervisor` publishes final commands (§4.2).
     └── smart_hub/               SHARED ament_python package (all nodes)
         ├── smart_hub/
         │   ├── demand/                  M1-B pure logic (features, models, policy, simulation)
+        │   ├── passenger_detector.py    M1-A node: /camera/image_raw -> /hub/queue
+        │   ├── perception/              M1-A pure logic (detectors, homography, tracker, zones)
+        │   ├── s1_check.py, video_publisher.py  M1-A S1 check, recorded-video camera
         │   ├── demand_predictor.py      M1-B node: /hub/queue -> /hub/demand
         │   ├── fake_queue_publisher.py  M1-B test tool: synthetic /hub/queue
         │   ├── scenario_runner.py       M5 node   + sim_core.py (20 Hz simulator)
+        │   ├── camera_model.py          M5 synthetic camera (draws pedestrians)
         │   ├── safety_supervisor.py     M5 node   + safety_core.py
         │   ├── actuator_bridge.py       M5 node   + bridge_core.py
         │   ├── metrics_logger.py        M5 node   + metrics_core.py
@@ -81,11 +168,11 @@ velocities, and only `safety_supervisor` publishes final commands (§4.2).
         │   ├── geometry.py, ros_common.py      M5 shared helpers (map, QoS)
         │   ├── s9_fault_check.py        M5 test tool: S9 sequence, T16/T17
         │   └── mock_candidate_publisher.py     M5 test tool: stand-in for M2-A/M4
-        ├── launch/  hub.launch.py, s9.launch.py (M5) · demand_demo.launch.py (M1-B)
-        ├── config/  m5_safety.yaml (M5) · demand_predictor.yaml (M1-B)
-        ├── scenarios/S9.yaml    (M5)    models/demand_ridge_h30.json (M1-B)
+        ├── launch/  hub.launch.py, s9.launch.py (M5) · s1.launch.py (M1-A) · demand_demo.launch.py (M1-B)
+        ├── config/  m5_safety.yaml (M5) · passenger_detector.yaml (M1-A) · demand_predictor.yaml (M1-B)
+        ├── scenarios/S1.yaml, S9.yaml (M5)   models/demand_ridge_h30.json (M1-B)
         ├── scripts/train_demand_model.py · results/ (M1-B T03 evidence)
-        ├── test/    test_demand_*.py (M1-B) · all other test_*.py (M5)
+        ├── test/    test_m1a_*, test_passenger_detector_node, test_s1_launch (M1-A) · test_demand_*.py (M1-B) · the rest (M5)
         ├── setup.py, package.xml        SHARED (every member adds entries)
         └── README.md                    M1-B S2 notes
 ```
@@ -103,7 +190,7 @@ flowchart LR
     SR[scenario_runner]
   end
   subgraph Perception
-    PD[passenger_detector<br/>M1-A ❌]
+    PD[passenger_detector<br/>M1-A ✅]
     DP[demand_predictor<br/>M1-B ✅]
   end
   subgraph Coordination
@@ -123,7 +210,7 @@ flowchart LR
   ML[metrics_logger M5]
   DB[dashboard_marker_publisher M5]
 
-  SR -- "/camera/image_raw ❌" --> PD
+  SR -- "/camera/image_raw Image" --> PD
   PD -- "/hub/queue QueueState" --> DP
   DP -- "/hub/demand DemandPrediction" --> HC
   SR -- "/hub/vehicles VehicleStateArray" --> TM & HC & SS & BM
@@ -194,7 +281,8 @@ docker/hub.sh build
 | Goal | Command | Result |
 |---|---|---|
 | Run all tests | `docker/hub.sh test` | colcon test + summary |
-| S9 acceptance demo (~15 s) | `docker/hub.sh s9` | `S9 verdict: PASSED`, exit 0 only if every check passed; evidence in `output/` |
+| S9 acceptance demo (~20 s) | `docker/hub.sh s9` | `S9 verdict: PASSED`, exit 0 only if every check passed; evidence in `output/` (check JSON, metrics, rosbag, parameter dumps) |
+| S1 passenger counting (~45 s) | `docker/hub.sh s1` (or `s1 hog`) | `S1 verdict: PASSED`; `output/s1_check.json` |
 | Shell with workspace sourced | `docker/hub.sh shell` | interactive bash in `/ws` |
 | One command | `docker/hub.sh run 'ros2 node list'` | |
 
@@ -213,6 +301,14 @@ the 10 Hz e-stop heartbeat).
 ros2 launch smart_hub demand_demo.launch.py seed:=1025 run_id:=demo
 ```
 M1-B's S2 demo (fake queue → predictor; forecast valid after ~60 s warm-up).
+
+```bash
+ros2 launch smart_hub hub.launch.py scenario:=S1 perception:=true
+```
+Full perception chain on the simulator camera: `passenger_detector` (M1-A)
+→ `/hub/queue` → `demand_predictor` (M1-B) → dashboard text. S1 lasts 40 s,
+shorter than the predictor's 60 s warm-up, so the forecast stays
+`prediction unavailable` there; use a longer scenario to see a forecast.
 
 Useful inspections (all verified):
 ```bash
@@ -312,6 +408,8 @@ Run everything: `docker/hub.sh test`.
 | M5 node tests (real rclpy) | `test_safety_supervisor_node.py`, `test_scenario_runner_node.py` | stamp handling, e-stop, reset success/failure |
 | **T17** process kill | `test_t17_process_kill.py` | SIGKILL controller → supervisor zero; SIGKILL supervisor → bridge zero; kill bridge → sim stops |
 | **S9 / T16** | `test_s9_launch.py` (launch_testing) | full §16.3 sequence on the real launch file |
+| **M1-A S1 / T01, T02** | `test_m1a_pipeline.py`, `test_m1a_units.py`, `test_passenger_detector_node.py`, `test_s1_launch.py` | counts 0,3,5,4 through camera → detector → homography → tracker; occlusion; freeze; crossing hold; live S1 launch |
+| M5 camera | `test_camera_model.py` | projection, one figure per person, feet at the projected point |
 | M1-B S2 | `test_demand_*.py` | features, models, dispatch rule, estimator, T03 run, real-ROS node |
 | Linters | `test_flake8.py`, `test_pep257.py` | ament style; M1-B files tracked as xfail (owner restyle pending) |
 
@@ -331,21 +429,25 @@ docker/hub.sh run 'python3 -m pytest -q -p no:cacheprovider tests test_coordinat
 ```
 
 **Verified results** (Docker on Apple Silicon, 2026-10-21, integration
-commits `6ebf009` and `7de00b6`, simulation only):
+commit `40ae6ac` unless noted, simulation only):
 
 | Check | Result |
 |---|---|
-| `docker/hub.sh test` (×2) | 134 tests: **132 passed, 2 xfailed** (colcon lists xfail as "skipped"), 0 failures |
-| `docker/hub.sh s9` (×3) | **PASSED**, 13/13 checks each run |
-| T16 e-stop → first zero `/robot/cmd_vel` (measured outside the supervisor) | 0.9–2.1 ms over 5 trials; supervisor receipt → zero ≤ 0.30 ms; limit 200 ms |
-| Simulated robot speed < 0.02 m/s after e-stop | 0.09–0.14 s |
-| T17 controller killed → supervisor zero | 0.50–0.53 s (×3) |
-| T17 supervisor killed → bridge zero | 0.52–0.53 s (×3) |
+| `docker/hub.sh test` (×2) | 171 tests: **169 passed, 2 xfailed** (colcon lists xfail as "skipped"), 0 failures |
+| `docker/hub.sh s9` | **PASSED**, 13/13 checks; rosbag 14.1 s / 1784 messages; parameter dumps |
+| T16 e-stop → first zero `/robot/cmd_vel` (measured outside the supervisor) | 0.74–1.15 ms over 5 trials; supervisor receipt → zero ≤ 0.28 ms; limit 200 ms |
+| Simulated robot speed < 0.02 m/s after e-stop | 0.09–0.15 s (earlier runs) |
+| T17 controller killed → supervisor zero | 0.47–0.54 s |
+| T17 supervisor killed → bridge zero | 0.51–0.53 s |
+| `docker/hub.sh s1` (blob baseline) | **PASSED**: counts 0, 3, 5, 4, MAE 0.000 over 127 samples; 6 tracks for 6 people; invalid 1.04 s after camera freeze (≤ 1.2 s); crossing clear 2.48 s after leaving (0.4 s debounce + 2 s hold) |
+| `docker/hub.sh s1 hog` (pretrained HOG) | passes the thresholds only just: MAE 1.000 (limit ≤ 1), recall 4/6 people on the synthetic figures — HOG is meant for real video |
+| Camera / odometry rate with camera on | 10.00 Hz / 20.00 Hz |
 | Nonzero output while latched | 0 |
 | M1-B S2 runtime with M5 stack | `/hub/demand` 1 Hz, valid after warm-up; dashboard shows the forecast |
 | M2-B / M3 against these interfaces | crossing granted, then denied with `SAFETY_STOP` after an e-stop; parking/edge states consumed (scratch workspace, not merged) |
 | M2-B `test_coordinator_core.py`; M3 `tests/` (after merging `main`, `7de00b6`) | 28 passed; 59 passed, 9 skipped |
 | Full suite + S9 after merging M3 (`7de00b6`) | 132 passed, 2 xfailed; S9 PASSED, T16 1.2 ms |
+| Teammate tests outside the package (`40ae6ac`) | 87 passed, 9 skipped |
 
 One S9 run once exited 0 without writing `s9_check.json` (not reproduced in
 3 reruns); `docker/hub.sh s9` now fails if the file is missing.
@@ -355,13 +457,14 @@ One S9 run once exited 0 without writing `s9_check.json` (not reproduced in
 | Branch | Purpose |
 |---|---|
 | `main` (origin) | team base: PR #1, M2-B coordinator (PR #2), M3 parking/traffic (PR #3, `146b8b2`). Not modified by integration work |
-| `m5-safety-supervisor` (local) | M5 work, one commit on top of the older `main` (`3db1b1e`) |
-| `integration/current-team-work` (local) | this branch: M5 + M1-B + current `main` merged, shared docs; **not pushed yet** |
+| `m5-safety-supervisor` (local) | M5 development line (fast-forwarded to the integration base, then M5 commits) |
+| `feature/m1a-passenger-detector` (local) | M1-A's work, kept as its own branch and also merged here |
+| `integration/current-team-work` | this branch: M5 + M1-A + M1-B + current `main`, shared docs. An earlier version (`824cd60`) is on GitHub; newer commits here are local until pushed |
 | `origin/feature/m1b-demand-predictor` | M1-B's branch (merged here) |
 | `origin/feature/m2b-coordinator`, `origin/ARKARKYAW2003-patch-1`, `origin/m3-parking-traffic` | already merged into `main` (PR #2, #1, #3) |
 
-Once the team agrees to publish the integration branch (it is local today),
-teammates would use:
+The integration branch is on GitHub (pushed at `824cd60`; push again to
+share the newer commits). Teammates use:
 
 ```bash
 git fetch origin
@@ -392,7 +495,7 @@ are deliberately untracked). Merge into `main` only as a team decision.
 | Item | Owner | State |
 |---|---|---|
 | Interfaces §6–7 (all) | M5 | ✅ |
-| S1 / T01–T02 detection, occlusion | M1-A | ❌ not started in repo |
+| S1 / T01–T02 detection, occlusion | M1-A | ✅ simulation (blob exact; HOG MAE 1.0); ⚠️ 100 annotated real-video frames still needed |
 | S2 / T03 prediction (+ T04 reference policy) | M1-B | ✅ merged, tests pass |
 | T04 dispatch hysteresis, S8 / T15 | M2-B | ⚠️ core logic + 28 tests on `main`; node not in package; T15 needs all nodes |
 | S3 / T05–T06 docking, cancel | M2-A | ❌ |
@@ -400,7 +503,7 @@ are deliberately untracked). Merge into `main` only as a team decision.
 | S6–S7 / T11–T14 routing, escort | M4 | ❌ |
 | S9 / T16, T17 | M5 | ✅ verified in simulation |
 | T18 planner loss | M4 + M5 | ⛔ blocked (no planner) |
-| Simulator §3.2 (20 Hz, seeded, reset, fault injection) | M5 | ✅ — no camera images, no RViz routes |
+| Simulator §3.2 (20 Hz, seeded, reset, fault injection, camera, pedestrians) | M5 | ✅ — no RViz routes |
 | Dashboard §4 | M5 | ✅ — routes not drawn (no interface) |
 | Physical extension §22 | team | not started (optional) |
 
@@ -416,9 +519,13 @@ are deliberately untracked). Merge into `main` only as a team decision.
   Verified to build and run against these interfaces in a scratch workspace.
 - **M1-B:** restyle for `ament_flake8` (mostly single quotes) and fix one
   docstring; then delete the `PENDING_OWNER_RESTYLE` entries.
-- **M1-A, M2-A, M4:** start from §6 above; use `robot_1`/`bus_1`; publish
+- **M1-A (Husan):** study [README_M1A.md](README_M1A.md) and the code before
+  the defence; record a lab video and hand-label at least 100 frames for the
+  §8.3 video MAE / precision / recall (tools: `video_publisher`, `detector:=hog`).
+- **M2-A, M4:** start from §6 above; use `robot_1`/`bus_1`; publish
   stamped candidates only. M4's planner unblocks T18.
-- **M5:** camera image stream for S1 and route markers once a route
-  interface is agreed; reset acknowledgements (contract §9).
+- **M5:** route markers once a route interface is agreed; reset
+  acknowledgements (contract §9); draw robot/bus in the synthetic camera if
+  the team wants vehicles in S1 images.
 - **Team:** answer [contract §9](docs/INTEGRATION_CONTRACT.md#9-open-decisions-who-must-answer)
   and decide when to push `integration/current-team-work`.

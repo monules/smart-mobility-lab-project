@@ -194,9 +194,12 @@ from `/parking/observed`; edge labels from `/hub/vehicles`; forecast
 
 - Merging with M1-B: done on `integration/current-team-work` (union of
   `setup.py` / `package.xml` entries; M5's interface package kept).
-- `scenario_runner` does not publish `/camera/image_raw` (M1-A's S1 input).
-  `dashboard_marker_publisher` does not yet draw routes (no route topic
-  exists yet), edge labels from `/traffic/edges` or the demand forecast.
+- The synthetic camera draws only people (no robot/bus), so S1 images never
+  contain vehicles. `dashboard_marker_publisher` draws the demand forecast
+  and `/traffic/edges` overlays but not routes (no route topic exists) and
+  not speed-based congestion (`EdgeState` has no label).
+- `/scenario/reset` has no way to wait for other nodes' acknowledgements
+  (§7.1; needs a team interface decision).
 - T18 (planner loss) needs M4's planner; `mode:=hardware` is refused on purpose.
 - Observation for M3: a vehicle parked at a node (bus at A) is labelled
   `A-Cs: CONGESTED` because speed 0 counts as slow.
