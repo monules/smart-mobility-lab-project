@@ -74,6 +74,40 @@ the floor (metres, map frame).
 | `test_s1_launch.py` / `docker/hub.sh s1` (live ROS) | blob: MAE 0.000 over 126 settled samples, 6 tracks for 6 people, invalid 1.03 s after freeze, crossing clear 2.47 s after leaving |
 | `docker/hub.sh s1 hog` | MAE 0.99 (target ≤ 1), recall 4/6 people on the synthetic figures — HOG is for real video; exact counts are only claimed for `blob` |
 
+## Recording the real video (§1.3, §8.2, §8.3)
+
+The simulator proves the logic; the assignment also wants **one real
+camera/video demonstration** evaluated on **at least 100 hand-labelled
+frames** (count MAE, precision/recall if boxes are labelled, behaviour under
+partial occlusion). Yes, this means recording a real video.
+
+1. **Camera:** a phone or webcam fixed high up (shelf, tripod, taped to a
+   wall), looking down at the floor at an angle. It must not move during or
+   after calibration.
+2. **Floor:** tape a rectangle for queue Q and a strip for crossing C. A
+   1:4 scale is fine (§2.1: a 3 m × 2 m board for the 12 m × 8 m map —
+   then Q is 1.0 m × 0.5 m and C 0.25 m × 0.875 m on the floor; keep map
+   coordinates in software). Mark 4 floor points far apart (the Q corners
+   work) and write down their map coordinates in metres.
+3. **Film 2–3 minutes**, steady light: people join the queue one by one,
+   stand, leave; one walks through C; include 0, 3, 5 and 4 people in Q,
+   two people overlapping (partial occlusion), and someone passing in front
+   of the queue. Whole bodies including feet must be visible — the feet are
+   what the homography maps.
+4. **Calibrate:** open one frame, read the pixel coordinates of the 4 taped
+   points (any image viewer shows them), put them in `image_points`, and the
+   measured map coordinates in `map_points` (`config/passenger_detector.yaml`
+   or `-p` overrides).
+5. **Label ≥ 100 frames:** e.g. one frame per second. For each frame write
+   `frame, count_in_Q, someone_in_C` in a CSV; for precision/recall also draw
+   a box around each person (CVAT or LabelImg).
+6. **Run and report:** `video_publisher` + `passenger_detector detector:=hog`
+   (commands above), record `/hub/queue` with `ros2 bag record`, compare with
+   the labels: MAE, precision/recall, and the failures (occlusion, people at
+   the image edge). Report failures honestly (§8.3).
+
+No faces are needed (§14.3); film from above or behind.
+
 ## Not done (needs the team / a real camera)
 
 - §8.3 "at least 100 manually annotated video frames" with count MAE,
