@@ -35,7 +35,7 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'hub.launch.py')),
             launch_arguments={'scenario': 'S1', 'seed': LaunchConfiguration('seed'),
-                              'output_dir': out}.items()),
+                              'output_dir': out, 'record_dashboard': 'true'}.items()),
         Node(package='smart_hub', executable='passenger_detector', name='passenger_detector',
              output='screen',
              parameters=[os.path.join(share, 'config', 'passenger_detector.yaml'),

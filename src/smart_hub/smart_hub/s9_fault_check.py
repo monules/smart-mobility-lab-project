@@ -27,7 +27,8 @@ import sys
 import threading
 import time
 
-from geometry_msgs.msg import Twist, TwistStamped
+from geometry_msgs.msg import PoseStamped, Twist, TwistStamped
+from nav_msgs.msg import Path
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
@@ -42,8 +43,8 @@ EPS = 1e-6
 
 
 class S9Check(Node):
-    def __init__(self, **kwargs):
-        super().__init__('s9_fault_check', **kwargs)
+    def __init__(self, node_name='s9_fault_check', **kwargs):
+        super().__init__(node_name, **kwargs)
         p = declare(self, {'output_dir': 'output', 't16_trials': 5,
                            'command_timeout': 0.5, 'robot_id': 'robot_1'})
         self.output_dir, self.trials = p['output_dir'], int(p['t16_trials'])
@@ -51,6 +52,7 @@ class S9Check(Node):
         self.lock = threading.Lock()
         self.cand = None                   # (vx, wz) published at 20 Hz, None = silent
         self.estop = False
+        self.heartbeat = True              # False simulates a lost e-stop publisher
         self.cmds = []                     # (t, vx, wz) of /robot/cmd_vel
         self.safety = None
         self.truth_speed = None
@@ -61,6 +63,9 @@ class S9Check(Node):
         self.cand_pub = self.create_publisher(TwistStamped, '/robot/cmd_vel_candidate', R1)
         self.estop_pub = self.create_publisher(Bool, '/hub/estop', R1T)
         self.inject_pub = self.create_publisher(String, '/scenario/inject', R10)
+        # As the robot manager stand-in it also announces its route (contract §3).
+        self.route_pub = self.create_publisher(Path, '/robot/route', R1T)
+        self.publish_route([(3.0, 6.0), (4.0, 6.0), (5.0, 6.0), (6.0, 6.0)])
         self.create_subscription(Twist, '/robot/cmd_vel', self.on_cmd, R10)
         self.create_subscription(SafetyState, '/hub/safety', self.on_safety, R1T)
         self.create_subscription(VehicleStateArray, '/sim/truth', self.on_truth, R10)
@@ -80,7 +85,7 @@ class S9Check(Node):
             msg.twist.linear.x, msg.twist.angular.z = cand
             self.cand_pub.publish(msg)
         self._tick += 1
-        if self._tick % 2 == 0:
+        if self._tick % 2 == 0 and self.heartbeat:
             self.estop_pub.publish(Bool(data=estop))     # 10 Hz heartbeat
 
     def on_cmd(self, msg):
@@ -103,6 +108,17 @@ class S9Check(Node):
                 self.sup_latency_ms.append(float(msg.reason.split('=')[1]))
 
     # ------------------------------------------------------------- helpers
+    def publish_route(self, waypoints):
+        path = Path()
+        path.header.frame_id = 'map'
+        path.header.stamp = self.get_clock().now().to_msg()
+        for x, y in waypoints:
+            pose = PoseStamped(header=path.header)
+            pose.pose.position.x, pose.pose.position.y = x, y
+            pose.pose.orientation.w = 1.0
+            path.poses.append(pose)
+        self.route_pub.publish(path)
+
     def set_cand(self, cand):
         with self.lock:
             self.cand = cand

@@ -7,6 +7,7 @@ Arguments (assignment 20.1: scenario, seed and simulation/hardware mode):
   seed           random seed for the simulator (9)
   mode           only 'sim' is implemented; the bridge refuses anything else
   output_dir     where metrics_logger writes <run_id>/events.csv, summary.json
+  record_dashboard  true: save /hub/markers as PNGs + MP4 in <output_dir>/dashboard
   perception     true: also start passenger_detector (M1-A) and demand_predictor
                  (M1-B) on the simulator camera; use with scenario:=S1
   publish_estop  true: scenario_runner publishes /hub/estop (10 Hz heartbeat);
@@ -46,6 +47,7 @@ def generate_launch_description():
         DeclareLaunchArgument('output_dir', default_value='output'),
         DeclareLaunchArgument('publish_estop', default_value='true'),
         DeclareLaunchArgument('perception', default_value='false'),
+        DeclareLaunchArgument('record_dashboard', default_value='false'),
         Node(package='smart_hub', executable='scenario_runner', name='scenario_runner',
              output='screen',
              parameters=[{'scenario': scenario, 'seed': seed, 'publish_estop': estop,
@@ -59,6 +61,9 @@ def generate_launch_description():
              parameters=[{'output_dir': out, 'scenario_id': scenario, 'seed': seed}]),
         Node(package='smart_hub', executable='dashboard_marker_publisher',
              name='dashboard_marker_publisher', output='screen'),
+        Node(package='smart_hub', executable='dashboard_snapshot', name='dashboard_snapshot',
+             output='screen', condition=IfCondition(LaunchConfiguration('record_dashboard')),
+             parameters=[{'output_dir': out}]),
         # perception:=true adds the S1/S2 chain on the simulator camera:
         # passenger_detector (M1-A) -> /hub/queue -> demand_predictor (M1-B).
         Node(package='smart_hub', executable='passenger_detector', name='passenger_detector',
