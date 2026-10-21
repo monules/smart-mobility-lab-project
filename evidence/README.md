@@ -46,6 +46,15 @@ same CSV after a plotting fix.
 | `m2a/s3/s3_events.csv` | action feedback and results, crossing grant/renew/release, door, docking, boarding events | same run |
 | `m2a/s3/s3_paths.png` | paths and distance-to-B over time for every trial | same run |
 
+## M2-B — dispatch (T04)
+
+Checker by M5, node by M2-B (two small changes, see README §10).
+
+| File | What it shows | Command |
+|---|---|---|
+| `m2b/t04/t04_check.json` | 6/6: threshold noise → 0 dispatches; rising demand → exactly 1 (PREDICTED, third sample), no second goal; invalid forecast → 0; feed gap → 0; observed queue 7 → FALLBACK | `docker/hub.sh t04` |
+| `m2b/t04/t04_timeline.csv` | every forecast/queue value sent and every coordinator and bus event, per phase | same run |
+
 ## M3 — parking and traffic (S4, S5)
 
 Scenario files and checkers by M5; nodes by M3. Commit `72e2fde` plus the

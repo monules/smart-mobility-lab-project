@@ -52,6 +52,7 @@ setup(
             'mock_candidate_publisher = smart_hub.mock_candidate_publisher:main',
             's3_check = smart_hub.s3_check:main',
             's4_check = smart_hub.s4_check:main',
+            't04_check = smart_hub.t04_check:main',
             's5_check = smart_hub.s5_check:main',
             's9_fault_check = smart_hub.s9_fault_check:main',
             's9_repeat_check = smart_hub.s9_repeat_check:main',

@@ -5,6 +5,20 @@
 > code unchanged), `hub_coordinator` is a console script, and
 > `hub.launch.py` starts it. The table below is kept for history.
 
+> **Update 2 (branch `feature/m2b-t04-dispatch`, by Saidumar/M5):**
+> - **T04 passes live, 6/6** — `docker/hub.sh t04`, proof in
+>   `evidence/m2b/t04/`. The checker (`t04_check.py`) plays the forecaster
+>   and the queue sensor; your real coordinator and the real bus_manager do
+>   the rest.
+> - Two changes in `hub_coordinator.py`: (1) new parameter
+>   `demand_freshness_sec` = 2.5 s, because `/hub/demand` comes at 1 Hz and
+>   with the shared 1.0 s limit a forecast goes stale exactly when the next one is due (found by review);
+>   (2) `main()` no longer prints `RCLError: rcl_shutdown already called` on
+>   Ctrl+C (catches the shutdown and calls `rclpy.shutdown()` only if
+>   `rclpy.ok()`).
+> - Q4 is answered: bus_manager publishes `state: IDLE` at 2 Hz when free.
+> - Still yours: S8/T15 (needs M4's robot), reset handshake, restyle.
+
 ## Files and where they go in the repo
 | File | Goes to |
 |---|---|
