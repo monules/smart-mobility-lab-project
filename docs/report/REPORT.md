@@ -82,13 +82,19 @@ T04 was run with the coordinator (section 7) using a checker in place of the for
 
 ## 6. M2-A — bus manager and docking (S3)
 
+!note Draft written by M5, who also wrote the M2-A code for Fazliddin; Fazliddin (M2-A) reviews the code and confirms or corrects this section before submission.
+
 `bus_manager` serves the DockBus action and runs the §10.2 state machine IDLE → APPROACH → (WAIT) → DOCK → BOARD → COMPLETE, with SAFE_STOP from every moving state; the logic lives in `bus_core.py` (pure Python, 10 closed-loop tests against the simulator). The bus follows A-N-Cn-B (fallback while M4's `/route/compute` is missing), asks `/crossing/request` for C 2.5 m before a stop line 0.25 m in front of C, renews every 1 s (3 s lease) and releases once its footprint has left C; when bay B is blocked it waits before C without holding the crossing. Docked = position ≤ 0.20 m, yaw ≤ 0.17 rad and speed < 0.02 m/s for 1 s; the door is requested only then, kept open 8 s from the measured opening, and propulsion needs a measured closed door. ETA = remaining route length / smoothed measured speed + remaining turn time + a declared 1.5 s final-approach allowance; invalid while waiting.
 
 **S3 live** (`docker/hub.sh s3`, `evidence/m2a/s3/`, 12/12 checks, Figure 5). T05: 10/10 dockings, position error 0.012–0.040 m, yaw error ≤ 0.004 rad, door open 8.1 s per stop with no movement while open, crossing granted before entry and released after exit in all 10, no collision, 4 passengers boarded and 1 left waiting each time. ETA error at 5 m remaining: mean 0.37 s, maximum 1.12 s (target ≤ 3 s); ETA invalid 0.2 s per trip (before a credible speed). T06: zero `/bus/cmd_vel` 0.043 s after the cancel was accepted (limit 0.5 s), status CANCELED, crossing released. A pedestrian in C made the coordinator deny with `PEDESTRIAN_PRESENT`; the bus waited outside C and docked after the person left. A car in bay B gave WAIT with `BAY_BLOCKED` outside C. Freezing the vehicle feed gave a zero candidate after 0.53 s (pose timeout 0.5 s) and SAFE_STOP, then the bus resumed and docked. With seven people in Q the coordinator dispatched the bus by itself (observed-queue fallback) and the mission succeeded. The simulated bus has no inertia, so stopping times are shorter than on hardware.
 
 !img ../../evidence/m2a/s3/s3_paths.png | Figure 5 — S3: bus paths (top) and straight-line distance to bay B over time (bottom). Grey: 10 nominal trials; the flat segments at about 4 m are the bus waiting before crossing C (pedestrian in C, blocked bay). | 15
 
-The code and checker were written by M5 for M2-A; **TODO (M2-A):** review them, departure after COMPLETE (a separate transition, §10.2 step 6) is not implemented.
+**Unit tests.** `test_bus_core.py` (10 tests) drives the pure state machine in closed loop with the M5 simulator and no ROS: nominal docking within tolerance, crossing acquired before entry / renewed / released after exit, denied crossing → WAIT at the stop line, blocked bay → WAIT without asking for the crossing, cancel → zero command at once, stale pose → hold and resume (and abort after 5 s), ETA error at 5 m, timeout and safety latch, path geometry and parameter validation. `test_sim_core.py` covers boarding (at most four waiting people, only while the door is open and the bus is still at B), and `test_reset_launch.py` checks that bus_manager acknowledges resets and rejects a wrong bus id, an unknown bay and a zero duration.
+
+**Problems found and fixed during development.** (1) The arbiter answers `BAD_TOKEN` for a permission that is already gone; the first version expected a different reason and would have retried RELEASE forever. (2) A permission lost while the bus was inside C would have made it brake in the middle of the crossing; it now never stops inside C on its own. (3) After a stale-pose stop the bus resumed as APPROACH even when it had been boarding; it now resumes the phase it was in. All three were found by review and the closed-loop tests before the live run.
+
+**Limitations.** Departure after COMPLETE (a separate transition, §10.2 step 6) is not implemented; in the tests the scenario is reset and the bus starts at A again. Only bay B is supported. Without M4's `/route/compute` the bus uses the baseline A-N-Cn-B (logged as `ROUTE_FALLBACK`). A cancel while inside C stops the bus there and keeps renewing the crossing until a new goal drives it out (not tested live). The simulated bus has no inertia.
 
 ## 7. M2-B — hub coordinator (S8) — partially TODO
 
@@ -196,7 +202,7 @@ All results are from the simulator; no physical robot, camera or barrier was use
 |---|---|---|---|---|---|
 | Husan | M1-A | passenger_detector, perception/, video tools | T01, T02 | TODO | TODO |
 | Tuymurod | M1-B | demand_predictor, training pipeline | T03 | TODO | TODO |
-| Fazliddin | M2-A | TODO | T05, T06 | TODO | TODO |
+| Fazliddin | M2-A | bus_core, bus_manager (written by M5 for M2-A; review by Fazliddin pending) | T05, T06 (S3 checker by M5) | TODO (Fazliddin to confirm) | TODO (Fazliddin to state) |
 | Arkar | M2-B | coordinator_core, hub_coordinator | T04, T15 | TODO | TODO |
 | Carla | M3 | parking_engine, parking_manager, traffic_engine, traffic_monitor, hub_map; T07–T10 unit tests | T07–T10 (S4/S5 live checkers by M5) | TODO (Carla to confirm) | TODO (Carla to state) |
 | Aidil | M4 | TODO | T11–T14 | TODO | TODO |
