@@ -40,9 +40,11 @@ setup(
             'actuator_bridge = smart_hub.actuator_bridge:main',
             'metrics_logger = smart_hub.metrics_logger:main',
             'dashboard_marker_publisher = smart_hub.dashboard_marker_publisher:main',
+            'dashboard_snapshot = smart_hub.dashboard_snapshot:main',
             # M5 test tools (never part of the integrated hub launch)
             'mock_candidate_publisher = smart_hub.mock_candidate_publisher:main',
             's9_fault_check = smart_hub.s9_fault_check:main',
+            's9_repeat_check = smart_hub.s9_repeat_check:main',
         ],
     },
 )

@@ -31,7 +31,8 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'hub.launch.py')),
             launch_arguments={'scenario': 'S9', 'seed': LaunchConfiguration('seed'),
-                              'output_dir': out, 'publish_estop': 'false'}.items()),
+                              'output_dir': out, 'publish_estop': 'false',
+                              'record_dashboard': 'true'}.items()),
         check,
         RegisterEventHandler(OnProcessExit(
             target_action=check,

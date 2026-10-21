@@ -5,7 +5,9 @@
 #   docker/hub.sh build          colcon build every package under src/
 #   docker/hub.sh test           colcon test + result summary
 #   docker/hub.sh s9 [seed]      run the S9 fault demo (launch, ~20 s)
+#   docker/hub.sh s9x            S9 faults x 5 mission phases (~4 min)
 #   docker/hub.sh s1 [blob|hog]  run the S1 passenger-counting check (~45 s)
+#   docker/hub.sh view [S1|S9]   live dashboard for Foxglove on ws://localhost:8765
 #   docker/hub.sh shell          interactive shell, workspace sourced
 #   docker/hub.sh run '<cmd>'    run one command with the workspace sourced
 #
@@ -66,13 +68,29 @@ case "${1:-help}" in
       ros2 bag info output/bag_S9_seed$SEED > output/bag_S9_info.txt 2>&1
       python3 -c \"import json, sys; r = json.load(open('output/s9_check.json')); \
 print('S9 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
+  s9x)
+    # 16.3: every fault 5 times at different mission phases (~4 min).
+    in_container "" "mkdir -p output/repeat && rm -f output/repeat/s9_repeat.json && \
+      ros2 launch smart_hub s9_repeat.launch.py output_dir:=/ws/output/repeat; \
+      python3 -c \"import json, sys; r = json.load(open('output/repeat/s9_repeat.json')); \
+print('S9 repeat verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
   s1)
     # S1 passenger counting (M1-A): detector blob (default) or hog.
     in_container "" "mkdir -p output && rm -f output/s1_check.json && \
       ros2 launch smart_hub s1.launch.py detector:=${2:-blob} output_dir:=/ws/output; \
       python3 -c \"import json, sys; r = json.load(open('output/s1_check.json')); \
 print('S1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
+  view)
+    # Live dashboard for Foxglove (https://foxglove.dev): connect to
+    # ws://localhost:8765, add a 3D panel, display frame 'map'. Ctrl+C stops.
+    in_container "-it -p 8765:8765" "ros2 launch smart_hub hub.launch.py \
+      scenario:=${2:-S1} perception:=true > /tmp/hub.log 2>&1 &
+      ros2 run smart_hub mock_candidate_publisher --ros-args -p linear_x:=0.1 \
+        -p angular_z:=0.2 > /dev/null 2>&1 &
+      echo 'Open Foxglove -> Open connection -> ws://localhost:8765'
+      exec ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765 \
+        address:=0.0.0.0" ;;
   shell) in_container "-it" "exec bash" ;;
   run) in_container "" "${2:?usage: docker/hub.sh run '<command>'}" ;;
-  *) sed -n '2,10p' "$0" ;;
+  *) sed -n '2,12p' "$0" ;;
 esac

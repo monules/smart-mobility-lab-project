@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-yaml python3-opencv \
         ros-jazzy-launch-testing ros-jazzy-launch-testing-ros \
         ros-jazzy-ament-flake8 ros-jazzy-ament-pep257 \
+        ros-jazzy-foxglove-bridge \
     && rm -rf /var/lib/apt/lists/*
 
 # Keep DDS traffic inside the container; tests never leak onto the LAN.
