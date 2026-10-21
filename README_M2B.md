@@ -1,5 +1,10 @@
 # M2-B Hub Coordinator (Arkar) - S8
 
+> **Update (integration branch):** the files below now live in
+> `src/smart_hub/smart_hub/` and `src/smart_hub/test/` (moved with `git mv`,
+> code unchanged), `hub_coordinator` is a console script, and
+> `hub.launch.py` starts it. The table below is kept for history.
+
 ## Files and where they go in the repo
 | File | Goes to |
 |---|---|

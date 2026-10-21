@@ -18,9 +18,7 @@ disagree, the files win and this document must be fixed.
 | Package / location | Type | Owner | Status on this branch |
 |---|---|---|---|
 | `src/smart_hub_interfaces` | ament_cmake, rosidl | M5 (shared contract) | (Impl) all 14 msg, 6 srv, 3 action |
-| `src/smart_hub` | ament_python | everyone (one package, §19.1) | M1-A S1, M1-B S2 and M5 nodes present |
-| `coordinator_core.py`, `hub_coordinator.py`, `test_coordinator_core.py` (repo root) | loose files, **not built** | M2-B | on `main`; not yet moved into `src/smart_hub` (owner's README says where) |
-| `smart_hub/`, `tests/` (repo root) | loose files, **not built** | M3 | merged into `main` (PR #3) and into this branch; not yet moved into `src/smart_hub` |
+| `src/smart_hub` | ament_python | everyone (one package, §19.1) | M1-A, M1-B, M2-B, M3 and M5 nodes present; M2-B/M3 moved in from the repository root (`git mv`, history kept) |
 
 Ownership per node follows the role document (7-person split):
 M1-A `passenger_detector`, M1-B `demand_predictor`, M2-A `bus_manager`,
@@ -59,9 +57,9 @@ volatile; T = transient-local. "Status" is for this branch.
 | `/robot/odom` | nav_msgs/Odometry | 20 Hz, R10 | scenario_runner (M5) | robot_manager, safety | (Impl) |
 | `/hub/bus_arrival` | BusArrival | 2 Hz, R10 | bus_manager (M2-A) | coordinator | missing; `state: IDLE` when free (M2-B README Q4) |
 | `/parking/observed` | SlotObservationArray | 5 Hz, R10 | scenario_runner (M5) | parking_manager | (Impl) offline slot → `valid: false` |
-| `/parking/state` | ParkingState | 2 Hz + change, R1T | parking_manager (M3) | coordinator, dashboard | root files, not built (verified at runtime in a scratch workspace) |
-| `/traffic/edges` | EdgeStateArray | 2 Hz, R10 | traffic_monitor (M3) | route_planner, coordinator, dashboard | root files, not built; invalid ⇒ speed/density −1.0 |
-| `/crossing/state` | CrossingState | 10 Hz, R1T | hub_coordinator (M2-B) | managers, safety, dashboard | root files; states `FREE GRANTED HOLD OCCUPIED PEDESTRIAN UNKNOWN` |
+| `/parking/state` | ParkingState | 2 Hz + change, R1T | parking_manager (M3) | coordinator, dashboard | (Impl) runs in `hub.launch.py` |
+| `/traffic/edges` | EdgeStateArray | 2 Hz, R10 | traffic_monitor (M3) | route_planner, coordinator, dashboard | (Impl) runs in `hub.launch.py`; invalid ⇒ speed/density −1.0 |
+| `/crossing/state` | CrossingState | 10 Hz, R1T | hub_coordinator (M2-B) | managers, safety, dashboard | (Impl) runs in `hub.launch.py`; states `FREE GRANTED HOLD OCCUPIED PEDESTRIAN UNKNOWN` |
 | `/robot/cmd_vel_candidate` | geometry_msgs/TwistStamped | 20 Hz, R1 | robot_manager (M4) | safety_supervisor **only** | missing (M5 test stand-in exists) |
 | `/bus/cmd_vel_candidate` | geometry_msgs/TwistStamped | 20 Hz, R1 | bus_manager (M2-A) | safety_supervisor **only** | missing |
 | `/robot/cmd_vel`, `/bus/cmd_vel` | geometry_msgs/Twist | 20 Hz, R1 | **safety_supervisor only** (M5) | actuator_bridge | (Impl) |
@@ -82,8 +80,8 @@ volatile; T = transient-local. "Status" is for this branch.
 
 | Name | Type | Server (owner) | Clients | Status |
 |---|---|---|---|---|
-| `/parking/reserve_slot` | ReserveParking | parking_manager (M3) | coordinator / car client | root files, not built |
-| `/parking/release_slot` | ReleaseParking | parking_manager (M3) | same | root files, not built |
+| `/parking/reserve_slot` | ReserveParking | parking_manager (M3) | coordinator / car client | (Impl) |
+| `/parking/release_slot` | ReleaseParking | parking_manager (M3) | same | (Impl) |
 | `/route/compute` | ComputeRoute | route_planner (M4) | bus_manager, robot_manager | **missing** |
 | `/crossing/request` | RequestCrossing | hub_coordinator (M2-B) | bus_manager, robot_manager | root files |
 | `/scenario/reset` | ResetScenario | scenario_runner (M5) | test orchestration | (Impl) see §7 |
@@ -225,7 +223,7 @@ low-confidence observation is UNKNOWN, never zero; a retained
 | 3 | Per-agent field in `SafetyState` (currently in `reason` only) | all (interface change) |
 | 4 | Publishers of `/parking/entry_claim`, `/parking/entrance_clear` | M3, M5 |
 | 5 | Car id format | M3, M2-A |
-| 6 | Moving M2-B's root files and M3's branch into `src/smart_hub` | M2-B, M3 |
+| 6 | ~~Moving M2-B's and M3's files into `src/smart_hub`~~ | **done** (git mv, owners informed) |
 | 7 | M1-B restyle for `ament_flake8` (834 findings, mostly quotes) | M1-B |
 | 8 | Grading split (7 roles vs the assignment's 5) | team + instructor (M2-B README Q7) |
 

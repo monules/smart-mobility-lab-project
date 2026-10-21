@@ -16,9 +16,9 @@ The assignment asks for a simulation-first transport hub in ROS 2: passenger det
 | S1 passenger detection | M1-A | implemented, verified in simulation; real-video evaluation pending |
 | S2 demand prediction | M1-B | implemented, T03 evaluated on held-out seeds |
 | S3 bus docking | M2-A | **TODO — no code yet** |
-| S4/S5 parking, congestion | M3 | code + unit tests merged at repository root; not yet in the ROS package |
+| S4/S5 parking, congestion | M3 | nodes in the ROS package with unit tests; live S4/S5 runs pending |
 | S6/S7 routing, escort | M4 | **TODO — no code yet** |
-| S8 integration | M2-B | coordinator core + unit tests merged at repository root; full run needs S3/S7 |
+| S8 integration | M2-B | coordinator node in the ROS package with unit tests; full run needs S3/S7 |
 | S9 faults, e-stop | M5 | implemented, verified in simulation (T16, T17, 25-trial repetition) |
 
 ## 2. Map, coordinates and frames
@@ -86,11 +86,11 @@ State machine (§10.2, §18.6), DockBus action, door interlock with `/bus/door_o
 
 ## 7. M2-B — hub coordinator (S8) — partially TODO
 
-`coordinator_core.py` implements crossing arbitration (one owner, 2 s clear debounce, lease HOLD instead of FREE) and the §9.3 dispatch hysteresis; 28 unit tests pass. Verified against the shared interfaces in a scratch workspace: a crossing was granted while `/hub/safety` was fresh and unlatched, and denied with `SAFETY_STOP` after an e-stop. **TODO:** move the node into `src/smart_hub`, T04 and the T15 rush-hour run (needs S3 and S7).
+`coordinator_core.py` implements crossing arbitration (one owner, 2 s clear debounce, lease HOLD instead of FREE) and the §9.3 dispatch hysteresis; 28 unit tests pass. Verified against the shared interfaces in a scratch workspace: a crossing was granted while `/hub/safety` was fresh and unlatched, and denied with `SAFETY_STOP` after an e-stop. The node now runs inside `hub.launch.py` with the rest of the hub. **TODO:** T04 live evidence and the T15 rush-hour run (needs S3 and S7).
 
 ## 8. M3 — parking and traffic (S4, S5) — partially TODO
 
-`parking_manager` and `traffic_monitor` with engines and tests (T07–T10): 59 passed, 9 skipped. Against the M5 simulator they produced P1 OCCUPIED, P2 FREE, P3 UNKNOWN (sensor offline) and edge labels from `/hub/vehicles`. **TODO:** move into `src/smart_hub`, run S4/S5 live with evidence. Observation for the owner: a parked bus at node A is labelled `A-Cs: CONGESTED` because speed 0 counts as slow.
+`parking_manager` and `traffic_monitor` with engines and tests (T07–T10): 59 passed, 9 skipped. Against the M5 simulator they produced P1 OCCUPIED, P2 FREE, P3 UNKNOWN (sensor offline) and edge labels from `/hub/vehicles`. Both nodes now run inside `hub.launch.py`. **TODO:** run S4/S5 live with evidence. Observation for the owner: a parked bus at node A is labelled `A-Cs: CONGESTED` because speed 0 counts as slow.
 
 ## 9. M4 — routing and robot escort (S6, S7) — TODO
 
