@@ -33,7 +33,8 @@ def generate_test_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'hub.launch.py')),
             launch_arguments={'scenario': 'S9', 'seed': '9', 'output_dir': OUT,
-                              'publish_estop': 'false'}.items()),
+                              'publish_estop': 'false',
+                              'robot': 'false'}.items()),   # the check drives robot_1
         check,
         launch_testing.actions.ReadyToTest(),
     ]), {'check': check}

@@ -84,7 +84,7 @@ the bus stands still at B, the waiting people get in one by one (first after
 | writes | `/hub/bus_arrival` | `BusArrival`, 2 Hz | coordinator (it only sends a bus that says `IDLE`), dashboard |
 | writes | `/bus/route` | `Path` | dashboard draws the route |
 | calls | `/crossing/request` | `RequestCrossing` | Arkar's crossing referee |
-| calls | `/route/compute` | `ComputeRoute` | Aidil's route planner (M4) — **doesn't exist yet**, so after 1 s the bus uses the default A-N-Cn-B and logs `ROUTE_FALLBACK` |
+| calls | `/route/compute` | `ComputeRoute` | Aidil's route planner (M4): wait 1 s, retry max 2 times, then fail with `PLANNER_UNAVAILABLE` (T18); `NO_ROUTE` fails at once |
 
 ## run it 🚀
 
@@ -103,21 +103,21 @@ trial), `s3_trace.csv` (bus position + speed over time), `s3_events.csv`
 Measured with `docker/hub.sh s3` (all 12 checks passed; proof in
 [`evidence/m2a/s3/`](evidence/m2a/s3)):
 
-- **10/10 normal dockings** (T05): position error 0.012–0.040 m (limit
-  0.20), yaw error ≤ 0.004 rad (limit 0.17), ~40 s per trip incl. 8 s boarding
+- **10/10 normal dockings** (T05): position error 0.013–0.034 m (limit
+  0.20), yaw error ≤ 0.006 rad (limit 0.17), ~40 s per trip incl. 8 s boarding
 - **door:** open 8.1 s per stop, **0** moments where the bus moved with the
   door open
 - **crossing:** permission granted before the bus touched C and given back
   after it left — 10/10; 0 collisions
 - **boarding:** 4 people get in every time, 1 stays waiting
-- **ETA at 5 m left:** off by 0.37 s on average, 1.12 s worst (limit 3 s);
+- **ETA at 5 m left:** off by 0.24 s on average, 0.94 s worst (limit 3 s);
   ETA "unknown" only for the first 0.2 s of each trip
-- **cancel** (T06): zero speed on `/bus/cmd_vel` **0.043 s** after the cancel
+- **cancel** (T06): zero speed on `/bus/cmd_vel` **0.001 s** after the cancel
   was accepted (limit 0.5 s), status `CANCELED`, crossing given back
 - **person on the crossing:** referee said `PEDESTRIAN_PRESENT`, bus waited
   outside C (0 moments inside C with the person there), then docked
 - **blocked bay:** waited with `BAY_BLOCKED` outside C, docked once the car left
-- **lost position:** zero speed 0.53 s after the data froze (limit 0.65 s),
+- **lost position:** zero speed 0.535 s after the data froze (limit 0.65 s),
   `SAFE_STOP`, then continued and docked
 - **Arkar's coordinator sent the bus by itself** (7 people in Q, `FALLBACK`
   on the observed queue because no forecast was running) → docked, 4 in, 3 waiting
@@ -146,8 +146,10 @@ Measured with `docker/hub.sh s3` (all 12 checks passed; proof in
   is a separate step ("a separate state transition or extension action").
   In the test the scenario is reset and the bus starts at A again.
 - **Only bay B** (the baseline). A goal for another bay is rejected.
-- **Route planner (M4) missing:** the bus uses the built-in A-N-Cn-B. As soon
-  as Aidil's `/route/compute` exists, the bus asks it first (code is ready).
+- **Route planner:** Aidil's planner now gives the route (A-N-Cn-B in all
+  15 trips). If it doesn't answer, the bus waits 1 s, tries 2 more times,
+  then fails with `PLANNER_UNAVAILABLE` and never moves (T18). The old
+  built-in route is only an off-by-default option (`allow_route_fallback`).
 - **Cancel inside C:** the bus stops at once (safety first) and keeps renewing
   the crossing until a new goal drives it out; it never releases while
   inside C. Not tested live (the T06 cancel happens before C).

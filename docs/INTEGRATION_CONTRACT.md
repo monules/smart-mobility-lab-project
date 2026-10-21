@@ -60,7 +60,7 @@ volatile; T = transient-local. "Status" is for this branch.
 | `/parking/state` | ParkingState | 2 Hz + change, R1T | parking_manager (M3) | coordinator, dashboard | (Impl) runs in `hub.launch.py` |
 | `/traffic/edges` | EdgeStateArray | 2 Hz, R10 | traffic_monitor (M3) | route_planner, coordinator, dashboard | (Impl) runs in `hub.launch.py`; invalid ⇒ speed/density −1.0 |
 | `/crossing/state` | CrossingState | 10 Hz, R1T | hub_coordinator (M2-B) | managers, safety, dashboard | (Impl) runs in `hub.launch.py`; states `FREE GRANTED HOLD OCCUPIED PEDESTRIAN UNKNOWN` |
-| `/robot/cmd_vel_candidate` | geometry_msgs/TwistStamped | 20 Hz, R1 | robot_manager (M4) | safety_supervisor **only** | missing (M5 test stand-in exists) |
+| `/robot/cmd_vel_candidate` | geometry_msgs/TwistStamped | 20 Hz, R1 | robot_manager (M4) | safety_supervisor **only** | (Impl) zero while idle |
 | `/bus/cmd_vel_candidate` | geometry_msgs/TwistStamped | 20 Hz, R1 | bus_manager (M2-A) | safety_supervisor **only** | (Impl) zero while idle |
 | `/robot/cmd_vel`, `/bus/cmd_vel` | geometry_msgs/Twist | 20 Hz, R1 | **safety_supervisor only** (M5) | actuator_bridge | (Impl) |
 | `/robot/cmd_vel_applied`, `/bus/cmd_vel_applied` | geometry_msgs/Twist | 20 Hz, R1 | actuator_bridge (M5) | scenario_runner | (Impl) M5-internal (Prop) |
@@ -82,14 +82,14 @@ volatile; T = transient-local. "Status" is for this branch.
 |---|---|---|---|---|
 | `/parking/reserve_slot` | ReserveParking | parking_manager (M3) | coordinator / car client | (Impl) |
 | `/parking/release_slot` | ReleaseParking | parking_manager (M3) | same | (Impl) |
-| `/route/compute` | ComputeRoute | route_planner (M4) | bus_manager, robot_manager | **missing** |
-| `/crossing/request` | RequestCrossing | hub_coordinator (M2-B) | bus_manager, robot_manager | (Impl); bus uses `requester_id: bus_1` |
+| `/route/compute` | ComputeRoute | route_planner (M4) | bus_manager, robot_manager | (Impl); clients: 1 s timeout, ≤ 2 retries, then explicit failure (T18); `NO_ROUTE` when no permitted path |
+| `/crossing/request` | RequestCrossing | hub_coordinator (M2-B) | bus_manager, robot_manager | (Impl); `requester_id` `bus_1` / `robot_1` |
 | `/scenario/reset` | ResetScenario | scenario_runner (M5) | test orchestration | (Impl) see §7 |
 | `/safety/clear_stop` | ClearSafetyStop | safety_supervisor (M5) | operator | (Impl) see §6 |
-| `/robot/confirm_ready` | std_srvs/Trigger | robot_manager (M4) | button / dashboard | missing (§14.1) |
+| `/robot/confirm_ready` | std_srvs/Trigger | robot_manager (M4) | button / dashboard | (Impl) accepted only in WAIT_READY |
 | `/bus/dock` | DockBus action | bus_manager (M2-A) | coordinator | (Impl); bay B only; `final_state` COMPLETE or SAFE_STOP |
-| `/robot/escort` | EscortPassenger action | robot_manager (M4) | coordinator | missing; trigger at t=70 s is (Open) (M2-B Q3) |
-| `/robot/navigate_to` | NavigateTo action | robot_manager (M4) | internal | missing |
+| `/robot/escort` | EscortPassenger action | robot_manager (M4) | coordinator | (Impl); trigger at t=70 s is still (Open) (M2-B Q3) |
+| `/robot/navigate_to` | NavigateTo action | robot_manager (M4) | internal, tests | (Impl) |
 
 Service rules (A) §7.1: normal response ≤ 250 ms, client timeout 1 s,
 retry with the same request id; services never wait for physical completion.

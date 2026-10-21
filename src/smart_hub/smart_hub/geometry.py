@@ -34,6 +34,17 @@ def edge_id(a, b):
 
 
 EDGES = {edge_id(a, b): (NODES[a], NODES[b]) for a, b in _EDGE_PAIRS}
+
+
+def normalize_edge(raw):
+    """Canonical id of a map edge given either spelling ('J-E' or 'E-J'), else ''."""
+    parts = str(raw).strip().replace('\u2013', '-').split('-')
+    if len(parts) != 2 or not all(n in NODES for n in parts):
+        return ''
+    eid = edge_id(*parts)
+    return eid if eid in EDGES else ''
+
+
 # Roads: the edges a bus or car may use (no parking lane, walkway or crossing
 # strip). Same set as M3's hub_map.VEHICLE_EDGES.
 VEHICLE_EDGES = frozenset(edge_id(a, b) for a, b in _EDGE_PAIRS[:8])

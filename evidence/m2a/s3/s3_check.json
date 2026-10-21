@@ -4,7 +4,7 @@
     {
       "check": "T05 nominal docking",
       "passed": true,
-      "detail": "10/10 docked; position error max 0.040 m, yaw error max 0.004 rad"
+      "detail": "10/10 docked; position error max 0.034 m, yaw error max 0.006 rad"
     },
     {
       "check": "T05 door interlock",
@@ -29,12 +29,12 @@
     {
       "check": "S3 ETA error at 5 m",
       "passed": true,
-      "detail": "mean 0.37 s, max 1.12 s over 10 trials (limit 3.0); ETA invalid 0.2 s per trial on average (start, before a credible speed)"
+      "detail": "mean 0.24 s, max 0.94 s over 10 trials (limit 3.0); ETA invalid 0.1 s per trial on average (start, before a credible speed)"
     },
     {
       "check": "T06 cancel during approach",
       "passed": true,
-      "detail": "cancel accepted; first zero /bus/cmd_vel 0.043 s later (limit 0.5); bus stopped after 0.06 s; status CANCELED, final_state SAFE_STOP"
+      "detail": "cancel accepted; first zero /bus/cmd_vel 0.001 s later (limit 0.5); bus stopped after 0.07 s; status CANCELED, final_state SAFE_STOP"
     },
     {
       "check": "T06 crossing released on cancel",
@@ -44,17 +44,17 @@
     {
       "check": "S3 pedestrian in C",
       "passed": true,
-      "detail": "waited outside C (denied: ['CLEAR_DEBOUNCE', 'PEDESTRIAN_PRESENT']), bus in C with a pedestrian there: 0 samples; then SUCCEEDED, position error 0.046 m"
+      "detail": "waited outside C (denied: ['CLEAR_DEBOUNCE', 'PEDESTRIAN_PRESENT']), bus in C with a pedestrian there: 0 samples; then SUCCEEDED, position error 0.048 m"
     },
     {
       "check": "S3 blocked bay",
       "passed": true,
-      "detail": "WAIT with BAY_BLOCKED outside C (entered C while blocked: False); after the car left: SUCCEEDED, position error 0.02 m"
+      "detail": "WAIT with BAY_BLOCKED outside C (entered C while blocked: False); after the car left: SUCCEEDED, position error 0.029 m"
     },
     {
       "check": "S3 stale bus pose",
       "passed": true,
-      "detail": "zero candidate 0.534 s after the pose froze (limit 0.65); SAFE_STOP seen: True; after the pose returned: SUCCEEDED, position error 0.028 m"
+      "detail": "zero candidate 0.535 s after the pose froze (limit 0.65); SAFE_STOP seen: True; after the pose returned: SUCCEEDED, position error 0.018 m"
     },
     {
       "check": "S3 coordinator dispatch",
@@ -69,8 +69,8 @@
       "status": "SUCCEEDED",
       "final_state": "COMPLETE",
       "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 40.0,
-      "pos_err_m": 0.024,
+      "duration_s": 39.9,
+      "pos_err_m": 0.033,
       "yaw_err_rad": 0.0,
       "door_open_s": 8.1,
       "moving_with_door_open": 0,
@@ -79,7 +79,7 @@
       "boarded": 4,
       "left_waiting": 1,
       "crossing_ok": true,
-      "eta_err_s": 0.15,
+      "eta_err_s": 0.19,
       "eta_invalid_s": 0.2
     },
     {
@@ -88,84 +88,8 @@
       "status": "SUCCEEDED",
       "final_state": "COMPLETE",
       "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 40.34,
-      "pos_err_m": 0.012,
-      "yaw_err_rad": 0.001,
-      "door_open_s": 8.1,
-      "moving_with_door_open": 0,
-      "collisions": 0,
-      "in_c_with_pedestrian": 0,
-      "boarded": 4,
-      "left_waiting": 1,
-      "crossing_ok": true,
-      "eta_err_s": 1.12,
-      "eta_invalid_s": 0.2
-    },
-    {
-      "trial": 3,
-      "kind": "nominal",
-      "status": "SUCCEEDED",
-      "final_state": "COMPLETE",
-      "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 39.65,
-      "pos_err_m": 0.039,
-      "yaw_err_rad": 0.004,
-      "door_open_s": 8.1,
-      "moving_with_door_open": 0,
-      "collisions": 0,
-      "in_c_with_pedestrian": 0,
-      "boarded": 4,
-      "left_waiting": 1,
-      "crossing_ok": true,
-      "eta_err_s": 0.34,
-      "eta_invalid_s": 0.2
-    },
-    {
-      "trial": 4,
-      "kind": "nominal",
-      "status": "SUCCEEDED",
-      "final_state": "COMPLETE",
-      "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 40.14,
-      "pos_err_m": 0.026,
-      "yaw_err_rad": 0.0,
-      "door_open_s": 8.1,
-      "moving_with_door_open": 0,
-      "collisions": 0,
-      "in_c_with_pedestrian": 0,
-      "boarded": 4,
-      "left_waiting": 1,
-      "crossing_ok": true,
-      "eta_err_s": 0.27,
-      "eta_invalid_s": 0.2
-    },
-    {
-      "trial": 5,
-      "kind": "nominal",
-      "status": "SUCCEEDED",
-      "final_state": "COMPLETE",
-      "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 40.04,
-      "pos_err_m": 0.016,
-      "yaw_err_rad": 0.001,
-      "door_open_s": 8.1,
-      "moving_with_door_open": 0,
-      "collisions": 0,
-      "in_c_with_pedestrian": 0,
-      "boarded": 4,
-      "left_waiting": 1,
-      "crossing_ok": true,
-      "eta_err_s": 0.08,
-      "eta_invalid_s": 0.2
-    },
-    {
-      "trial": 6,
-      "kind": "nominal",
-      "status": "SUCCEEDED",
-      "final_state": "COMPLETE",
-      "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 39.85,
-      "pos_err_m": 0.04,
+      "duration_s": 40.15,
+      "pos_err_m": 0.024,
       "yaw_err_rad": 0.002,
       "door_open_s": 8.1,
       "moving_with_door_open": 0,
@@ -174,7 +98,83 @@
       "boarded": 4,
       "left_waiting": 1,
       "crossing_ok": true,
-      "eta_err_s": 1.1,
+      "eta_err_s": 0.07,
+      "eta_invalid_s": 0
+    },
+    {
+      "trial": 3,
+      "kind": "nominal",
+      "status": "SUCCEEDED",
+      "final_state": "COMPLETE",
+      "reason": "DOCKED_AND_BOARDED",
+      "duration_s": 39.73,
+      "pos_err_m": 0.034,
+      "yaw_err_rad": 0.006,
+      "door_open_s": 8.1,
+      "moving_with_door_open": 0,
+      "collisions": 0,
+      "in_c_with_pedestrian": 0,
+      "boarded": 4,
+      "left_waiting": 1,
+      "crossing_ok": true,
+      "eta_err_s": 0.32,
+      "eta_invalid_s": 0.2
+    },
+    {
+      "trial": 4,
+      "kind": "nominal",
+      "status": "SUCCEEDED",
+      "final_state": "COMPLETE",
+      "reason": "DOCKED_AND_BOARDED",
+      "duration_s": 40.04,
+      "pos_err_m": 0.024,
+      "yaw_err_rad": 0.001,
+      "door_open_s": 8.1,
+      "moving_with_door_open": 0,
+      "collisions": 0,
+      "in_c_with_pedestrian": 0,
+      "boarded": 4,
+      "left_waiting": 1,
+      "crossing_ok": true,
+      "eta_err_s": 0.14,
+      "eta_invalid_s": 0.2
+    },
+    {
+      "trial": 5,
+      "kind": "nominal",
+      "status": "SUCCEEDED",
+      "final_state": "COMPLETE",
+      "reason": "DOCKED_AND_BOARDED",
+      "duration_s": 40.05,
+      "pos_err_m": 0.018,
+      "yaw_err_rad": 0.001,
+      "door_open_s": 8.1,
+      "moving_with_door_open": 0,
+      "collisions": 0,
+      "in_c_with_pedestrian": 0,
+      "boarded": 4,
+      "left_waiting": 1,
+      "crossing_ok": true,
+      "eta_err_s": 0.02,
+      "eta_invalid_s": 0.2
+    },
+    {
+      "trial": 6,
+      "kind": "nominal",
+      "status": "SUCCEEDED",
+      "final_state": "COMPLETE",
+      "reason": "DOCKED_AND_BOARDED",
+      "duration_s": 39.86,
+      "pos_err_m": 0.032,
+      "yaw_err_rad": 0.001,
+      "door_open_s": 8.1,
+      "moving_with_door_open": 0,
+      "collisions": 0,
+      "in_c_with_pedestrian": 0,
+      "boarded": 4,
+      "left_waiting": 1,
+      "crossing_ok": true,
+      "eta_err_s": 0.94,
       "eta_invalid_s": 0.2
     },
     {
@@ -183,9 +183,9 @@
       "status": "SUCCEEDED",
       "final_state": "COMPLETE",
       "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 40.16,
-      "pos_err_m": 0.016,
-      "yaw_err_rad": 0.0,
+      "duration_s": 40.14,
+      "pos_err_m": 0.013,
+      "yaw_err_rad": 0.001,
       "door_open_s": 8.1,
       "moving_with_door_open": 0,
       "collisions": 0,
@@ -193,8 +193,8 @@
       "boarded": 4,
       "left_waiting": 1,
       "crossing_ok": true,
-      "eta_err_s": 0.08,
-      "eta_invalid_s": 0.2
+      "eta_err_s": 0.07,
+      "eta_invalid_s": 0
     },
     {
       "trial": 8,
@@ -202,7 +202,7 @@
       "status": "SUCCEEDED",
       "final_state": "COMPLETE",
       "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 39.85,
+      "duration_s": 39.76,
       "pos_err_m": 0.03,
       "yaw_err_rad": 0.0,
       "door_open_s": 8.1,
@@ -212,7 +212,7 @@
       "boarded": 4,
       "left_waiting": 1,
       "crossing_ok": true,
-      "eta_err_s": 0.3,
+      "eta_err_s": 0.22,
       "eta_invalid_s": 0.2
     },
     {
@@ -221,7 +221,7 @@
       "status": "SUCCEEDED",
       "final_state": "COMPLETE",
       "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 40.05,
+      "duration_s": 40.04,
       "pos_err_m": 0.025,
       "yaw_err_rad": 0.002,
       "door_open_s": 8.1,
@@ -231,7 +231,7 @@
       "boarded": 4,
       "left_waiting": 1,
       "crossing_ok": true,
-      "eta_err_s": 0.1,
+      "eta_err_s": 0.05,
       "eta_invalid_s": 0.2
     },
     {
@@ -240,9 +240,9 @@
       "status": "SUCCEEDED",
       "final_state": "COMPLETE",
       "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 39.94,
-      "pos_err_m": 0.024,
-      "yaw_err_rad": 0.001,
+      "duration_s": 39.95,
+      "pos_err_m": 0.027,
+      "yaw_err_rad": 0.003,
       "door_open_s": 8.1,
       "moving_with_door_open": 0,
       "collisions": 0,
@@ -250,8 +250,8 @@
       "boarded": 4,
       "left_waiting": 1,
       "crossing_ok": true,
-      "eta_err_s": 0.16,
-      "eta_invalid_s": 0.2
+      "eta_err_s": 0.42,
+      "eta_invalid_s": 0
     },
     {
       "trial": 11,
@@ -259,9 +259,9 @@
       "status": "CANCELED",
       "final_state": "SAFE_STOP",
       "reason": "CANCELED",
-      "duration_s": 13.1,
-      "pos_err_m": 5.46,
-      "yaw_err_rad": 0.001,
+      "duration_s": 13.01,
+      "pos_err_m": 5.48,
+      "yaw_err_rad": 0.006,
       "door_open_s": 0.0,
       "moving_with_door_open": 0,
       "collisions": 0,
@@ -278,9 +278,9 @@
       "status": "SUCCEEDED",
       "final_state": "COMPLETE",
       "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 49.42,
-      "pos_err_m": 0.046,
-      "yaw_err_rad": 0.011,
+      "duration_s": 49.38,
+      "pos_err_m": 0.048,
+      "yaw_err_rad": 0.013,
       "door_open_s": 8.1,
       "moving_with_door_open": 0,
       "collisions": 0,
@@ -288,8 +288,8 @@
       "boarded": 4,
       "left_waiting": 1,
       "crossing_ok": true,
-      "eta_err_s": 9.58,
-      "eta_invalid_s": 8.2
+      "eta_err_s": 9.23,
+      "eta_invalid_s": 8.0
     },
     {
       "trial": 13,
@@ -297,27 +297,8 @@
       "status": "SUCCEEDED",
       "final_state": "COMPLETE",
       "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 45.03,
-      "pos_err_m": 0.02,
-      "yaw_err_rad": 0.003,
-      "door_open_s": 8.1,
-      "moving_with_door_open": 0,
-      "collisions": 0,
-      "in_c_with_pedestrian": 0,
-      "boarded": 4,
-      "left_waiting": 1,
-      "crossing_ok": true,
-      "eta_err_s": 5.02,
-      "eta_invalid_s": 3.4
-    },
-    {
-      "trial": 14,
-      "kind": "stale_pose",
-      "status": "SUCCEEDED",
-      "final_state": "COMPLETE",
-      "reason": "DOCKED_AND_BOARDED",
-      "duration_s": 40.85,
-      "pos_err_m": 0.028,
+      "duration_s": 45.15,
+      "pos_err_m": 0.029,
       "yaw_err_rad": 0.001,
       "door_open_s": 8.1,
       "moving_with_door_open": 0,
@@ -326,7 +307,26 @@
       "boarded": 4,
       "left_waiting": 1,
       "crossing_ok": true,
-      "eta_err_s": 0.21,
+      "eta_err_s": 4.83,
+      "eta_invalid_s": 3.4
+    },
+    {
+      "trial": 14,
+      "kind": "stale_pose",
+      "status": "SUCCEEDED",
+      "final_state": "COMPLETE",
+      "reason": "DOCKED_AND_BOARDED",
+      "duration_s": 41.15,
+      "pos_err_m": 0.018,
+      "yaw_err_rad": 0.0,
+      "door_open_s": 8.1,
+      "moving_with_door_open": 0,
+      "collisions": 0,
+      "in_c_with_pedestrian": 0,
+      "boarded": 4,
+      "left_waiting": 1,
+      "crossing_ok": true,
+      "eta_err_s": 0.01,
       "eta_invalid_s": 1.2
     },
     {
@@ -335,9 +335,9 @@
       "status": "SUCCEEDED",
       "final_state": "",
       "reason": "",
-      "duration_s": 42.95,
-      "pos_err_m": 0.038,
-      "yaw_err_rad": 0.0,
+      "duration_s": 43.04,
+      "pos_err_m": 0.025,
+      "yaw_err_rad": 0.001,
       "door_open_s": 8.1,
       "moving_with_door_open": 0,
       "collisions": 0,
@@ -349,5 +349,5 @@
       "eta_invalid_s": 0
     }
   ],
-  "commit": "8235182-dirty"
+  "commit": "4a82c57-dirty"
 }

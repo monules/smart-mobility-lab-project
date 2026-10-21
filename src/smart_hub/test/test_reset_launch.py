@@ -2,9 +2,9 @@
 
 Starts hub.launch.py, then from the test process:
   1. latches an e-stop, calls /scenario/reset and requires success with all
-     five participants acknowledged (M5's four nodes + bus_manager, contract
-     §7), and the latch still set afterwards (a reset is not a way around
-     /safety/clear_stop);
+     six participants acknowledged (M5's four nodes, bus_manager and
+     robot_manager, contract §7), and the latch still set afterwards (a
+     reset is not a way around /safety/clear_stop);
   2. publishes a nav_msgs/Path on /robot/route (contract §3) and requires a
      LINE_STRIP with those points on /hub/markers;
   3. bus_manager (M2-A) rejects DockBus goals it must not take: a wrong bus
@@ -86,7 +86,7 @@ class TestResetAndRoutes(unittest.TestCase):
         self.assertTrue(self.spin_until(fut.done, 10.0))
         res = fut.result()
         self.assertTrue(res.success, res.reason)
-        self.assertIn('acks=5', res.reason)
+        self.assertIn('acks=6', res.reason)
         self.assertTrue(res.run_id.startswith('S9-s6-'))
         n = len(safety)
         self.assertTrue(self.spin_until(lambda: len(safety) > n + 3, 5.0))
