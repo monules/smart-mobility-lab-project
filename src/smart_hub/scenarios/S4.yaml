@@ -1,0 +1,18 @@
+# Scenario S4: parking availability and reservation (owner M3, scenario file
+# and checker by M5). P1 starts occupied, P2 and P3 free. s4_check plays the
+# cars C1, C2, ... (it calls /parking/reserve_slot and /parking/release_slot)
+# and injects the sensor changes that depend on its own timing (a car
+# arriving in its slot, the lot filling up). The P3 sensor outage is timed.
+scenario_id: S4
+duration_sec: 120
+observation_noise_m: 0.0
+estop: false
+agents: {}
+obstacles: {}
+parking:
+  P1: occupied
+  P2: free
+  P3: free
+events:
+  - {t: 1.0, type: note, text: "S4 start: P1 occupied, P2/P3 free"}
+  - {t: 10.0, type: parking, slot: P3, state: offline}   # P3 sensor goes stale

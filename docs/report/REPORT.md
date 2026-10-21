@@ -16,7 +16,7 @@ The assignment asks for a simulation-first transport hub in ROS 2: passenger det
 | S1 passenger detection | M1-A | implemented, verified in simulation; real-video evaluation pending |
 | S2 demand prediction | M1-B | implemented, T03 evaluated on held-out seeds |
 | S3 bus docking | M2-A | **TODO — no code yet** |
-| S4/S5 parking, congestion | M3 | nodes in the ROS package with unit tests; live S4/S5 runs pending |
+| S4/S5 parking, congestion | M3 | nodes in the ROS package with unit tests; S4 11/11 and S5 9/9 pass live |
 | S6/S7 routing, escort | M4 | **TODO — no code yet** |
 | S8 integration | M2-B | coordinator node in the ROS package with unit tests; full run needs S3/S7 |
 | S9 faults, e-stop | M5 | implemented, verified in simulation (T16, T17, 25-trial repetition) |
@@ -88,9 +88,17 @@ State machine (§10.2, §18.6), DockBus action, door interlock with `/bus/door_o
 
 `coordinator_core.py` implements crossing arbitration (one owner, 2 s clear debounce, lease HOLD instead of FREE) and the §9.3 dispatch hysteresis; 28 unit tests pass. Verified against the shared interfaces in a scratch workspace: a crossing was granted while `/hub/safety` was fresh and unlatched, and denied with `SAFETY_STOP` after an e-stop. The node now runs inside `hub.launch.py` with the rest of the hub. **TODO:** T04 live evidence and the T15 rush-hour run (needs S3 and S7).
 
-## 8. M3 — parking and traffic (S4, S5) — partially TODO
+## 8. M3 — parking and traffic (S4, S5)
 
-`parking_manager` and `traffic_monitor` with engines and tests (T07–T10): 59 passed, 9 skipped. Against the M5 simulator they produced P1 OCCUPIED, P2 FREE, P3 UNKNOWN (sensor offline) and edge labels from `/hub/vehicles`. Both nodes now run inside `hub.launch.py`. **TODO:** run S4/S5 live with evidence. Observation for the owner: a parked bus at node A is labelled `A-Cs: CONGESTED` because speed 0 counts as slow.
+`parking_manager` and `traffic_monitor` with engines and tests (T07–T10): 59 passed, 9 skipped. Against the M5 simulator they produced P1 OCCUPIED, P2 FREE, P3 UNKNOWN (sensor offline) and edge labels from `/hub/vehicles`. Both nodes run inside `hub.launch.py`.
+
+**S4 live** (`docker/hub.sh s4`, `evidence/m3/s4/s4_check.json`, 11/11 passed). A checker node plays the cars and calls the real services. C1 and C2 asked for P2 at the same moment and received P2 and P3 with different tokens; repeating C1's request id returned the same reservation; a wrong token was rejected with `UNKNOWN_TOKEN` and C2 using C1's token with `VEHICLE_MISMATCH`; C1's slot became OCCUPIED 0.64 s after it was sensed (0.5 s debounce); P3 became UNKNOWN 0.18 s after its sensor went offline; after both reservations expired P2 stayed OCCUPIED and P3 UNKNOWN (expiry never freed an occupied or stale slot); with no free slot a request failed with `FULL`. T07: 20 synchronized request pairs gave 0 double allocations, p95 service latency 39 ms (limit 250 ms), maximum 133 ms.
+
+**S5 live** (`docker/hub.sh s5`, `evidence/m3/s5/`, 9/9 passed, Figure 4). On edge Cs-J (capacity 4): with one car at 0.35 m/s every label was NORMAL (34 labels, no false congestion); three slow cars joining gave CONGESTED after 0.29 s, held while they stayed; NORMAL 1.8 s after they left. T10: freezing the vehicle feed made every edge UNKNOWN after 0.995 s (limit 1.2 s) with speed and density −1.0, and valid again 0.3 s after the feed resumed. Obstacle O gave BLOCKED after 0.33 s (within one 2 Hz publication) and NORMAL 2.3 s after removal (2 s obstacle-clear hold). The UNKNOWN margin is only 0.2 s because the monitor's stale threshold is 1.0 s.
+
+!img ../../evidence/m3/s5/s5_labels.png | Figure 4 — S5 label of edge Cs-J (top) and cars counted on it (bottom). Dashed lines: slow cars join (orange) and leave (green), vehicle feed frozen and resumed (red), obstacle on and off (black). | 14
+
+The scenario files and both checkers were written by M5 (simulator owner); **TODO (M3):** review them and the results. Observation for the owner: a parked bus at node A is labelled `A-Cs: CONGESTED` because speed 0 counts as slow.
 
 ## 9. M4 — routing and robot escort (S6, S7) — TODO
 
@@ -147,7 +155,7 @@ Phases: start (0.3 s after moving off), cruise 0.20 m/s, turn (0.15 m/s, 0.5 rad
 | T03 | S2 prediction | PASS (held-out synthetic seeds) |
 | T04 | S2 dispatch | TODO (needs coordinator run) |
 | T05, T06 | S3 docking, cancel | TODO (M2-A) |
-| T07–T10 | S4, S5 | unit tests pass (M3); live evidence TODO |
+| T07–T10 | S4, S5 | pass: unit tests (M3) and live S4 11/11, S5 9/9 (T07 p95 39 ms, T10 UNKNOWN 0.995 s) |
 | T11–T14 | S6, S7 | TODO (M4) |
 | T15 | S8 integration | TODO (needs all nodes) |
 | T16 | S9 stop latch | PASS (simulation) |

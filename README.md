@@ -9,9 +9,9 @@ observable, reproducible evidence (assignment §1).
 > **Status (branch `integration/current-team-work`).** M5 (simulator,
 > safety, infrastructure), M1-A (passenger counting) and M1-B (demand
 > prediction), M2-B (coordinator) and M3 (parking, traffic) are in the ROS
-> package, built, tested and started together by `hub.launch.py`; M2-B and
-> M3 still need their live scenario runs (S4, S5, S8). **M2-A and M4 have no
-> code yet**. See
+> package, built, tested and started together by `hub.launch.py`. M3's S4
+> and S5 pass live (checkers written by M5); M2-B still needs its S8 run.
+> **M2-A and M4 have no code yet**. See
 > [§10 Status](#10-current-status-and-next-steps).
 
 Platform: **ROS 2 Jazzy, Ubuntu 24.04, Python `rclpy`**, run in Docker
@@ -131,7 +131,7 @@ velocities, and only `safety_supervisor` publishes final commands (§4.2).
 | M1-B Tuymurod | Demand prediction | `demand_predictor` | S2 | ✅ merged |
 | M2-A Fazliddin | Bus & docking | `bus_manager` | S3 | ❌ none yet |
 | M2-B Arkar | Hub coordinator | `hub_coordinator` | S8 | ✅ code in the package + 28 tests; ⚠️ live S8 run pending |
-| M3 Carla | Parking & traffic | `parking_manager`, `traffic_monitor` | S4, S5 | ✅ code in the package + 59 tests; ⚠️ live S4/S5 runs pending |
+| M3 Carla | Parking & traffic | `parking_manager`, `traffic_monitor` | S4, S5 | ✅ code in the package + 59 tests; ✅ S4 11/11 and S5 9/9 live ([evidence/m3](evidence/m3)) |
 | M4 Aidil | Routing & robot | `route_planner`, `robot_manager` | S6, S7 | ❌ none yet |
 | M5 Saidumar | Simulator, safety, infra | `scenario_runner`, `safety_supervisor`, `actuator_bridge`, `metrics_logger`, `dashboard_marker_publisher` | S9 | ✅ complete for simulation |
 
@@ -283,6 +283,8 @@ docker/hub.sh build
 | Run all tests | `docker/hub.sh test` | colcon test + summary |
 | S9 acceptance demo (~20 s) | `docker/hub.sh s9` | `S9 verdict: PASSED`, exit 0 only if every check passed; evidence in `output/` (check JSON, metrics, rosbag, parameter dumps) |
 | S1 passenger counting (~45 s) | `docker/hub.sh s1` (or `s1 hog`) | `S1 verdict: PASSED`; `output/s1_check.json`, `s1_count_vs_truth.png`, dashboard pictures |
+| S4 parking (~45 s, M3's node) | `docker/hub.sh s4` | `s4 verdict: PASSED`; `output/s4_check.json` |
+| S5 congestion (~90 s, M3's node) | `docker/hub.sh s5` | `s5 verdict: PASSED`; `output/s5_check.json`, `s5_labels.png`, `s5_timeseries.csv` |
 | S9 faults × 5 mission phases (~4 min) | `docker/hub.sh s9x` | `S9 repeat verdict: PASSED`; `output/repeat/s9_repeat.{json,csv}` |
 | Live dashboard (Foxglove) | `docker/hub.sh view` | connect Foxglove to `ws://localhost:8765` |
 | Team report PDF | `docker/hub.sh report` | `docs/report/Smart_Mobility_Hub_Report.pdf` |
@@ -543,6 +545,8 @@ commit `40ae6ac` unless noted, simulation only):
 | T17 supervisor killed → bridge zero | 0.51–0.53 s |
 | `docker/hub.sh s1` (blob baseline) | **PASSED**: counts 0, 3, 5, 4, MAE 0.000 over 127 samples; 6 tracks for 6 people; invalid 1.04 s after camera freeze (≤ 1.2 s); crossing clear 2.48 s after leaving (0.4 s debounce + 2 s hold) |
 | `docker/hub.sh s1 hog` (pretrained HOG) | passes the thresholds only just: MAE 1.000 (limit ≤ 1), recall 4/6 people on the synthetic figures — HOG is meant for real video |
+| `docker/hub.sh s4` (M3's parking_manager) | **PASSED 11/11**: C1 and C2 both ask for P2 at once → P2 and P3, never the same slot; repeated request id → same token; wrong token → `UNKNOWN_TOKEN`, wrong car → `VEHICLE_MISMATCH`; P3 offline → UNKNOWN in 0.18 s; after the reservations expire P2 stays OCCUPIED and P3 UNKNOWN (never FREE); full lot → `FULL`; 20 synchronized pairs: 0 double allocations, p95 39 ms (limit 250 ms) |
+| `docker/hub.sh s5` (M3's traffic_monitor) | **PASSED 9/9** on Cs-J: one car at 0.35 m/s → NORMAL only (34 labels); 4 cars on the 4-car edge → CONGESTED after 0.29 s, held; NORMAL 1.8 s after they leave; vehicle feed frozen → every edge UNKNOWN after 0.995 s (limit 1.2 s; the monitor's stale_sec is 1.0, so the margin is 0.2 s) with speed/density −1.0; valid 0.3 s after the feed resumes; obstacle O → BLOCKED after 0.33 s; NORMAL 2.3 s after it is removed |
 | Camera / odometry rate with camera on | 10.00 Hz / 20.00 Hz |
 | S9 fault repetition (`af37efa`) | **25/25**: e-stop, command loss, odometry freeze, vehicle-data freeze, e-stop-signal loss × start, cruise, turn, max speed, reverse; zero-command latency at the design timeouts (e-stop ≤ 1.2 ms; 0.5 s and 1.0 s timeouts ≤ 0.53 / 1.04 s); simulated stop ≤ 1.10 s |
 | Evidence set (`af37efa`) | 187 tests: 185 passed, 2 xfailed; S9 13/13 (T16 0.4–1.0 ms); S1 blob MAE 0.000; HOG MAE 0.992, recall 0.67; T17 0.52 / 0.50 s — files in [`evidence/`](evidence/README.md) |
@@ -605,7 +609,7 @@ are deliberately untracked). Merge into `main` only as a team decision.
 | S2 / T03 prediction (+ T04 reference policy) | M1-B | ✅ merged, tests pass |
 | T04 dispatch hysteresis, S8 / T15 | M2-B | ✅ node in the package, 28 tests pass, runs in `hub.launch.py`; ⚠️ T04/S8 live evidence pending; T15 needs all nodes |
 | S3 / T05–T06 docking, cancel | M2-A | ❌ |
-| S4–S5 / T07–T10 parking, congestion | M3 | ✅ nodes in the package, 59 tests pass, run in `hub.launch.py`; ⚠️ S4/S5 live evidence pending |
+| S4–S5 / T07–T10 parking, congestion | M3 | ✅ nodes in the package, 59 tests pass; ✅ S4 11/11 and S5 9/9 live (`docker/hub.sh s4`, `s5`; `evidence/m3/`) |
 | S6–S7 / T11–T14 routing, escort | M4 | ❌ |
 | S9 / T16, T17 | M5 | ✅ verified in simulation |
 | T18 planner loss | M4 + M5 | ⛔ blocked (no planner) |
@@ -619,9 +623,13 @@ are deliberately untracked). Merge into `main` only as a team decision.
   answer resets (§6.1); restyle for `ament_flake8`.
 - **M3:** your files were moved too; one integration fix in
   `test_node_smoke.py` (stub install could replace the real rclpy) and test
-  outputs now go to `output/m3/`. Left: S4/S5 live runs with evidence; answer
-  resets; restyle. Note: a parked bus at A is labelled `A-Cs: CONGESTED`
-  (speed 0 counts as slow).
+  outputs now go to `output/m3/`. S4 and S5 now run live and pass
+  (`scenarios/S4.yaml`, `S5.yaml`, `s4_check.py`, `s5_check.py`, written by
+  M5; results in `evidence/m3/`). Left: read the checkers and the results,
+  write the report section; answer resets; restyle; on Ctrl+C your nodes
+  print `RCLError: rcl_shutdown already called` (call `rclpy.shutdown()`
+  only `if rclpy.ok()`, same in M2-B's `hub_coordinator`). Note: a parked
+  bus at A is labelled `A-Cs: CONGESTED` (speed 0 counts as slow).
 - **M1-B:** restyle for `ament_flake8` (mostly single quotes) and fix one
   docstring; then delete the `PENDING_OWNER_RESTYLE` entries.
 - **M1-A (Husan):** study [README_M1A.md](README_M1A.md) and the code before
@@ -661,8 +669,9 @@ it has copy-paste code and a table of what each person connects.
 - **Aidil (M4):** `route_planner` + `robot_manager` (S6, S7, T11–T14).
 - **Arkar (M2-B):** files are in the package already ✅ — now run S8/T04 live
   and save the proof (see the box below).
-- **Carla (M3):** files are in the package already ✅ — now run S4/S5 live
-  and save the proof.
+- **Carla (M3):** files are in the package already ✅ and S4/S5 now pass
+  live ✅ (`docker/hub.sh s4`, `docker/hub.sh s5`, proof in `evidence/m3/`).
+  Left: understand the checkers, write your report section.
 
 > 🧐 **"Run your scenario live and save the proof" — what does that mean?**
 > Unit tests check the *logic* with fake inputs. The teacher also wants to

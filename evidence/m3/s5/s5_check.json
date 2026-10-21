@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "check": "T09 no false congestion",
+      "passed": true,
+      "detail": "34 labels with one car at 0.35 m/s: 34 NORMAL, 0 CONGESTED/BLOCKED"
+    },
+    {
+      "check": "T09 congestion detected",
+      "passed": true,
+      "detail": "CONGESTED 0.293 s after 3 slow cars joined (limit 3.0); cars counted [4]"
+    },
+    {
+      "check": "T09 congestion held",
+      "passed": true,
+      "detail": "30 of 30 labels CONGESTED while the slow cars stayed"
+    },
+    {
+      "check": "T09 congestion clears",
+      "passed": true,
+      "detail": "NORMAL 1.793 s after the slow cars left (limit 3.0)"
+    },
+    {
+      "check": "T10 stale -> UNKNOWN",
+      "passed": true,
+      "detail": "all edges UNKNOWN 0.995 s after the vehicle feed froze (limit 1.2)"
+    },
+    {
+      "check": "T10 invalid values",
+      "passed": true,
+      "detail": "8 of 8 /traffic/edges messages during the freeze: valid=false, speed and density -1.0"
+    },
+    {
+      "check": "T10 recovery",
+      "passed": true,
+      "detail": "Cs-J valid again 0.296 s after the feed resumed (limit 3.0)"
+    },
+    {
+      "check": "S5 obstacle -> BLOCKED",
+      "passed": true,
+      "detail": "BLOCKED 0.325 s after obstacle O appeared (limit 0.7 = one 2 Hz publication + one vehicle frame + slack)"
+    },
+    {
+      "check": "S5 obstacle cleared",
+      "passed": true,
+      "detail": "NORMAL 2.293 s after obstacle O was removed (limit 3.5)"
+    }
+  ],
+  "commit": "72e2fde-dirty"
+}
