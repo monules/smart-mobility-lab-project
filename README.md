@@ -631,11 +631,12 @@ are deliberately untracked). Merge into `main` only as a team decision.
   `test_node_smoke.py` (stub install could replace the real rclpy) and test
   outputs now go to `output/m3/`. S4 and S5 now run live and pass
   (`scenarios/S4.yaml`, `S5.yaml`, `s4_check.py`, `s5_check.py`, written by
-  M5; results in `evidence/m3/`). Left: read the checkers and the results,
-  write the report section; answer resets; restyle; on Ctrl+C your nodes
-  print `RCLError: rcl_shutdown already called` (call `rclpy.shutdown()`
-  only `if rclpy.ok()`, same in M2-B's `hub_coordinator`). Note: a parked
-  bus at A is labelled `A-Cs: CONGESTED` (speed 0 counts as slow).
+  M5; results in `evidence/m3/`). Branch `feature/m3-report`: clean Ctrl+C
+  exit for both nodes (no more `RCLError`) and a **draft of your report
+  section** (docs/report/REPORT.md §8) written from your code and the runs —
+  confirm or correct it, and fill your contribution row. Left: answer
+  resets; restyle. Note: a parked bus at A is labelled `A-Cs: CONGESTED`
+  (speed 0 counts as slow).
 - **M1-B:** restyle for `ament_flake8` (mostly single quotes) and fix one
   docstring; then delete the `PENDING_OWNER_RESTYLE` entries.
 - **M1-A (Husan):** study [README_M1A.md](README_M1A.md) and the code before
@@ -683,7 +684,8 @@ it has copy-paste code and a table of what each person connects.
   S8 waits for Aidil's part.
 - **Carla (M3):** files are in the package already ✅ and S4/S5 now pass
   live ✅ (`docker/hub.sh s4`, `docker/hub.sh s5`, proof in `evidence/m3/`).
-  Left: understand the checkers, write your report section.
+  Your report section is drafted (§8 of `docs/report/REPORT.md`) — read it
+  next to the checkers and say "yes" or fix it.
 
 > 🧐 **"Run your scenario live and save the proof" — what does that mean?**
 > Unit tests check the *logic* with fake inputs. The teacher also wants to
