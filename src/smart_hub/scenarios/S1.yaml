@@ -1,0 +1,28 @@
+# Scenario S1: passenger detection and queue counting (assignment 8.3).
+# Script: empty for 5 s; three queue passengers at t=5, two more at t=10,
+# one leaves at t=15; a pedestrian stands in crossing C from t=20 for 4 s;
+# the camera freezes at t=30; run 40 s. Expected stable counts 0, 3, 5, 4.
+# Extra for T02: p2 is hidden from the camera for 0.3 s at t=12 (occlusion).
+# Pedestrians are seen only by /camera/image_raw; robot and bus stay parked.
+scenario_id: S1
+duration_sec: 40
+observation_noise_m: 0.0
+estop: false
+agents:
+  robot_1: {kind: robot, x: 3.0, y: 6.0, theta: 0.0}
+  bus_1: {kind: bus, x: 1.0, y: 2.0, theta: 0.0}
+parking:
+  P1: occupied
+  P2: free
+  P3: free
+events:
+  - {t: 5.0, type: pedestrian, id: p1, x: 2.4, y: 6.6}
+  - {t: 5.0, type: pedestrian, id: p2, x: 3.3, y: 6.6}
+  - {t: 5.0, type: pedestrian, id: p3, x: 4.2, y: 6.6}
+  - {t: 10.0, type: pedestrian, id: p4, x: 5.1, y: 6.6}
+  - {t: 10.0, type: pedestrian, id: p5, x: 5.9, y: 6.6}
+  - {t: 12.0, type: occlude, id: p2, duration: 0.3}
+  - {t: 15.0, type: pedestrian, id: p5, active: false}
+  - {t: 20.0, type: pedestrian, id: c1, x: 5.0, y: 2.2}
+  - {t: 24.0, type: pedestrian, id: c1, active: false}
+  - {t: 30.0, type: freeze, topic: camera, duration: 10.0}

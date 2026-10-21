@@ -16,8 +16,22 @@ from smart_hub import geometry as geo
 
 DT = 0.05                      # s, 20 Hz
 MOVABLE = ('robot', 'bus', 'car')
-EVENT_TYPES = ('estop', 'freeze', 'obstacle', 'parking', 'note')
-FREEZABLE = ('odom', 'vehicles', 'parking')
+EVENT_TYPES = ('estop', 'freeze', 'obstacle', 'parking', 'note', 'pedestrian', 'occlude')
+# 'camera' silences /camera/image_raw; 'camera_repeat' keeps re-sending the
+# last frame with its old stamp (a frozen source, assignment 16.1).
+FREEZABLE = ('odom', 'vehicles', 'parking', 'camera', 'camera_repeat')
+
+
+@dataclass
+class Pedestrian:
+    """A person on the floor; seen only by the camera (not in /hub/vehicles)."""
+
+    ped_id: str
+    x: float
+    y: float
+    vx: float = 0.0
+    vy: float = 0.0
+    hidden_until: float = -math.inf   # occluded from the camera until this time
 
 
 @dataclass
@@ -48,6 +62,12 @@ def validate_event(event):
         raise ValueError('obstacle needs id')
     if kind == 'parking' and event.get('state') not in ('free', 'occupied', 'offline'):
         raise ValueError('parking needs state free/occupied/offline')
+    if kind == 'pedestrian':
+        if 'id' not in event or (event.get('active', True) and not
+                                 ('x' in event and 'y' in event)):
+            raise ValueError('pedestrian needs id, and x/y unless active: false')
+    if kind == 'occlude' and ('id' not in event or float(event.get('duration', 0)) <= 0):
+        raise ValueError('occlude needs id and duration > 0')
 
 
 class HubSim:
@@ -78,6 +98,9 @@ class HubSim:
         self.frozen_until = {}
         self.estop = bool(sc.get('estop', False))
         self.parking = dict(sc.get('parking', {}))
+        self.pedestrians = {}
+        for pid, spec in sc.get('pedestrians', {}).items():
+            self._place_pedestrian(dict(spec, id=pid))
 
     # --------------------------------------------------------------- inputs
     def set_command(self, vehicle_id, v, w):
@@ -107,7 +130,21 @@ class HubSim:
             body.active = bool(event.get('active', True))
         elif kind == 'parking':
             self.parking[event['slot']] = event['state']
+        elif kind == 'pedestrian':
+            if event.get('active', True):
+                self._place_pedestrian(event)
+            else:
+                self.pedestrians.pop(event['id'], None)    # walked away
+        elif kind == 'occlude':
+            ped = self.pedestrians.get(event['id'])
+            if ped is not None:
+                ped.hidden_until = self.t + float(event['duration'])
         return event
+
+    def _place_pedestrian(self, spec):
+        self.pedestrians[spec['id']] = Pedestrian(
+            spec['id'], float(spec['x']), float(spec['y']),
+            float(spec.get('vx', 0.0)), float(spec.get('vy', 0.0)))
 
     # ----------------------------------------------------------------- step
     def step(self):
@@ -125,6 +162,9 @@ class HubSim:
             body.x, body.y, body.theta = geo.predict_pose(
                 body.x, body.y, body.theta, body.v, body.w, DT)
             body.theta = math.atan2(math.sin(body.theta), math.cos(body.theta))
+        for ped in self.pedestrians.values():
+            ped.x += ped.vx * DT
+            ped.y += ped.vy * DT
         self.steps += 1
         self.t = self.steps * DT               # no float drift over long runs
         return applied
@@ -142,6 +182,11 @@ class HubSim:
 
     def visible_bodies(self):
         return [b for b in self.bodies.values() if b.kind in MOVABLE or b.active]
+
+    def camera_people(self):
+        """(x, y) of pedestrians the camera can see right now (not occluded)."""
+        return [(p.x, p.y) for _, p in sorted(self.pedestrians.items())
+                if self.t >= p.hidden_until]
 
     def finished(self):
         duration = float(self.scenario.get('duration_sec', 0))

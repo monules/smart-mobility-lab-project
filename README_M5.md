@@ -13,6 +13,8 @@ Branch `m5-safety-supervisor`. ROS 2 **Jazzy**, Ubuntu 24.04, run in Docker
 | `src/smart_hub/smart_hub/scenario_runner.py` | ROS node: 20 Hz deterministic simulator, YAML scenarios, fault injection, `/scenario/reset`. Logic in `sim_core.py`. |
 | `src/smart_hub/smart_hub/metrics_logger.py` | ROS node: per-run `events.csv` + `summary.json`. Logic in `metrics_core.py`. |
 | `src/smart_hub/smart_hub/dashboard_marker_publisher.py` | ROS node: read-only RViz overlay on `/hub/markers` (§3.1). Logic in `marker_core.py`. |
+| `src/smart_hub/smart_hub/camera_model.py` | Synthetic pinhole camera (640×480, 10 Hz `/camera/image_raw`, sensor QoS) that draws pedestrians for M1-A's detector; floor outlines of Q and C. |
+| `src/smart_hub/scenarios/S1.yaml` | S1 script from §8.3 (counts 0→3→5→4, crossing pedestrian t=20–24 s, camera freeze t=30 s, 0.3 s occlusion at t=12 s). |
 | `src/smart_hub/smart_hub/geometry.py`, `ros_common.py` | Map M1 geometry/graph; QoS profiles and stamp helpers. |
 | `src/smart_hub/smart_hub/s9_fault_check.py` | Test tool: runs the §16.3 S9 recovery sequence (T16, T17) and writes `s9_check.json`. |
 | `src/smart_hub/smart_hub/mock_candidate_publisher.py` | Test tool: stand-in for M4/M2-A candidate commands until their managers exist. |
@@ -33,9 +35,16 @@ docker/hub.sh shell      # interactive shell with the workspace sourced
 
 The repo is mounted at `/ws` (not copied), so edits need no image rebuild —
 only `docker/hub.sh build` after adding files or changing `setup.py`.
-Evidence lands in `output/` (git-ignored): `output/s9_check.json` and
-`output/<run_id>/{events.csv,summary.json}`; each records the commit
+Evidence lands in `output/` (git-ignored): `output/s9_check.json`,
+`output/<run_id>/{events.csv,summary.json}`, a rosbag
+`output/bag_S9_seed<seed>/` with `bag_S9_info.txt` (§20.2), and a parameter
+dump per M5 node in `output/params/` (§17); each records the commit
 (`-dirty` if `src/` or `docker/` has uncommitted changes).
+
+Simulator pedestrians (`pedestrian`, `occlude` events) are seen only by the
+camera; their true positions are on `/sim/truth` with kind `pedestrian`.
+Camera faults: `freeze` with topic `camera` (silence) or `camera_repeat`
+(same frame, old stamp — a frozen source, §16.1).
 
 Inside `docker/hub.sh shell`:
 ```bash

@@ -8,12 +8,16 @@ Publishes   /robot/odom        nav_msgs/Odometry       20 Hz, R10
                                                        for metrics only; never frozen)
             /parking/observed  SlotObservationArray    5 Hz, R10
             /hub/estop         std_msgs/Bool           10 Hz, R1T (if publish_estop)
+            /camera/image_raw  sensor_msgs/Image bgr8  10 Hz, sensor QoS (if publish_camera)
             /hub/events        HubEvent                R100, scenario events
 Serves      /scenario/reset    ResetScenario
 
 The world advances by a fixed 0.05 s step per timer tick (assignment 3.2), so
 the same scenario file and seed give the same run. A "freeze" event stops the
-named publisher for its duration to simulate a sensor dropout.
+named publisher for its duration to simulate a sensor dropout;
+"camera_repeat" re-sends the last frame with its old stamp (frozen source).
+Pedestrians are seen only by the camera; their true positions are in
+/sim/truth with kind 'pedestrian' (for evaluation, never for decisions).
 """
 import json
 import math
@@ -23,6 +27,8 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import Image
 from smart_hub import geometry as geo
 from smart_hub.ros_common import declare, R1, R10, R100, R1T
 from smart_hub.sim_core import DT, HubSim
@@ -31,6 +37,9 @@ from smart_hub_interfaces.msg import (HubEvent, SlotObservation, SlotObservation
 from smart_hub_interfaces.srv import ResetScenario
 from std_msgs.msg import Bool, String
 import yaml
+
+# Floor outlines painted for the camera: queue Q and crossing C (assignment 2.1).
+CAMERA_FLOOR = ((2.0, 5.0, 6.0, 7.0), geo.CROSSING)
 
 
 def default_scenario_dir():
@@ -55,8 +64,14 @@ class ScenarioRunner(Node):
         super().__init__('scenario_runner', **kwargs)
         p = declare(self, {'scenario': 'S9', 'seed': 9, 'scenario_dir': '',
                            'publish_estop': True, 'robot_id': 'robot_1',
-                           'bus_id': 'bus_1', 'input_timeout': 0.5})
+                           'bus_id': 'bus_1', 'input_timeout': 0.5,
+                           'publish_camera': True})
         self.dir = p['scenario_dir'] or default_scenario_dir()
+        self.camera = None
+        if p['publish_camera']:
+            from smart_hub.camera_model import PinholeCamera   # needs OpenCV
+            self.camera = PinholeCamera()
+        self.last_frame = None                 # (Image msg) for camera_repeat
         self.publish_estop = bool(p['publish_estop'])
         self.ids = {'robot': p['robot_id'], 'bus': p['bus_id']}
         self.input_timeout = float(p['input_timeout'])
@@ -69,6 +84,8 @@ class ScenarioRunner(Node):
         self.parking_pub = self.create_publisher(SlotObservationArray, '/parking/observed', R10)
         self.estop_pub = self.create_publisher(Bool, '/hub/estop', R1T)
         self.event_pub = self.create_publisher(HubEvent, '/hub/events', R100)
+        self.camera_pub = self.create_publisher(Image, '/camera/image_raw',
+                                                qos_profile_sensor_data)
         for agent in ('robot', 'bus'):
             self.create_subscription(Twist, '/%s/cmd_vel_applied' % agent,
                                      lambda m, a=agent: self.on_applied(a, m), R1)
@@ -122,11 +139,12 @@ class ScenarioRunner(Node):
         if not self.sim.is_frozen('odom'):
             self._publish_odom(stamp)
         if step % 2 == 0:
-            self.truth_pub.publish(self._vehicles(stamp, noisy=False))
+            self.truth_pub.publish(self._truth(stamp))
             if not self.sim.is_frozen('vehicles'):
                 self.vehicles_pub.publish(self._vehicles(stamp, noisy=True))
             if self.publish_estop:
                 self.estop_pub.publish(Bool(data=self.sim.estop))
+            self._publish_camera(stamp)
         if step % 4 == 0 and not self.sim.is_frozen('parking'):
             self._publish_parking(stamp)
         if self.sim.finished() and not self.completed:
@@ -161,6 +179,31 @@ class ScenarioRunner(Node):
             v.valid = True
             msg.vehicles.append(v)
         return msg
+
+    def _truth(self, stamp):
+        """Ground truth: every body plus pedestrians (kind 'pedestrian')."""
+        msg = self._vehicles(stamp, noisy=False)
+        for pid, ped in sorted(self.sim.pedestrians.items()):
+            v = VehicleState(vehicle_id=pid, kind='pedestrian', valid=True)
+            v.pose.x, v.pose.y = float(ped.x), float(ped.y)
+            v.speed_mps = float(math.hypot(ped.vx, ped.vy))
+            msg.vehicles.append(v)
+        return msg
+
+    def _publish_camera(self, stamp):
+        if self.camera is None or self.sim.is_frozen('camera'):
+            return
+        if self.sim.is_frozen('camera_repeat') and self.last_frame is not None:
+            self.camera_pub.publish(self.last_frame)    # same pixels, same old stamp
+            return
+        img = self.camera.render(self.sim.camera_people(), CAMERA_FLOOR)
+        msg = Image()
+        msg.header.stamp, msg.header.frame_id = stamp, 'camera'
+        msg.height, msg.width = img.shape[0], img.shape[1]
+        msg.encoding, msg.is_bigendian, msg.step = 'bgr8', 0, img.shape[1] * 3
+        msg.data = img.tobytes()
+        self.last_frame = msg
+        self.camera_pub.publish(msg)
 
     def _publish_parking(self, stamp):
         msg = SlotObservationArray()
