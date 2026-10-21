@@ -1,0 +1,14 @@
+/actuator_bridge:
+  ros__parameters:
+    bus_speed_limit: 0.4
+    bus_turn_limit: 0.5
+    command_timeout: 0.5
+    door_settle_sec: 0.5
+    mode: sim
+    rate_hz: 20.0
+    robot_speed_limit: 0.25
+    robot_turn_limit: 1.0
+    run_id: run-0
+    start_type_description_service: true
+    use_sim_time: false
+

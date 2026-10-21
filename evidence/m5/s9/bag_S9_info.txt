@@ -1,0 +1,21 @@
+
+Files:             bag_S9_seed9_0.mcap
+Bag size:          389.1 KiB
+Storage id:        mcap
+ROS Distro:        jazzy
+Duration:          13.565786965s
+Start:             Oct 21 2026 10:07:09.883485126 (1792577229.883485126)
+End:               Oct 21 2026 10:07:23.449272091 (1792577243.449272091)
+Messages:          1784
+Topic information: Topic: /bus/cmd_vel | Type: geometry_msgs/msg/Twist | Count: 248 | Serialization Format: cdr
+                   Topic: /hub/estop | Type: std_msgs/msg/Bool | Count: 145 | Serialization Format: cdr
+                   Topic: /hub/events | Type: smart_hub_interfaces/msg/HubEvent | Count: 26 | Serialization Format: cdr
+                   Topic: /hub/safety | Type: smart_hub_interfaces/msg/SafetyState | Count: 131 | Serialization Format: cdr
+                   Topic: /hub/vehicles | Type: smart_hub_interfaces/msg/VehicleStateArray | Count: 134 | Serialization Format: cdr
+                   Topic: /robot/cmd_vel | Type: geometry_msgs/msg/Twist | Count: 248 | Serialization Format: cdr
+                   Topic: /robot/cmd_vel_applied | Type: geometry_msgs/msg/Twist | Count: 272 | Serialization Format: cdr
+                   Topic: /robot/cmd_vel_candidate | Type: geometry_msgs/msg/TwistStamped | Count: 256 | Serialization Format: cdr
+                   Topic: /robot/odom | Type: nav_msgs/msg/Odometry | Count: 190 | Serialization Format: cdr
+                   Topic: /sim/truth | Type: smart_hub_interfaces/msg/VehicleStateArray | Count: 134 | Serialization Format: cdr
+Service:           0
+Service information: 

@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "check": "T01 truth sequence",
+      "passed": true,
+      "detail": "stable truth [0, 3, 5, 4]"
+    },
+    {
+      "check": "T01 stable counts",
+      "passed": true,
+      "detail": "127 settled samples, MAE 0.000, mismatches []"
+    },
+    {
+      "check": "T02 no double count",
+      "passed": true,
+      "detail": "6 confirmed tracks for 6 distinct people (recall 1.00)"
+    },
+    {
+      "check": "S1 valid before freeze",
+      "passed": true,
+      "detail": "0 invalid samples before the freeze"
+    },
+    {
+      "check": "T02 freeze -> invalid",
+      "passed": true,
+      "detail": "invalid 1.034 s after the freeze (limit 1.2)"
+    },
+    {
+      "check": "S1 crossing hold",
+      "passed": true,
+      "detail": "occupied 0.58 s after entry; clear 2.48 s after leaving (needs 2.0-3.5)"
+    }
+  ],
+  "commit": "af37efa"
+}

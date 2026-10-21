@@ -1,0 +1,29 @@
+t,entity,event,reason,correlation_id
+1053.6032,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
+1053.6044,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
+1053.9481,safety_supervisor,STOP_LATCHED,ESTOP,stop-1
+1053.9483,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.075,stop-1
+1053.9766,safety_supervisor,CLEAR_REJECTED,ESTOP_ASSERTED;robot:COMMAND_NONZERO by s9_fault_check,stop-1
+1055.9855,safety_supervisor,CLEAR_REJECTED,robot:COMMAND_NONZERO by s9_fault_check,stop-1
+1055.99,scenario_runner,FAULT_INJECTED,"{""duration"": 4.0, ""topic"": ""odom"", ""type"": ""freeze""}",S9-s9-r1
+1056.7191,scenario_runner,SCENARIO_EVENT,"{""t"": 3.0, ""text"": ""S9 start"", ""type"": ""note""}",S9-s9-r1
+1056.996,robot,SAFETY_HOLD,ODOM_STALE,robot:ODOM_STALE
+1057.5929,safety_supervisor,CLEAR_REJECTED,robot:ODOM_STALE by s9_fault_check,stop-1
+1059.7194,scenario_runner,SCENARIO_EVENT,"{""active"": true, ""id"": ""O"", ""t"": 6.0, ""type"": ""obstacle""}",S9-s9-r1
+1059.9964,robot,SAFETY_RELEASE,ODOM_STALE,robot:ODOM_STALE
+1061.0019,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-1
+1061.7194,scenario_runner,SCENARIO_EVENT,"{""slot"": ""P3"", ""state"": ""offline"", ""t"": 8.0, ""type"": ""parking""}",S9-s9-r1
+1063.1476,robot,SAFETY_HOLD,COMMAND_STALE,robot:COMMAND_STALE
+1063.1993,robot,SAFETY_RELEASE,COMMAND_STALE,robot:COMMAND_STALE
+1063.8839,safety_supervisor,STOP_LATCHED,ESTOP,stop-2
+1063.8843,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.143,stop-2
+1064.578,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-2
+1064.6761,safety_supervisor,STOP_LATCHED,ESTOP,stop-3
+1064.6764,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.105,stop-3
+1065.3793,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-3
+1065.4824,safety_supervisor,STOP_LATCHED,ESTOP,stop-4
+1065.4826,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.117,stop-4
+1066.1757,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-4
+1066.2741,safety_supervisor,STOP_LATCHED,ESTOP,stop-5
+1066.2743,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.101,stop-5
+1066.9763,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-5

@@ -20,6 +20,7 @@ refer to `Smart_Mobility_Hub_Assignment.pdf`; roles come from the
 7-person role document. Both PDFs are kept out of git.
 
 **Contents:** [0 Like you are 5](#0-explained-like-you-are-5) ·
+[11 Finish line](#11-the-finish-line--whats-left-ez-mode-) ·
 [1 Overview](#1-project-overview) ·
 [2 Repository map](#2-repository-map) ·
 [3 Architecture](#3-architecture-and-data-flow) ·
@@ -100,9 +101,11 @@ Think of it as packing five boxes for the teacher:
    machines, how the AI model was trained and tested, the safety rules,
    **every test T01–T18 with its result** (including the ones that failed
    or are blocked, with the reason), what does not work yet, and a table of
-   who did what.
+   who did what. Draft: [`docs/report/REPORT.md`](docs/report/REPORT.md) →
+   PDF with `docker/hub.sh report`.
 3. **The proof box** (evidence): videos, rosbag recordings, the CSV/JSON
-   files from `output/`, the training scripts and the model file.
+   files from `output/`, the training scripts and the model file. Ours
+   starts in [`evidence/`](evidence/README.md) (M5 and M1-A so far).
 4. **The 8-minute show:** 1 min map and design → 2 min detection, dispatch,
    docking, parking → 2 min robot and rerouting → 2 min faults, cancel and
    reset → 1 min numbers and limitations.
@@ -282,7 +285,10 @@ docker/hub.sh build
 |---|---|---|
 | Run all tests | `docker/hub.sh test` | colcon test + summary |
 | S9 acceptance demo (~20 s) | `docker/hub.sh s9` | `S9 verdict: PASSED`, exit 0 only if every check passed; evidence in `output/` (check JSON, metrics, rosbag, parameter dumps) |
-| S1 passenger counting (~45 s) | `docker/hub.sh s1` (or `s1 hog`) | `S1 verdict: PASSED`; `output/s1_check.json` |
+| S1 passenger counting (~45 s) | `docker/hub.sh s1` (or `s1 hog`) | `S1 verdict: PASSED`; `output/s1_check.json`, `s1_count_vs_truth.png`, dashboard pictures |
+| S9 faults × 5 mission phases (~4 min) | `docker/hub.sh s9x` | `S9 repeat verdict: PASSED`; `output/repeat/s9_repeat.{json,csv}` |
+| Live dashboard (Foxglove) | `docker/hub.sh view` | connect Foxglove to `ws://localhost:8765` |
+| Team report PDF | `docker/hub.sh report` | `docs/report/Smart_Mobility_Hub_Report.pdf` |
 | Shell with workspace sourced | `docker/hub.sh shell` | interactive bash in `/ws` |
 | One command | `docker/hub.sh run 'ros2 node list'` | |
 
@@ -342,10 +348,20 @@ O as footprint cylinders, planned routes from `/robot/route` and
 safety/last-event text. Anything older than 1 s is drawn grey/UNKNOWN
 (routes are plans and stay until replaced or cleared). **Not drawn:**
 speed-based congestion (`EdgeState` has no label).
-In RViz set Fixed Frame `map` and add a *MarkerArray* display on
-`/hub/markers`. The dev image has no RViz/GUI; viewing it needs a desktop
-ROS 2 Jazzy install on the same `ROS_DOMAIN_ID` — not set up or tested on
-the Mac.
+**Seeing it** (the container has no screen, so two ways that work on a Mac):
+- **Pictures + video, no setup:** `docker/hub.sh s9` and `docker/hub.sh s1`
+  save `output/dashboard/frame_*.png`, `latest.png` and `dashboard.mp4`
+  (`dashboard_snapshot` draws `/hub/markers` top-down; `record_dashboard:=true`
+  in `hub.launch.py`).
+- **Live:** `docker/hub.sh view` (S1 with the perception chain and a
+  circling robot), then open the free **Foxglove** app (foxglove.dev, needs a
+  free account) → *Open connection* → *Foxglove WebSocket* →
+  `ws://localhost:8765` → add a **3D** panel (display frame `map`, enable
+  `/hub/markers`, `/robot/route`) and an **Image** panel on
+  `/camera/image_raw`. Verified: the bridge (foxglove_bridge 3.6.0, arm64)
+  accepts the connection and offers 30 topics. Ctrl+C stops.
+- On a Linux desktop with ROS 2 Jazzy: RViz, Fixed Frame `map`,
+  *MarkerArray* on `/hub/markers`.
 
 **Troubleshooting (all seen during development)**
 
@@ -533,6 +549,8 @@ commit `40ae6ac` unless noted, simulation only):
 | `docker/hub.sh s1` (blob baseline) | **PASSED**: counts 0, 3, 5, 4, MAE 0.000 over 127 samples; 6 tracks for 6 people; invalid 1.04 s after camera freeze (≤ 1.2 s); crossing clear 2.48 s after leaving (0.4 s debounce + 2 s hold) |
 | `docker/hub.sh s1 hog` (pretrained HOG) | passes the thresholds only just: MAE 1.000 (limit ≤ 1), recall 4/6 people on the synthetic figures — HOG is meant for real video |
 | Camera / odometry rate with camera on | 10.00 Hz / 20.00 Hz |
+| S9 fault repetition (`af37efa`) | **25/25**: e-stop, command loss, odometry freeze, vehicle-data freeze, e-stop-signal loss × start, cruise, turn, max speed, reverse; zero-command latency at the design timeouts (e-stop ≤ 1.2 ms; 0.5 s and 1.0 s timeouts ≤ 0.53 / 1.04 s); simulated stop ≤ 1.10 s |
+| Evidence set (`af37efa`) | 187 tests: 185 passed, 2 xfailed; S9 13/13 (T16 0.4–1.0 ms); S1 blob MAE 0.000; HOG MAE 0.992, recall 0.67; T17 0.52 / 0.50 s — files in [`evidence/`](evidence/README.md) |
 | Reset handshake + routes (`750248f`) | `/scenario/reset` → `acks=4` (`acks=5` with `perception:=true`), latch kept across the reset; a `/robot/route` Path appears on `/hub/markers`; full suite 178 passed, 2 xfailed; S9 PASSED (T16 0.7 ms); S1 PASSED (MAE 0.000) |
 | Nonzero output while latched | 0 |
 | M1-B S2 runtime with M5 stack | `/hub/demand` 1 Hz, valid after warm-up; dashboard shows the forecast |
@@ -616,8 +634,76 @@ are deliberately untracked). Merge into `main` only as a team decision.
   §8.3 video MAE / precision / recall (tools: `video_publisher`, `detector:=hog`).
 - **M2-A, M4:** start from §6 above; use `robot_1`/`bus_1`; publish
   stamped candidates only. M4's planner unblocks T18.
-- **M5:** done for simulation. Optional: draw robot/bus in the synthetic
-  camera if the team wants vehicles in S1 images. Everyone else: follow
-  [§6.1](#61-plugging-your-node-into-the-hub-for-the-next-members).
+- **M5:** done for simulation (incl. §16.3 repetition, dashboard viewing,
+  evidence, report draft). Left for when the other nodes exist: the S8
+  rush-hour scenario file + integrated launch, and the T18 planner-loss test.
+  Everyone else: follow
+  [§6.1](#61-plugging-your-node-into-the-hub-for-the-next-members) and
+  [§11](#11-the-finish-line--whats-left-ez-mode-).
 - **Team:** answer [contract §9](docs/INTEGRATION_CONTRACT.md#9-open-decisions-who-must-answer)
   and decide when to push `integration/current-team-work`.
+
+## 11. The finish line — what's left, ez mode 🏁
+
+Where we are: the M5 (simulator + safety) and M1-A (people counter) parts are
+done and proven in simulation, M1-B (forecast) is done, M2-B and M3 have code
+that still needs to move into the package, M2-A and M4 haven't started.
+Here's the path to a clean submission, step by step.
+
+**Step 1 — everyone gets the same code** 📥
+Saidumar pushes `integration/current-team-work` (GitHub Desktop → Push).
+Everyone: `git fetch origin`, then make your own branch from it (§9).
+
+**Step 2 — everyone gets Docker working** 🐳
+Install Docker Desktop, open it, then in the repo folder:
+`docker/hub.sh image` → `docker/hub.sh build` → `docker/hub.sh test`.
+If the test line ends with `0 failures`, you're good.
+
+**Step 3 — the missing parts get built** 👷
+Follow [§6.1](#61-plugging-your-node-into-the-hub-for-the-next-members) —
+it has copy-paste code and a table of what each person connects.
+- **Fazliddin (M2-A):** `bus_manager` + DockBus action (S3, T05, T06).
+- **Aidil (M4):** `route_planner` + `robot_manager` (S6, S7, T11–T14).
+- **Arkar (M2-B):** move the coordinator files into `src/smart_hub`, add it to
+  `hub.launch.py` (S8, T04).
+- **Carla (M3):** move the parking/traffic files into `src/smart_hub` (S4, S5).
+- **Tuymurod (M1-B):** fix the code style (single quotes) + answer resets.
+Each person: own branch → `docker/hub.sh test` green → pull request into
+`integration/current-team-work`.
+
+**Step 4 — Husan films the real video** 🎥
+Instructions in [README_M1A.md](README_M1A.md). Record → label 100+ frames
+by hand → `video_eval`. Or record + send it and the 4 corner measurements;
+the rest can be done for him, but **he** checks the labels.
+
+**Step 5 — the big team test** 🔗
+When everyone's node is in: Saidumar writes `scenarios/S8.yaml` (the
+rush-hour script of §15.1) and the T18 planner-loss test, then the team
+runs S8 / T15 together. Fix what breaks. Repeat until green.
+
+**Step 6 — collect the proof** 📊
+Run `docker/hub.sh s9`, `s9x`, `s1`, `test` (and the new S2–S8 checks).
+Copy the results into `evidence/<member>/` like `evidence/m5/`.
+
+**Step 7 — finish the report** 📝
+Open `docs/report/REPORT.md`, replace every **TODO** with your real
+results (never invent numbers, keep failed tests in with the reason), fill
+your row of the contribution table **including what tools/AI you used**,
+then `docker/hub.sh report` → `docs/report/Smart_Mobility_Hub_Report.pdf`.
+
+**Step 8 — make the 8-minute demo video** 🎬
+Live view: `docker/hub.sh view` + Foxglove; or use the recorded
+`output/dashboard/dashboard.mp4`. Order (§24.1): 1 min map → 2 min
+detection/dispatch/docking/parking → 2 min robot + rerouting → 2 min
+faults/cancel/reset → 1 min numbers.
+
+**Step 9 — study for your own defence** 🧑‍🏫
+You'll be asked to explain one topic path, one service/action, and one bug
+you fixed. Read your README and code until you can explain every line.
+
+**Step 10 — submit** 📦
+As a team: merge `integration/current-team-work` into `main` (pull request),
+tag it (e.g. `v1.0-submission`), then hand in: the repo link + commit hash,
+the report PDF, the `evidence/` folder, and the demo video — however the
+instructor asks for it. Don't upload the assignment PDFs or `build/`,
+`install/`, `log/`, `output/`.

@@ -1,0 +1,9 @@
+/dashboard_marker_publisher:
+  ros__parameters:
+    frame_id: map
+    lifetime: 1.0
+    rate_hz: 5.0
+    stale_after: 1.0
+    start_type_description_service: true
+    use_sim_time: false
+

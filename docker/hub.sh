@@ -8,6 +8,7 @@
 #   docker/hub.sh s9x            S9 faults x 5 mission phases (~4 min)
 #   docker/hub.sh s1 [blob|hog]  run the S1 passenger-counting check (~45 s)
 #   docker/hub.sh view [S1|S9]   live dashboard for Foxglove on ws://localhost:8765
+#   docker/hub.sh report         build docs/report/Smart_Mobility_Hub_Report.pdf
 #   docker/hub.sh shell          interactive shell, workspace sourced
 #   docker/hub.sh run '<cmd>'    run one command with the workspace sourced
 #
@@ -90,7 +91,10 @@ print('S1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
       echo 'Open Foxglove -> Open connection -> ws://localhost:8765'
       exec ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765 \
         address:=0.0.0.0" ;;
+  report)
+    # Team report: docs/report/REPORT.md -> docs/report/Smart_Mobility_Hub_Report.pdf
+    in_container "" "python3 docs/report/build_report.py" ;;
   shell) in_container "-it" "exec bash" ;;
   run) in_container "" "${2:?usage: docker/hub.sh run '<command>'}" ;;
-  *) sed -n '2,12p' "$0" ;;
+  *) sed -n '2,13p' "$0" ;;
 esac

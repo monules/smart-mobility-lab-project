@@ -1,0 +1,87 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "check": "system ready",
+      "passed": true,
+      "detail": "safety, truth and clear_stop available"
+    },
+    {
+      "check": "1a nominal pass-through",
+      "passed": true,
+      "detail": "cmd_vel follows a 0.20 m/s candidate"
+    },
+    {
+      "check": "1b robot speed cap",
+      "passed": true,
+      "detail": "0.60 m/s request -> 0.250 m/s"
+    },
+    {
+      "check": "2 T16 stop latency",
+      "passed": true,
+      "detail": "e-stop -> first zero cmd_vel 0.0004 s (limit 0.20); sim speed < 0.02 after 0.023 s"
+    },
+    {
+      "check": "3 reset rejected: e-stop asserted",
+      "passed": true,
+      "detail": "ESTOP_ASSERTED;robot:COMMAND_NONZERO"
+    },
+    {
+      "check": "4 e-stop false keeps latch",
+      "passed": true,
+      "detail": "0 nonzero outputs in 2 s, stop_latched=True"
+    },
+    {
+      "check": "5 reset rejected: command nonzero",
+      "passed": true,
+      "detail": "robot:COMMAND_NONZERO"
+    },
+    {
+      "check": "6 reset rejected: stale odometry",
+      "passed": true,
+      "detail": "robot:ODOM_STALE"
+    },
+    {
+      "check": "7 reset accepted when safe",
+      "passed": true,
+      "detail": "CLEARED:ESTOP; stop_latched now False"
+    },
+    {
+      "check": "8 no automatic restart",
+      "passed": true,
+      "detail": "0 nonzero outputs, sim speed 0.000 m/s"
+    },
+    {
+      "check": "9 new command moves robot",
+      "passed": true,
+      "detail": "new 0.20 m/s goal accepted"
+    },
+    {
+      "check": "10 T17 controller loss -> zero",
+      "passed": true,
+      "detail": "candidate stream stopped -> zero after 0.474 s (timeout 0.50 + tick/transport margin)"
+    },
+    {
+      "check": "11 T16 repeated",
+      "passed": true,
+      "detail": "n=5 max=0.0010 s mean=0.0008 s; supervisor receipt->zero max 0.143 ms"
+    }
+  ],
+  "t16": {
+    "external_latency_s": [
+      0.00041749999991225195,
+      0.000972332999936043,
+      0.0008667499998864514,
+      0.000666041000158657,
+      0.0008860000000368018
+    ],
+    "supervisor_receipt_to_zero_ms": [
+      0.075,
+      0.143,
+      0.105,
+      0.117,
+      0.101
+    ]
+  },
+  "commit": "af37efa"
+}

@@ -1,0 +1,12 @@
+/metrics_logger:
+  ros__parameters:
+    bus_id: bus_1
+    flush_period: 2.0
+    output_dir: /ws/output
+    robot_id: robot_1
+    run_id: ''
+    scenario_id: S9
+    seed: 9
+    start_type_description_service: true
+    use_sim_time: false
+

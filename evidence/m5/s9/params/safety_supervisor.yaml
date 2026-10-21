@@ -1,0 +1,23 @@
+/safety_supervisor:
+  ros__parameters:
+    bus_id: bus_1
+    bus_speed_limit: 0.4
+    bus_turn_limit: 0.5
+    clearance: 0.2
+    command_timeout: 0.5
+    enforce_crossing: true
+    estop_timeout: 1.0
+    future_tolerance: 0.2
+    lookahead: 0.5
+    rate_hz: 20.0
+    require_estop_heartbeat: true
+    robot_id: robot_1
+    robot_speed_limit: 0.25
+    robot_turn_limit: 1.0
+    run_id: run-0
+    scenario_id: S9
+    sensor_timeout: 1.0
+    start_type_description_service: true
+    stopped_speed: 0.02
+    use_sim_time: false
+

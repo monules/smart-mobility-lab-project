@@ -175,6 +175,13 @@ on `m5-safety-supervisor` (81 with `test_marker_core.py`, added later). On
 | `test_flake8.py`, `test_pep257.py` | ament linters (§21.1) | D213 off: summary-on-first-line, as in all teammates' code |
 
 Measured (simulation only, not hardware):
+- **Fault repetition (§16.3, `docker/hub.sh s9x`)**: 5 faults × 5 mission
+  phases = 25/25 passed at `af37efa`; zero-command latency equals each
+  fault's design timeout (e-stop ≤ 1.2 ms; command loss ≤ 0.53 s; odometry,
+  vehicle data and e-stop signal loss ≤ 1.04 s); simulated stop ≤ 1.10 s.
+- **Seeing the dashboard**: `dashboard_snapshot` renders `/hub/markers` to
+  PNG/MP4 (`output/dashboard/`); `docker/hub.sh view` serves the live graph
+  to Foxglove on `ws://localhost:8765`.
 - **T16** (e-stop → first zero `/robot/cmd_vel`, measured outside the
   supervisor): max 1.4 ms over 5 trials (limit 200 ms); supervisor receipt →
   zero ≤ 0.31 ms; simulated speed < 0.02 m/s after 0.10–0.15 s.

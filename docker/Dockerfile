@@ -14,7 +14,7 @@ FROM ros:jazzy-ros-base@sha256:103b6c417973394659af6804d4917cd489b91e5ed22eb7bef
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-numpy python3-sklearn python3-matplotlib python3-pytest \
-        python3-yaml python3-opencv \
+        python3-yaml python3-opencv python3-reportlab \
         ros-jazzy-launch-testing ros-jazzy-launch-testing-ros \
         ros-jazzy-ament-flake8 ros-jazzy-ament-pep257 \
         ros-jazzy-foxglove-bridge \

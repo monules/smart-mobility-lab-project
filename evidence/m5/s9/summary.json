@@ -1,0 +1,99 @@
+{
+  "run_id": "S9-s9-r1",
+  "scenario_id": "S9",
+  "seed": 9,
+  "commit": "af37efa",
+  "duration_sec": 13.502,
+  "event_count": 28,
+  "stop_latency": [
+    {
+      "agent": "robot",
+      "seconds": 0.0003
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0003
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0005
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0006
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0002
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0003
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0003
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0004
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0005
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0005
+    }
+  ],
+  "stop_latency_max_sec": 0.0006,
+  "physical_stop": [
+    {
+      "agent": "robot",
+      "seconds": 0.0223
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0223
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0881
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0881
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0942
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0942
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0889
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0889
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0955
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0955
+    }
+  ],
+  "motion_while_latched": 0,
+  "interventions": {
+    "STOP_LATCHED:ESTOP": 5,
+    "SAFETY_HOLD:ODOM_STALE": 1,
+    "SAFETY_HOLD:COMMAND_STALE": 1
+  }
+}
