@@ -32,6 +32,20 @@ killed → supervisor zero after 0.522 s; supervisor killed → bridge zero afte
 **Missing (TODO):** the §8.3 real-video evaluation (≥ 100 hand-labelled
 frames) — see README_M1A.md.
 
+## M2-A — bus docking (S3)
+
+Code and checker by M5 for M2-A (review pending). Commit `8235182` plus the
+uncommitted M2-A work (`8235182-dirty`); the picture was redrawn from the
+same CSV after a plotting fix.
+
+| File | What it shows | Command |
+|---|---|---|
+| `m2a/s3/s3_check.json` | 12/12 checks + all 15 trials: T05 10/10 (≤ 0.040 m), door interlock, crossing grant/release, boarding 4/1, ETA error at 5 m (max 1.12 s), T06 cancel 0.043 s, pedestrian in C, blocked bay, stale pose 0.53 s, coordinator dispatch | `docker/hub.sh s3` |
+| `m2a/s3/s3_trials.csv` | one row per trial (status, pose error, door time, boarding, ETA error) | same run |
+| `m2a/s3/s3_trace.csv` | bus path trace: position, heading, measured speed at 10 Hz (§10.3) | same run |
+| `m2a/s3/s3_events.csv` | action feedback and results, crossing grant/renew/release, door, docking, boarding events | same run |
+| `m2a/s3/s3_paths.png` | paths and distance-to-B over time for every trial | same run |
+
 ## M3 — parking and traffic (S4, S5)
 
 Scenario files and checkers by M5; nodes by M3. Commit `72e2fde` plus the

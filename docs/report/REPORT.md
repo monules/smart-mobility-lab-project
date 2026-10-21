@@ -15,7 +15,7 @@ The assignment asks for a simulation-first transport hub in ROS 2: passenger det
 |---|---|---|
 | S1 passenger detection | M1-A | implemented, verified in simulation; real-video evaluation pending |
 | S2 demand prediction | M1-B | implemented, T03 evaluated on held-out seeds |
-| S3 bus docking | M2-A | **TODO — no code yet** |
+| S3 bus docking | M2-A | S3 12/12 live, T05 10/10, T06 passed (code by M5, review by M2-A pending) |
 | S4/S5 parking, congestion | M3 | nodes in the ROS package with unit tests; S4 11/11 and S5 9/9 pass live |
 | S6/S7 routing, escort | M4 | **TODO — no code yet** |
 | S8 integration | M2-B | coordinator node in the ROS package with unit tests; full run needs S3/S7 |
@@ -80,9 +80,15 @@ Ridge beats persistence by −0.292 MAE (95 % CI −0.543 … −0.044), better 
 
 **TODO (M1-B):** T04 dispatch evidence together with the coordinator; restyle files for `ament_flake8`.
 
-## 6. M2-A — bus manager and docking (S3) — TODO
+## 6. M2-A — bus manager and docking (S3)
 
-State machine (§10.2, §18.6), DockBus action, door interlock with `/bus/door_open` from the actuator bridge, T05 (10/10 dockings) and T06 (cancel → zero command within 0.5 s). The M5 side is ready: candidates on `/bus/cmd_vel_candidate` are capped at 0.40 m/s and the bridge refuses to open the door unless the bus has been stopped for 0.5 s.
+`bus_manager` serves the DockBus action and runs the §10.2 state machine IDLE → APPROACH → (WAIT) → DOCK → BOARD → COMPLETE, with SAFE_STOP from every moving state; the logic lives in `bus_core.py` (pure Python, 10 closed-loop tests against the simulator). The bus follows A-N-Cn-B (fallback while M4's `/route/compute` is missing), asks `/crossing/request` for C 2.5 m before a stop line 0.25 m in front of C, renews every 1 s (3 s lease) and releases once its footprint has left C; when bay B is blocked it waits before C without holding the crossing. Docked = position ≤ 0.20 m, yaw ≤ 0.17 rad and speed < 0.02 m/s for 1 s; the door is requested only then, kept open 8 s from the measured opening, and propulsion needs a measured closed door. ETA = remaining route length / smoothed measured speed + remaining turn time + a declared 1.5 s final-approach allowance; invalid while waiting.
+
+**S3 live** (`docker/hub.sh s3`, `evidence/m2a/s3/`, 12/12 checks, Figure 5). T05: 10/10 dockings, position error 0.012–0.040 m, yaw error ≤ 0.004 rad, door open 8.1 s per stop with no movement while open, crossing granted before entry and released after exit in all 10, no collision, 4 passengers boarded and 1 left waiting each time. ETA error at 5 m remaining: mean 0.37 s, maximum 1.12 s (target ≤ 3 s); ETA invalid 0.2 s per trip (before a credible speed). T06: zero `/bus/cmd_vel` 0.043 s after the cancel was accepted (limit 0.5 s), status CANCELED, crossing released. A pedestrian in C made the coordinator deny with `PEDESTRIAN_PRESENT`; the bus waited outside C and docked after the person left. A car in bay B gave WAIT with `BAY_BLOCKED` outside C. Freezing the vehicle feed gave a zero candidate after 0.53 s (pose timeout 0.5 s) and SAFE_STOP, then the bus resumed and docked. With seven people in Q the coordinator dispatched the bus by itself (observed-queue fallback) and the mission succeeded. The simulated bus has no inertia, so stopping times are shorter than on hardware.
+
+!img ../../evidence/m2a/s3/s3_paths.png | Figure 5 — S3: bus paths (top) and straight-line distance to bay B over time (bottom). Grey: 10 nominal trials; the flat segments at about 4 m are the bus waiting before crossing C (pedestrian in C, blocked bay). | 15
+
+The code and checker were written by M5 for M2-A; **TODO (M2-A):** review them, departure after COMPLETE (a separate transition, §10.2 step 6) is not implemented.
 
 ## 7. M2-B — hub coordinator (S8) — partially TODO
 
@@ -94,9 +100,9 @@ State machine (§10.2, §18.6), DockBus action, door interlock with `/bus/door_o
 
 **S4 live** (`docker/hub.sh s4`, `evidence/m3/s4/s4_check.json`, 11/11 passed). A checker node plays the cars and calls the real services. C1 and C2 asked for P2 at the same moment and received P2 and P3 with different tokens; repeating C1's request id returned the same reservation; a wrong token was rejected with `UNKNOWN_TOKEN` and C2 using C1's token with `VEHICLE_MISMATCH`; C1's slot became OCCUPIED 0.64 s after it was sensed (0.5 s debounce); P3 became UNKNOWN 0.18 s after its sensor went offline; after both reservations expired P2 stayed OCCUPIED and P3 UNKNOWN (expiry never freed an occupied or stale slot); with no free slot a request failed with `FULL`. T07: 20 synchronized request pairs gave 0 double allocations, p95 service latency 39 ms (limit 250 ms), maximum 133 ms.
 
-**S5 live** (`docker/hub.sh s5`, `evidence/m3/s5/`, 9/9 passed, Figure 4). On edge Cs-J (capacity 4): with one car at 0.35 m/s every label was NORMAL (34 labels, no false congestion); three slow cars joining gave CONGESTED after 0.29 s, held while they stayed; NORMAL 1.8 s after they left. T10: freezing the vehicle feed made every edge UNKNOWN after 0.995 s (limit 1.2 s) with speed and density −1.0, and valid again 0.3 s after the feed resumed. Obstacle O gave BLOCKED after 0.33 s (within one 2 Hz publication) and NORMAL 2.3 s after removal (2 s obstacle-clear hold). The UNKNOWN margin is only 0.2 s because the monitor's stale threshold is 1.0 s.
+**S5 live** (`docker/hub.sh s5`, `evidence/m3/s5/`, 9/9 passed, Figure 6). On edge Cs-J (capacity 4): with one car at 0.35 m/s every label was NORMAL (34 labels, no false congestion); three slow cars joining gave CONGESTED after 0.29 s, held while they stayed; NORMAL 1.8 s after they left. T10: freezing the vehicle feed made every edge UNKNOWN after 0.995 s (limit 1.2 s) with speed and density −1.0, and valid again 0.3 s after the feed resumed. Obstacle O gave BLOCKED after 0.33 s (within one 2 Hz publication) and NORMAL 2.3 s after removal (2 s obstacle-clear hold). The UNKNOWN margin is only 0.2 s because the monitor's stale threshold is 1.0 s.
 
-!img ../../evidence/m3/s5/s5_labels.png | Figure 4 — S5 label of edge Cs-J (top) and cars counted on it (bottom). Dashed lines: slow cars join (orange) and leave (green), vehicle feed frozen and resumed (red), obstacle on and off (black). | 14
+!img ../../evidence/m3/s5/s5_labels.png | Figure 6 — S5 label of edge Cs-J (top) and cars counted on it (bottom). Dashed lines: slow cars join (orange) and leave (green), vehicle feed frozen and resumed (red), obstacle on and off (black). | 14
 
 The scenario files and both checkers were written by M5 (simulator owner); **TODO (M3):** review them and the results. Observation for the owner: a parked bus at node A is labelled `A-Cs: CONGESTED` because speed 0 counts as slow.
 
@@ -154,7 +160,7 @@ Phases: start (0.3 s after moving off), cruise 0.20 m/s, turn (0.15 m/s, 0.5 rad
 | T02 | S1 occlusion / freeze | PASS (simulation) |
 | T03 | S2 prediction | PASS (held-out synthetic seeds) |
 | T04 | S2 dispatch | TODO (needs coordinator run) |
-| T05, T06 | S3 docking, cancel | TODO (M2-A) |
+| T05, T06 | S3 docking, cancel | pass: 10/10 dockings (≤ 0.040 m, ≤ 0.004 rad); cancel → zero 0.043 s |
 | T07–T10 | S4, S5 | pass: unit tests (M3) and live S4 11/11, S5 9/9 (T07 p95 39 ms, T10 UNKNOWN 0.995 s) |
 | T11–T14 | S6, S7 | TODO (M4) |
 | T15 | S8 integration | TODO (needs all nodes) |
@@ -170,7 +176,7 @@ Everything above can be re-run with Docker from a clean checkout: `docker/hub.sh
 
 ## 13. Limitations
 
-All results are from the simulator; no physical robot, camera or barrier was used, and "stopped" means the simulated velocity. Synthetic people are simple figures, which favours the blob baseline and handicaps HOG. Several scenarios (S3, S6–S8) are not yet implemented, so cross-component behaviour such as a bus stopping for a pedestrian has not been demonstrated.
+All results are from the simulator; no physical robot, camera or barrier was used, and "stopped" means the simulated velocity. Synthetic people are simple figures, which favours the blob baseline and handicaps HOG. Scenarios S6–S8 are not yet implemented. A bus waiting for a pedestrian in C was demonstrated in S3 (detector → coordinator → bus); the robot equivalent needs S7.
 
 ## 14. Contribution table — TODO (each member fills their own row)
 

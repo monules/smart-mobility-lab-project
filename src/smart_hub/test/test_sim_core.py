@@ -197,3 +197,50 @@ def test_s4_script_starts_p1_occupied_and_takes_p3_offline():
     while sim.t < 10.5:
         sim.step()
     assert sim.parking['P3'] == 'offline'
+
+
+def test_boarding_takes_at_most_four_waiting_people_while_door_open_at_b():
+    """Assignment 10.2 step 5: up to four board per stop, the rest keep waiting."""
+    from smart_hub.sim_core import BOARD_FIRST, BOARD_INTERVAL
+    sim = HubSim(_scenario('S3'), seed=3)
+    sim.bodies['bus_1'].x, sim.bodies['bus_1'].y = 8.05, 4.0      # docked at B
+    sim.apply_event({'type': 'pedestrian', 'id': 'walker', 'x': 3.0, 'y': 5.5, 'vx': 0.3})
+    for _ in range(40):                       # closed door: nobody boards
+        sim.step()
+    assert len(sim.pedestrians) == 6 and not sim.pop_boardings()
+    sim.set_door(True)
+    opened = sim.t
+    while sim.t < opened + 12.0:
+        sim.step()
+    boarded = sim.pop_boardings()
+    assert [pid for pid, _ in boarded] == ['q1', 'q2', 'q3', 'q4']
+    assert boarded[0][1] == pytest.approx(opened + BOARD_FIRST, abs=DT)
+    assert boarded[1][1] - boarded[0][1] == pytest.approx(BOARD_INTERVAL, abs=DT)
+    assert set(sim.pedestrians) == {'q5', 'walker'}   # moving people never board
+
+
+def test_no_boarding_when_bus_is_away_from_b_or_moving():
+    sim = HubSim(_scenario('S3'), seed=3)
+    sim.set_door(True)                        # door open but bus at A
+    for _ in range(100):
+        sim.step()
+    assert not sim.pop_boardings()
+    bus = sim.bodies['bus_1']
+    bus.x, bus.y = 8.0, 4.0
+    sim.set_command('bus_1', 0.1, 0.0)        # rolling through the bay
+    sim.set_door(False)
+    sim.set_door(True)
+    for _ in range(40):
+        sim.set_command('bus_1', 0.1, 0.0)
+        sim.step()
+    assert not sim.pop_boardings()
+
+
+def test_vehicle_edges_match_m3_and_exclude_the_crossing():
+    from smart_hub import geometry as geo
+    from smart_hub.hub_map import VEHICLE_EDGES
+    assert geo.VEHICLE_EDGES == set(VEHICLE_EDGES)
+    # at node Cn the crossing strip Cn-Cs is as close as the road; a bus must
+    # still be reported on a road
+    assert geo.nearest_edge(5.0, 3.99, edges=geo.VEHICLE_EDGES) in ('B-Cn', 'Cn-N')
+    assert geo.nearest_edge(5.0, 3.99) == 'Cn-Cs'

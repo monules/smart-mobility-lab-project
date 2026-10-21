@@ -21,6 +21,14 @@ EVENT_TYPES = ('estop', 'freeze', 'obstacle', 'parking', 'note', 'pedestrian', '
 # 'camera' silences /camera/image_raw; 'camera_repeat' keeps re-sending the
 # last frame with its old stamp (a frozen source, assignment 16.1).
 FREEZABLE = ('odom', 'vehicles', 'parking', 'camera', 'camera_repeat')
+# Boarding (S3, assignment 10.2 step 5): while the measured door is open and
+# the bus stands still at bay B, waiting people in queue Q board one by one.
+BAY = (8.0, 4.0)
+BAY_TOLERANCE = 0.30          # m, bus centre to B
+QUEUE = (2.0, 5.0, 6.0, 7.0)  # zone Q (xmin, ymin, xmax, ymax)
+BUS_CAPACITY = 4              # people per door opening
+BOARD_FIRST = 1.0             # s after the door opens
+BOARD_INTERVAL = 1.5          # s between two people
 
 
 @dataclass
@@ -109,6 +117,10 @@ class HubSim:
         self.pedestrians = {}
         for pid, spec in sc.get('pedestrians', {}).items():
             self._place_pedestrian(dict(spec, id=pid))
+        self.door_open = False
+        self.door_since = None
+        self.boarded_this_stop = 0
+        self.boardings = []          # (person id, sim time) not yet reported
 
     # --------------------------------------------------------------- inputs
     def set_command(self, vehicle_id, v, w):
@@ -120,6 +132,33 @@ class HubSim:
         body.cmd = (float(v), float(w))
         body.cmd_time = self.t
         return True
+
+    def set_door(self, is_open):
+        """Measured bus door state (from the actuator bridge)."""
+        if is_open and not self.door_open:
+            self.door_since, self.boarded_this_stop = self.t, 0
+        self.door_open = bool(is_open)
+
+    def pop_boardings(self):
+        done, self.boardings = self.boardings, []
+        return done
+
+    def _board(self):
+        bus = next((b for b in self.bodies.values() if b.kind == 'bus'), None)
+        if not (self.door_open and bus is not None and abs(bus.v) < 0.02
+                and math.hypot(bus.x - BAY[0], bus.y - BAY[1]) <= BAY_TOLERANCE
+                and self.boarded_this_stop < BUS_CAPACITY):
+            return
+        due = self.door_since + BOARD_FIRST + self.boarded_this_stop * BOARD_INTERVAL
+        if self.t + 1e-9 < due:
+            return
+        x0, y0, x1, y1 = QUEUE
+        waiting = sorted(pid for pid, p in self.pedestrians.items()
+                         if x0 <= p.x <= x1 and y0 <= p.y <= y1 and p.vx == p.vy == 0)
+        if waiting:
+            del self.pedestrians[waiting[0]]
+            self.boarded_this_stop += 1
+            self.boardings.append((waiting[0], self.t))
 
     def apply_event(self, event):
         """Apply one event now (scenario file or test-only injection)."""
@@ -191,6 +230,7 @@ class HubSim:
         for ped in self.pedestrians.values():
             ped.x += ped.vx * DT
             ped.y += ped.vy * DT
+        self._board()
         self.steps += 1
         self.t = self.steps * DT               # no float drift over long runs
         return applied

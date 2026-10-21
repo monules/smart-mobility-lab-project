@@ -34,6 +34,9 @@ def edge_id(a, b):
 
 
 EDGES = {edge_id(a, b): (NODES[a], NODES[b]) for a, b in _EDGE_PAIRS}
+# Roads: the edges a bus or car may use (no parking lane, walkway or crossing
+# strip). Same set as M3's hub_map.VEHICLE_EDGES.
+VEHICLE_EDGES = frozenset(edge_id(a, b) for a, b in _EDGE_PAIRS[:8])
 
 
 def point_segment_distance(px, py, a, b):
@@ -44,13 +47,17 @@ def point_segment_distance(px, py, a, b):
     return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
 
 
-def nearest_edge(x, y, max_distance=0.5):
+def nearest_edge(x, y, max_distance=0.5, edges=None):
     """Id of the closest graph edge strictly within max_distance, else ''.
+
+    edges limits the search (e.g. VEHICLE_EDGES for a bus or car).
 
     Ties keep the alphabetically first edge, so the result is deterministic.
     """
     best, best_d = '', max_distance
     for eid, (a, b) in sorted(EDGES.items()):
+        if edges is not None and eid not in edges:
+            continue
         d = point_segment_distance(x, y, a, b)
         if d < best_d:
             best, best_d = eid, d
