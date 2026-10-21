@@ -2,10 +2,13 @@
 
 Starts hub.launch.py, then from the test process:
   1. latches an e-stop, calls /scenario/reset and requires success with all
-     four participants acknowledged (contract §7), and the latch still set
-     afterwards (a reset is not a way around /safety/clear_stop);
+     five participants acknowledged (M5's four nodes + bus_manager, contract
+     §7), and the latch still set afterwards (a reset is not a way around
+     /safety/clear_stop);
   2. publishes a nav_msgs/Path on /robot/route (contract §3) and requires a
-     LINE_STRIP with those points on /hub/markers.
+     LINE_STRIP with those points on /hub/markers;
+  3. bus_manager (M2-A) rejects DockBus goals it must not take: a wrong bus
+     id, an unknown bay and a zero duration.
 """
 import os
 import time
@@ -83,7 +86,7 @@ class TestResetAndRoutes(unittest.TestCase):
         self.assertTrue(self.spin_until(fut.done, 10.0))
         res = fut.result()
         self.assertTrue(res.success, res.reason)
-        self.assertIn('acks=4', res.reason)
+        self.assertIn('acks=5', res.reason)
         self.assertTrue(res.run_id.startswith('S9-s6-'))
         n = len(safety)
         self.assertTrue(self.spin_until(lambda: len(safety) > n + 3, 5.0))
@@ -114,3 +117,15 @@ class TestResetAndRoutes(unittest.TestCase):
                                                                   (5.0, 4.0)]
             return False
         self.assertTrue(self.spin_until(drawn, 15.0), 'route never appeared on /hub/markers')
+
+    def test_bus_manager_rejects_invalid_goals(self):
+        from rclpy.action import ActionClient
+        from smart_hub_interfaces.action import DockBus
+        client = ActionClient(self.node, DockBus, '/bus/dock')
+        self.assertTrue(self.spin_until(client.server_is_ready, 20.0))
+        for goal in (DockBus.Goal(bus_id='bus_9', bay_id='B', max_duration_sec=60.0),
+                     DockBus.Goal(bus_id='bus_1', bay_id='Z', max_duration_sec=60.0),
+                     DockBus.Goal(bus_id='bus_1', bay_id='B', max_duration_sec=0.0)):
+            fut = client.send_goal_async(goal)
+            self.assertTrue(self.spin_until(fut.done, 5.0))
+            self.assertFalse(fut.result().accepted, goal)

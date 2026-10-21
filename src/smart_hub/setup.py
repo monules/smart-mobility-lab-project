@@ -33,6 +33,7 @@ setup(
             's1_check = smart_hub.s1_check:main',
             'video_eval = smart_hub.video_eval:main',
             # M2-B (hub coordinator, S8)
+            'bus_manager = smart_hub.bus_manager:main',
             'hub_coordinator = smart_hub.hub_coordinator:main',
             # M3 (parking, S4; traffic, S5)
             'parking_manager = smart_hub.parking_manager:main',
@@ -49,6 +50,7 @@ setup(
             'dashboard_snapshot = smart_hub.dashboard_snapshot:main',
             # M5 test tools (never part of the integrated hub launch)
             'mock_candidate_publisher = smart_hub.mock_candidate_publisher:main',
+            's3_check = smart_hub.s3_check:main',
             's4_check = smart_hub.s4_check:main',
             's5_check = smart_hub.s5_check:main',
             's9_fault_check = smart_hub.s9_fault_check:main',

@@ -10,8 +10,8 @@ observable, reproducible evidence (assignment §1).
 > safety, infrastructure), M1-A (passenger counting) and M1-B (demand
 > prediction), M2-B (coordinator) and M3 (parking, traffic) are in the ROS
 > package, built, tested and started together by `hub.launch.py`. M3's S4
-> and S5 pass live (checkers written by M5); M2-B still needs its S8 run.
-> **M2-A and M4 have no code yet**. See
+> and S5 pass live (checkers written by M5); M2-A's bus (S3) passes 12/12
+> live; M2-B still needs its S8 run. **M4 has no code yet**. See
 > [§10 Status](#10-current-status-and-next-steps).
 
 Platform: **ROS 2 Jazzy, Ubuntu 24.04, Python `rclpy`**, run in Docker
@@ -52,7 +52,7 @@ other.
 | `passenger_detector` | looks at the pictures and counts the people in the line | someone counting | M1-A |
 | `demand_predictor` | guesses how many people will be waiting in 30 seconds | a weather forecaster | M1-B |
 | `hub_coordinator` | decides when to send the bus and who may cross the road | a traffic police officer | M2-B |
-| `bus_manager` | drives the bus to the stop and opens its door | a bus driver | M2-A (not written yet) |
+| `bus_manager` | drives the bus to the stop and opens its door | a bus driver | M2-A |
 | `parking_manager`, `traffic_monitor` | keeps track of free parking spaces and traffic jams | parking attendant, traffic reporter | M3 |
 | `route_planner`, `robot_manager` | finds the best path and walks the robot | a map app, a guide | M4 (not written yet) |
 | `safety_supervisor` | checks every move before it happens; says STOP if anything is wrong | a lifeguard | M5 |
@@ -129,7 +129,7 @@ velocities, and only `safety_supervisor` publishes final commands (§4.2).
 |---|---|---|---|---|
 | M1-A Husan | Perception | `passenger_detector` | S1 | ✅ merged (branch `feature/m1a-passenger-detector`) |
 | M1-B Tuymurod | Demand prediction | `demand_predictor` | S2 | ✅ merged |
-| M2-A Fazliddin | Bus & docking | `bus_manager` | S3 | ❌ none yet |
+| M2-A Fazliddin | Bus & docking | `bus_manager` | S3 | ✅ S3 12/12 live, T05 10/10, T06 ([README_M2A](README_M2A.md), [evidence/m2a](evidence/m2a)) |
 | M2-B Arkar | Hub coordinator | `hub_coordinator` | S8 | ✅ code in the package + 28 tests; ⚠️ live S8 run pending |
 | M3 Carla | Parking & traffic | `parking_manager`, `traffic_monitor` | S4, S5 | ✅ code in the package + 59 tests; ✅ S4 11/11 and S5 9/9 live ([evidence/m3](evidence/m3)) |
 | M4 Aidil | Routing & robot | `route_planner`, `robot_manager` | S6, S7 | ❌ none yet |
@@ -200,7 +200,7 @@ flowchart LR
     RP[route_planner<br/>M4 ❌]
   end
   subgraph Managers
-    BM[bus_manager<br/>M2-A ❌]
+    BM[bus_manager<br/>M2-A ✅]
     RM[robot_manager<br/>M4 ❌]
   end
   subgraph M5safety[M5 safety]
@@ -283,6 +283,7 @@ docker/hub.sh build
 | Run all tests | `docker/hub.sh test` | colcon test + summary |
 | S9 acceptance demo (~20 s) | `docker/hub.sh s9` | `S9 verdict: PASSED`, exit 0 only if every check passed; evidence in `output/` (check JSON, metrics, rosbag, parameter dumps) |
 | S1 passenger counting (~45 s) | `docker/hub.sh s1` (or `s1 hog`) | `S1 verdict: PASSED`; `output/s1_check.json`, `s1_count_vs_truth.png`, dashboard pictures |
+| S3 bus docking (~12 min, M2-A) | `docker/hub.sh s3` (or `s3 1`: 1 nominal trial, ~5 min) | `S3 verdict: PASSED`; `output/s3_check.json`, `s3_trials.csv`, `s3_trace.csv`, `s3_events.csv`, `s3_paths.png` |
 | S4 parking (~45 s, M3's node) | `docker/hub.sh s4` | `s4 verdict: PASSED`; `output/s4_check.json` |
 | S5 congestion (~90 s, M3's node) | `docker/hub.sh s5` | `s5 verdict: PASSED`; `output/s5_check.json`, `s5_labels.png`, `s5_timeseries.csv` |
 | S9 faults × 5 mission phases (~4 min) | `docker/hub.sh s9x` | `S9 repeat verdict: PASSED`; `output/repeat/s9_repeat.{json,csv}` |
@@ -545,6 +546,7 @@ commit `40ae6ac` unless noted, simulation only):
 | T17 supervisor killed → bridge zero | 0.51–0.53 s |
 | `docker/hub.sh s1` (blob baseline) | **PASSED**: counts 0, 3, 5, 4, MAE 0.000 over 127 samples; 6 tracks for 6 people; invalid 1.04 s after camera freeze (≤ 1.2 s); crossing clear 2.48 s after leaving (0.4 s debounce + 2 s hold) |
 | `docker/hub.sh s1 hog` (pretrained HOG) | passes the thresholds only just: MAE 1.000 (limit ≤ 1), recall 4/6 people on the synthetic figures — HOG is meant for real video |
+| `docker/hub.sh s3` (M2-A's bus_manager) | **PASSED 12/12**: 10/10 dockings, position error ≤ 0.040 m, yaw ≤ 0.004 rad; door open 8.1 s, 0 samples moving with the door open; crossing granted before entry and released after exit 10/10; 4 board, 1 waits; ETA error at 5 m mean 0.37 s, max 1.12 s; T06 cancel → zero `/bus/cmd_vel` after 0.043 s; pedestrian in C → waits outside C; blocked bay → waits; pose frozen → zero candidate after 0.53 s, then docks; hub_coordinator dispatched the bus itself with 7 people in Q |
 | `docker/hub.sh s4` (M3's parking_manager) | **PASSED 11/11**: C1 and C2 both ask for P2 at once → P2 and P3, never the same slot; repeated request id → same token; wrong token → `UNKNOWN_TOKEN`, wrong car → `VEHICLE_MISMATCH`; P3 offline → UNKNOWN in 0.18 s; after the reservations expire P2 stays OCCUPIED and P3 UNKNOWN (never FREE); full lot → `FULL`; 20 synchronized pairs: 0 double allocations, p95 39 ms (limit 250 ms) |
 | `docker/hub.sh s5` (M3's traffic_monitor) | **PASSED 9/9** on Cs-J: one car at 0.35 m/s → NORMAL only (34 labels); 4 cars on the 4-car edge → CONGESTED after 0.29 s, held; NORMAL 1.8 s after they leave; vehicle feed frozen → every edge UNKNOWN after 0.995 s (limit 1.2 s; the monitor's stale_sec is 1.0, so the margin is 0.2 s) with speed/density −1.0; valid 0.3 s after the feed resumes; obstacle O → BLOCKED after 0.33 s; NORMAL 2.3 s after it is removed |
 | Camera / odometry rate with camera on | 10.00 Hz / 20.00 Hz |
@@ -608,7 +610,7 @@ are deliberately untracked). Merge into `main` only as a team decision.
 | S1 / T01–T02 detection, occlusion | M1-A | ✅ simulation (blob exact; HOG MAE 1.0); ⚠️ 100 annotated real-video frames still needed |
 | S2 / T03 prediction (+ T04 reference policy) | M1-B | ✅ merged, tests pass |
 | T04 dispatch hysteresis, S8 / T15 | M2-B | ✅ node in the package, 28 tests pass, runs in `hub.launch.py`; ⚠️ T04/S8 live evidence pending; T15 needs all nodes |
-| S3 / T05–T06 docking, cancel | M2-A | ❌ |
+| S3 / T05–T06 docking, cancel | M2-A | ✅ S3 12/12 live (`docker/hub.sh s3`, `evidence/m2a/`); code written by M5 for Fazliddin, ⚠️ he must review it |
 | S4–S5 / T07–T10 parking, congestion | M3 | ✅ nodes in the package, 59 tests pass; ✅ S4 11/11 and S5 9/9 live (`docker/hub.sh s4`, `s5`; `evidence/m3/`) |
 | S6–S7 / T11–T14 routing, escort | M4 | ❌ |
 | S9 / T16, T17 | M5 | ✅ verified in simulation |
@@ -635,8 +637,12 @@ are deliberately untracked). Merge into `main` only as a team decision.
 - **M1-A (Husan):** study [README_M1A.md](README_M1A.md) and the code before
   the defence; record a lab video and hand-label at least 100 frames for the
   §8.3 video MAE / precision / recall (tools: `video_publisher`, `detector:=hog`).
-- **M2-A, M4:** start from §6 above; use `robot_1`/`bus_1`; publish
-  stamped candidates only. M4's planner unblocks T18.
+- **M2-A (Fazliddin):** `bus_manager` exists (branch
+  `feature/m2a-bus-manager`, merged) and S3 passes — study
+  [README_M2A.md](README_M2A.md), review the code, write the report section.
+- **M4:** start from §6 above; use `robot_1`; publish stamped candidates
+  only. M4's planner unblocks T18 (the bus already calls `/route/compute`
+  and falls back to A-N-Cn-B when it is missing).
 - **M5:** done for simulation (incl. §16.3 repetition, dashboard viewing,
   evidence, report draft). Left for when the other nodes exist: the S8
   rush-hour scenario file + integrated launch, and the T18 planner-loss test.
@@ -665,7 +671,8 @@ If the test line ends with `0 failures`, you're good.
 **Step 3 — the missing parts get built** 👷
 Follow [§6.1](#61-plugging-your-node-into-the-hub-for-the-next-members) —
 it has copy-paste code and a table of what each person connects.
-- **Fazliddin (M2-A):** `bus_manager` + DockBus action (S3, T05, T06).
+- **Fazliddin (M2-A):** `bus_manager` is written and S3 passes ✅ — read
+  [README_M2A.md](README_M2A.md), own it, write your report part.
 - **Aidil (M4):** `route_planner` + `robot_manager` (S6, S7, T11–T14).
 - **Arkar (M2-B):** files are in the package already ✅ — now run S8/T04 live
   and save the proof (see the box below).

@@ -55,16 +55,16 @@ volatile; T = transient-local. "Status" is for this branch.
 | `/hub/vehicles` | VehicleStateArray | 10 Hz, R10 | scenario_runner (M5) | bus_manager, traffic_monitor, safety, coordinator, dashboard | (Impl) observed state; `valid` per entry |
 | `/sim/truth` | VehicleStateArray | 10 Hz, R10 | scenario_runner (M5) | metrics_logger, tests | (Impl) M5-internal, private ground truth (§3.2) |
 | `/robot/odom` | nav_msgs/Odometry | 20 Hz, R10 | scenario_runner (M5) | robot_manager, safety | (Impl) |
-| `/hub/bus_arrival` | BusArrival | 2 Hz, R10 | bus_manager (M2-A) | coordinator | missing; `state: IDLE` when free (M2-B README Q4) |
+| `/hub/bus_arrival` | BusArrival | 2 Hz, R10 | bus_manager (M2-A) | coordinator | (Impl) `state: IDLE` when free (M2-B README Q4) |
 | `/parking/observed` | SlotObservationArray | 5 Hz, R10 | scenario_runner (M5) | parking_manager | (Impl) offline slot → `valid: false` |
 | `/parking/state` | ParkingState | 2 Hz + change, R1T | parking_manager (M3) | coordinator, dashboard | (Impl) runs in `hub.launch.py` |
 | `/traffic/edges` | EdgeStateArray | 2 Hz, R10 | traffic_monitor (M3) | route_planner, coordinator, dashboard | (Impl) runs in `hub.launch.py`; invalid ⇒ speed/density −1.0 |
 | `/crossing/state` | CrossingState | 10 Hz, R1T | hub_coordinator (M2-B) | managers, safety, dashboard | (Impl) runs in `hub.launch.py`; states `FREE GRANTED HOLD OCCUPIED PEDESTRIAN UNKNOWN` |
 | `/robot/cmd_vel_candidate` | geometry_msgs/TwistStamped | 20 Hz, R1 | robot_manager (M4) | safety_supervisor **only** | missing (M5 test stand-in exists) |
-| `/bus/cmd_vel_candidate` | geometry_msgs/TwistStamped | 20 Hz, R1 | bus_manager (M2-A) | safety_supervisor **only** | missing |
+| `/bus/cmd_vel_candidate` | geometry_msgs/TwistStamped | 20 Hz, R1 | bus_manager (M2-A) | safety_supervisor **only** | (Impl) zero while idle |
 | `/robot/cmd_vel`, `/bus/cmd_vel` | geometry_msgs/Twist | 20 Hz, R1 | **safety_supervisor only** (M5) | actuator_bridge | (Impl) |
 | `/robot/cmd_vel_applied`, `/bus/cmd_vel_applied` | geometry_msgs/Twist | 20 Hz, R1 | actuator_bridge (M5) | scenario_runner | (Impl) M5-internal (Prop) |
-| `/bus/door_request` | std_msgs/Bool | R1 | bus_manager (M2-A) | actuator_bridge | (A) §10.1; bridge side (Impl) |
+| `/bus/door_request` | std_msgs/Bool | R1 | bus_manager (M2-A) | actuator_bridge | (Impl) 20 Hz, true only while docked/boarding |
 | `/bus/door_open` | std_msgs/Bool | 10 Hz, R1 | actuator_bridge (M5) | bus_manager, safety | (Impl) measured state |
 | `/parking/barrier_request` / `_open` | std_msgs/Bool | R1 | parking_manager (M3) / actuator_bridge (M5) | bridge / parking_manager | (A) §11.3; bridge mirrors request (sim) |
 | `/hub/estop` | std_msgs/Bool | event + 10 Hz, R1T | operator / scenario_runner | safety_supervisor, metrics | (Impl) see §5 |
@@ -83,11 +83,11 @@ volatile; T = transient-local. "Status" is for this branch.
 | `/parking/reserve_slot` | ReserveParking | parking_manager (M3) | coordinator / car client | (Impl) |
 | `/parking/release_slot` | ReleaseParking | parking_manager (M3) | same | (Impl) |
 | `/route/compute` | ComputeRoute | route_planner (M4) | bus_manager, robot_manager | **missing** |
-| `/crossing/request` | RequestCrossing | hub_coordinator (M2-B) | bus_manager, robot_manager | root files |
+| `/crossing/request` | RequestCrossing | hub_coordinator (M2-B) | bus_manager, robot_manager | (Impl); bus uses `requester_id: bus_1` |
 | `/scenario/reset` | ResetScenario | scenario_runner (M5) | test orchestration | (Impl) see §7 |
 | `/safety/clear_stop` | ClearSafetyStop | safety_supervisor (M5) | operator | (Impl) see §6 |
 | `/robot/confirm_ready` | std_srvs/Trigger | robot_manager (M4) | button / dashboard | missing (§14.1) |
-| `/bus/dock` | DockBus action | bus_manager (M2-A) | coordinator | missing |
+| `/bus/dock` | DockBus action | bus_manager (M2-A) | coordinator | (Impl); bay B only; `final_state` COMPLETE or SAFE_STOP |
 | `/robot/escort` | EscortPassenger action | robot_manager (M4) | coordinator | missing; trigger at t=70 s is (Open) (M2-B Q3) |
 | `/robot/navigate_to` | NavigateTo action | robot_manager (M4) | internal | missing |
 

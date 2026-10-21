@@ -2,6 +2,7 @@
 
 Subscribes  /robot/cmd_vel_applied, /bus/cmd_vel_applied  Twist  R1 (actuator_bridge)
             /scenario/inject   std_msgs/String (JSON event)  R10  TEST-ONLY fault injection
+            /bus/door_open     std_msgs/Bool  R1 (measured door; boarding at bay B)
 Publishes   /robot/odom        nav_msgs/Odometry       20 Hz, R10
             /hub/vehicles      VehicleStateArray       10 Hz, R10 (observed state)
             /sim/truth         VehicleStateArray       10 Hz, R10 (private ground truth,
@@ -9,7 +10,8 @@ Publishes   /robot/odom        nav_msgs/Odometry       20 Hz, R10
             /parking/observed  SlotObservationArray    5 Hz, R10
             /hub/estop         std_msgs/Bool           10 Hz, R1T (if publish_estop)
             /camera/image_raw  sensor_msgs/Image bgr8  10 Hz, sensor QoS (if publish_camera)
-            /hub/events        HubEvent                R100, scenario events
+            /hub/events        HubEvent                R100, scenario events and
+                                                       PASSENGER_BOARDED (one per person)
 Serves      /scenario/reset    ResetScenario (waits for RESET_ACK from every
                                node in reset_participants, contract §7)
 
@@ -113,6 +115,8 @@ class ScenarioRunner(Node):
         for agent in ('robot', 'bus'):
             self.create_subscription(Twist, '/%s/cmd_vel_applied' % agent,
                                      lambda m, a=agent: self.on_applied(a, m), R1)
+        self.create_subscription(Bool, '/bus/door_open',
+                                 lambda m: self.sim.set_door(m.data), R1)
         self.create_subscription(String, '/scenario/inject', self.on_inject, R10)
         self.create_subscription(HubEvent, '/hub/events', self.on_event, R100)
         self.create_service(ResetScenario, '/scenario/reset', self.on_reset,
@@ -208,6 +212,8 @@ class ScenarioRunner(Node):
         self._drive_handshake(time.monotonic())
         for event in self.sim.step():
             self._event('SCENARIO_EVENT', 'scenario_runner', json.dumps(event, sort_keys=True))
+        for pid, t in self.sim.pop_boardings():
+            self._event('PASSENGER_BOARDED', pid, 't=%.2f' % t)
         stamp = self.get_clock().now().to_msg()
         step = self.sim.steps
         if not self.sim.is_frozen('odom'):
@@ -249,7 +255,10 @@ class ScenarioRunner(Node):
             v.vehicle_id, v.kind = body.vehicle_id, body.kind
             v.pose.x, v.pose.y, v.pose.theta = float(x), float(y), float(body.theta)
             v.speed_mps = float(abs(body.v))
-            v.edge_id = geo.nearest_edge(x, y) if body.kind != 'obstacle' else ''
+            if body.kind in ('bus', 'car'):        # roads only (never the crossing strip)
+                v.edge_id = geo.nearest_edge(x, y, edges=geo.VEHICLE_EDGES)
+            else:
+                v.edge_id = geo.nearest_edge(x, y) if body.kind != 'obstacle' else ''
             v.valid = True
             msg.vehicles.append(v)
         return msg

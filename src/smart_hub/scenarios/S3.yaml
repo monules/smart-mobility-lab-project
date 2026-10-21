@@ -1,0 +1,27 @@
+# Scenario S3: bus arrival and docking (owner M2-A; scenario file by M5).
+# The bus starts at entry A facing north and docks at bay B (route
+# A-N-Cn-B through crossing C). Five people wait in queue Q: the bus boards
+# at most four per stop, so one is always left waiting (assignment 10.2).
+# Five people stay below the coordinator's dispatch threshold (6), so in
+# S3 the DockBus goals come from s3_check; its last trial adds two people to
+# show the coordinator dispatching the bus by itself. s3_check resets the
+# scenario before every trial (seed = trial number) and injects the
+# pedestrian in C, the car in the bay and the pose freeze at the right time.
+scenario_id: S3
+duration_sec: 0                  # no end: s3_check stops the run
+observation_noise_m: 0.01
+estop: false
+agents:
+  bus_1: {kind: bus, x: 1.0, y: 2.0, theta: 1.5708}
+pedestrians:
+  q1: {x: 2.4, y: 6.6}
+  q2: {x: 3.3, y: 6.6}
+  q3: {x: 4.2, y: 6.6}
+  q4: {x: 5.1, y: 6.6}
+  q5: {x: 5.9, y: 6.6}
+parking:
+  P1: occupied
+  P2: free
+  P3: free
+events:
+  - {t: 0.5, type: note, text: "S3 start: bus at A, five people in Q"}
