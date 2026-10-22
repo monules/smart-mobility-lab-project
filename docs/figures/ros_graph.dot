@@ -1,0 +1,63 @@
+// ROS graph of the Smart Mobility Hub (same content as README section 3).
+// Render: dot -Tpng -Gdpi=150 docs/figures/ros_graph.dot -o docs/figures/ros_graph.png
+digraph hub {
+  rankdir=TB; splines=true; concentrate=true; nodesep=0.5; ranksep=0.75; newrank=true;
+  graph [fontname="Helvetica", fontsize=12, label="Smart Mobility Hub — ROS 2 graph (solid: topics, dashed: services / actions)", labelloc=t];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11];
+  edge [fontname="Helvetica", fontsize=8, color="#555555"];
+
+  subgraph cluster_sim { label="M5 simulator"; style=dashed; color="#888888";
+    SR [label="scenario_runner\n(M5)", fillcolor="#d9d9d9"]; }
+  subgraph cluster_perc { label="perception + prediction"; style=dashed; color="#888888";
+    PD [label="passenger_detector\n(M1-A Husan)", fillcolor="#cfe2ff"];
+    DP [label="demand_predictor\n(M1-B Tuymurod)", fillcolor="#cfe2ff"]; }
+  subgraph cluster_coord { label="coordination"; style=dashed; color="#888888";
+    HC [label="hub_coordinator\n(M2-B Arkar)", fillcolor="#ffe5b4"];
+    PM [label="parking_manager\n(M3 Carla)", fillcolor="#e2d4f0"];
+    TM [label="traffic_monitor\n(M3 Carla)", fillcolor="#e2d4f0"];
+    RP [label="route_planner\n(M4 Aidil)", fillcolor="#d4edda"]; }
+  subgraph cluster_mgr { label="managers (suggest speeds only)"; style=dashed; color="#888888";
+    BM [label="bus_manager\n(M2-A Fazliddin)", fillcolor="#ffe5b4"];
+    RM [label="robot_manager\n(M4 Aidil)", fillcolor="#d4edda"]; }
+  subgraph cluster_safe { label="M5 safety (final say)"; style=dashed; color="#c00000";
+    SS [label="safety_supervisor\n(M5)", fillcolor="#f8d7da"];
+    AB [label="actuator_bridge\n(M5)", fillcolor="#f8d7da"]; }
+  ML [label="metrics_logger\n(M5)", fillcolor="#d9d9d9"];
+  DB [label="dashboard_marker_publisher\n(M5)", fillcolor="#d9d9d9"];
+
+  SR -> PD [label="/camera/image_raw"];
+  PD -> DP [label="/hub/queue"];
+  PD -> HC [label="/hub/queue"];
+  DP -> HC [label="/hub/demand"];
+  SR -> TM [label="/hub/vehicles"];
+  SR -> HC [label="/hub/vehicles"];
+  SR -> BM [label="/hub/vehicles"];
+  SR -> RP [label="/hub/vehicles"];
+  SR -> SS [label="/hub/vehicles, /robot/odom"];
+  SR -> RM [label="/robot/odom"];
+  SR -> PM [label="/parking/observed"];
+  TM -> RP [label="/traffic/edges"];
+  TM -> HC [label="/traffic/edges"];
+  PM -> HC [label="/parking/state"];
+  HC -> SS [label="/crossing/state"];
+  HC -> BM [label="/crossing/state"];
+  HC -> RM [label="/crossing/state"];
+  HC -> BM [label="/bus/dock (action)", style=dashed, color="#c06000"];
+  HC -> RM [label="/robot/escort (action)", style=dashed, color="#c06000"];
+  BM -> RP [label="/route/compute (srv)", style=dashed, color="#2a7a2a"];
+  RM -> RP [label="/route/compute (srv)", style=dashed, color="#2a7a2a"];
+  BM -> HC [label="/crossing/request (srv)", style=dashed, color="#2a7a2a"];
+  RM -> HC [label="/crossing/request (srv)", style=dashed, color="#2a7a2a"];
+  BM -> SS [label="/bus/cmd_vel_candidate", color="#c00000"];
+  RM -> SS [label="/robot/cmd_vel_candidate", color="#c00000"];
+  SS -> AB [label="/robot/cmd_vel, /bus/cmd_vel", color="#c00000", penwidth=2];
+  AB -> SR [label="/…/cmd_vel_applied", color="#c00000"];
+  AB -> SS [label="/bus/door_open"];
+  SS -> HC [label="/hub/safety"];
+  SS -> BM [label="/hub/safety"];
+  SS -> RM [label="/hub/safety"];
+  SR -> ML [label="/hub/events, /sim/truth"];
+  SR -> DB [label="state topics"];
+  DB -> RV [label="/hub/markers"];
+  RV [label="RViz / Foxglove", shape=ellipse, fillcolor="white"];
+}

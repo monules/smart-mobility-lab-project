@@ -76,10 +76,17 @@ held still (the empty map) → zoom/point at each area as you name it.
 
 ## 1 · Architecture and how to run it — Saidumar — 2:00 (~260 words)
 
-**Screen:** README §4 ROS graph (screenshot) → VS Code file tree of `src/`
-(expand `smart_hub_interfaces/msg`, `srv`, `action`, then `smart_hub/smart_hub`)
-→ terminal: `docker/hub.sh` (prints the command list) → `docker/hub.sh test`
-summary line "352 tests, 0 errors, 0 failures".
+**Screen:**
+1. the ROS graph picture `videos/demo_clips/pictures/ros_graph.png` (also
+   `docs/figures/ros_graph.png`; drawn from README §3)
+2. VS Code: *File → Open Folder → smart-mobility-lab-project*, then in the
+   Explorer on the left open `src → smart_hub_interfaces → msg` (14 files),
+   `srv` (6), `action` (3), then `src → smart_hub → smart_hub` (all nodes)
+3. terminal in the project folder: `docker/hub.sh` with nothing after it —
+   prints the command list
+4. terminal: `docker/hub.sh test` — takes ~5 min: start the recording near
+   the end, or speed it up, so the last line shows "Summary: 352 tests,
+   0 errors, 0 failures".
 
 > We have two ROS packages. `smart_hub_interfaces` defines every message,
 > service and action exactly as the handbook specifies — fourteen messages,

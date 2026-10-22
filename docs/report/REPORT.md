@@ -22,6 +22,8 @@ The assignment asks for a simulation-first transport hub in ROS 2: passenger det
 | S8 integration | M2-B (+ all) | T15 passed: 20 rush-hour episodes (10 seeds × predictive/reactive), 0 safety violations, 100 % completion |
 | S9 faults, e-stop | M5 | implemented, verified in simulation (T16, T17, 25-trial repetition) |
 
+!img ../figures/ros_graph.png | Figure 0 — ROS 2 graph: nodes by owner, topics (solid), services and actions (dashed); the managers' candidate velocities pass only through safety_supervisor and actuator_bridge (red). | 16
+
 ## 2. Map, coordinates and frames
 
 Map M1 is a 12 m × 8 m site, origin at the south-west corner, +x east, +y north, metres and radians (§2.1). Queue Q is x ∈ [2, 6], y ∈ [5, 7]; crossing C is x ∈ [4.5, 5.5], y ∈ [1.25, 4.75]; obstacle O is centred at (7, 2) with radius 0.35 m. Graph edge ids are written as sorted node names (`Cs-J`, `E-J`), a team convention shared by the simulator and the traffic monitor. Frames: `map`, `robot/odom`, `robot/base_link`; map→odom is identity in the simulator. Vehicle ids are `robot_1` and `bus_1`.
