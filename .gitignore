@@ -8,3 +8,6 @@ __pycache__/
 .DS_Store
 # raw lab videos are large; keep them out of git (evidence goes in the submission)
 videos/
+
+# built upload set (tools/make_submission.sh)
+submission/

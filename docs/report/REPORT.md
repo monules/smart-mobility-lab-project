@@ -1,9 +1,10 @@
 # Smart Mobility Hub — Engineering Report (DRAFT)
 
 !meta Smart Mobility Engineering Lab, Prof. Mehdi Pirahandeh — Inha University ISE
-!meta Team: Husan (M1-A), Tuymurod (M1-B), Fazliddin (M2-A), Arkar (M2-B), Carla (M3), Aidil (M4), Saidumar (M5)
+!meta **Team Shenanigans** — team leader: Egamberdiev Saidumar
+!meta Members: Husan (M1-A), Tuymurod (M1-B), Fazliddin (M2-A), Arkar (M2-B), Carla (M3), Aidil (M4), Saidumar (M5)
 !meta Platform: ROS 2 Jazzy, Ubuntu 24.04, Python rclpy, Docker (verified on Apple Silicon aarch64)
-!meta Evidence commit: af37efa (branch integration/current-team-work), 2026-10-21
+!meta Source: branch integration/current-team-work (included in the submission ZIP); evidence files record their commit
 
 !note This is a working draft. Sections for M1-A, M1-B and M5 contain measured results from the repository. Sections marked **TODO** belong to members whose code is not yet in the repository; they must be completed with real results before submission. No result in this report is invented — every number comes from a file in `evidence/` or `src/smart_hub/results/`. Everything is **simulation only**; no physical hardware was used.
 

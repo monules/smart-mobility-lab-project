@@ -134,7 +134,7 @@ print('S7 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
       python3 -c \"import json, sys; r = json.load(open('output/$1_check.json')); \
 print('$1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
   view)
-    # Live dashboard for Foxglove (https://foxglove.dev): connect to
+    # Live dashboard for the Foxglove app: connect to
     # ws://localhost:8765, add a 3D panel, display frame 'map'. Ctrl+C stops.
     in_container "-it -p 8765:8765" "ros2 launch smart_hub hub.launch.py \
       scenario:=${2:-S1} perception:=true robot:=false > /tmp/hub.log 2>&1 &
