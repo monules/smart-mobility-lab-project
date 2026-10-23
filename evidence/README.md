@@ -29,8 +29,16 @@ killed → supervisor zero after 0.522 s; supervisor killed → bridge zero afte
 | `m1a/s1_hog/` | same with OpenCV HOG: MAE 0.992, recall 0.67 (made for real video) | `docker/hub.sh s1 hog` |
 | `m1a/camera/*.png` | annotated synthetic camera frames before / during / with a person in C | rendered from the S1 script |
 
-**Missing (TODO):** the §8.3 real-video evaluation (≥ 100 hand-labelled
-frames) — see README_M1A.md.
+**Real lab video (§8.3)** — `m1a/real_video/` (the video itself is not in the
+repository; it is 138 MB):
+
+| File | What it shows | Command |
+|---|---|---|
+| `labels_husan.csv` | 141 frames labelled by hand by Husan: count in Q, someone in C, partial occlusion | — |
+| `results_yolo_stabilized.json`, `per_frame_yolo_stabilized.csv`, `count_vs_truth_yolo.png` | main result: YOLOv4-tiny + drift compensation, MAE 0.149, exact 87.2 %, crossing 97.2 %, occluded-frame MAE 0.833 | `video_eval --detector yolo --stabilize` (README_M1A) |
+| `results_hog_stabilized.json`, `per_frame_hog_stabilized.csv`, `count_vs_truth_hog.png` | baseline: OpenCV HOG, MAE 2.660 | `--detector hog --hog-upscale 0.5 --stabilize` |
+| `results_yolo_not_stabilized.json`, `per_frame_yolo_not_stabilized.csv` | ablation without drift compensation, MAE 0.114 | `--detector yolo` |
+| `annotated_yolo_frame_*.jpg`, `calibration_frame0.jpg` | before / during / after frames with boxes, foot points and zones; the 8 calibration corners | same |
 
 ## M2-A — bus docking (S3)
 

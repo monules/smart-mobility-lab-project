@@ -1,0 +1,19 @@
+{
+  "video": "IMG_0572.MOV",
+  "detector": "opencv-hog-default-people",
+  "labelled_frames": 141,
+  "enough_frames_for_8_3": true,
+  "count_mae": 2.6596,
+  "count_rmse": 3.2234,
+  "exact_count_rate": 0.2766,
+  "crossing_accuracy": 0.9078,
+  "precision": null,
+  "recall": null,
+  "target_mae_le_1": false,
+  "mae_partial_occlusion": 4.5,
+  "frames_partial_occlusion": 6,
+  "mae_no_occlusion": 2.5778,
+  "stabilized": true,
+  "frames_aligned": 1.0,
+  "calibration_points": 8
+}

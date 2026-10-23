@@ -13,7 +13,8 @@ observable, reproducible evidence (assignment §1).
 > and S5 pass live (checkers written by M5); M2-A's bus (S3) passes 12/12
 > live; M2-B's T04 dispatch passes 6/6 live; M4's routing (S6 8/8), escort
 > (S7 9/9) and T18 (5/5) pass live; the integrated rush hour **S8/T15 passes
-> 20/20** episodes with zero safety violations. **Left: Husan's real video.** See
+> 20/20** episodes with zero safety violations, and Husan's real lab video
+> scores MAE 0.149 over 141 hand-labelled frames. See
 > [§10 Status](#10-current-status-and-next-steps).
 
 Platform: **ROS 2 Jazzy, Ubuntu 24.04, Python `rclpy`**, run in Docker
@@ -614,7 +615,7 @@ are deliberately untracked). Merge into `main` only as a team decision.
 | Item | Owner | State |
 |---|---|---|
 | Interfaces §6–7 (all) | M5 | ✅ |
-| S1 / T01–T02 detection, occlusion | M1-A | ✅ simulation (blob exact; HOG MAE 1.0); ⚠️ 100 annotated real-video frames still needed |
+| S1 / T01–T02 detection, occlusion | M1-A | ✅ simulation (blob exact; HOG MAE 1.0); ✅ real lab video: YOLOv4-tiny MAE 0.149 over 141 hand-labelled frames (HOG 2.66), occluded frames 0.83 |
 | S2 / T03 prediction (+ T04 reference policy) | M1-B | ✅ merged, tests pass |
 | T04 dispatch hysteresis, S8 / T15 | M2-B | ✅ T04 6/6 live: noise around 6 → 0 dispatches; rising demand → exactly 1 (PREDICTED, 2.0 s after the first forecast ≥ 6), 0 BUSY rejections, none after the mission while the forecast sat at 5; invalid forecast → 0; feed gap → 0; no forecast + queue 7 → 1 with reason FALLBACK (`docker/hub.sh t04`); ✅ S8/T15: 20/20 rush-hour episodes, 0 collisions / crossing conflicts / double allocations / duplicate dispatches, 100 % completion, predictive dispatch 62.7 s vs reactive 64.1 s (`docker/hub.sh s8`) |
 | S3 / T05–T06 docking, cancel | M2-A | ✅ S3 12/12 live (`docker/hub.sh s3`, `evidence/m2a/`); code written by M5 for Fazliddin, ⚠️ he must review it |
@@ -651,8 +652,8 @@ are deliberately untracked). Merge into `main` only as a team decision.
   `valid=false` warm-up again) and is a reset participant with
   `perception:=true` (live: `acks=7`). Left: report section, review.
 - **M1-A (Husan):** study [README_M1A.md](README_M1A.md) and the code before
-  the defence; record a lab video and hand-label at least 100 frames for the
-  §8.3 video MAE / precision / recall (tools: `video_publisher`, `detector:=hog`).
+  the defence. Real video done: 141 frames labelled by Husan, YOLOv4-tiny
+  MAE 0.149 (README_M1A, `evidence/m1a/real_video/`).
 - **M2-A (Fazliddin):** `bus_manager` exists (branch
   `feature/m2a-bus-manager`, merged) and S3 passes — study
   [README_M2A.md](README_M2A.md), review the code, write the report section.
@@ -661,8 +662,7 @@ are deliberately untracked). Merge into `main` only as a team decision.
   [README_M4.md](README_M4.md), review the code, confirm the report section.
   The bus now takes its route from the planner (fallback off by default).
 - **M5:** done for simulation (incl. §16.3 repetition, dashboard viewing,
-  evidence, report draft, T18, S8/T15). Left: Husan's real-video evaluation
-  once the video arrives.
+  evidence, report draft, T18, S8/T15, real-video processing).
   Everyone else: follow
   [§6.1](#61-plugging-your-node-into-the-hub-for-the-next-members) and
   [§11](#11-the-finish-line--whats-left-ez-mode-).
@@ -716,10 +716,9 @@ it has copy-paste code and a table of what each person connects.
 Each person: own branch → `docker/hub.sh test` green → pull request into
 `integration/current-team-work`.
 
-**Step 4 — Husan films the real video** 🎥
-Instructions in [README_M1A.md](README_M1A.md). Record → label 100+ frames
-by hand → `video_eval`. Or record + send it and the 4 corner measurements;
-the rest can be done for him, but **he** checks the labels.
+**Step 4 — Husan films the real video** 🎥 ✅ done
+Filmed, 141 frames labelled by Husan, scored: YOLOv4-tiny MAE 0.149
+(`evidence/m1a/real_video/`).
 
 **Step 5 — the big team test** 🔗 ✅ done
 `scenarios/S8.yaml` + `docker/hub.sh s8`: 10 rush hours × predictive and

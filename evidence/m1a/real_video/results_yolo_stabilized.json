@@ -1,0 +1,19 @@
+{
+  "video": "IMG_0572.MOV",
+  "detector": "opencv-dnn-yolov4-tiny-coco",
+  "labelled_frames": 141,
+  "enough_frames_for_8_3": true,
+  "count_mae": 0.1489,
+  "count_rmse": 0.4376,
+  "exact_count_rate": 0.8723,
+  "crossing_accuracy": 0.9716,
+  "precision": null,
+  "recall": null,
+  "target_mae_le_1": true,
+  "mae_partial_occlusion": 0.8333,
+  "frames_partial_occlusion": 6,
+  "mae_no_occlusion": 0.1185,
+  "stabilized": true,
+  "frames_aligned": 1.0,
+  "calibration_points": 8
+}
