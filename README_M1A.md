@@ -85,52 +85,45 @@ docker/hub.sh s1 hog
 - the `hog` detector on the fake people: error 1.0, finds 4 of 6 people —
   it's made for real humans, not cartoon ones, so that's expected
 
-## 🎥 what YOU still need to do: the real video
+## 🎥 the real video — where we are
 
-The teacher wants proof on a **real** video too (§1.3, §8.2, §8.3). Code is
-done — you just need to film and label. Here's the vibe:
+✅ **Filmed** (`IMG_0572.MOV`, 70 s, 1080p, 30 fps; kept in `videos/lab/`, not
+in git). The floor tape was not measured, so the two taped boxes simply *are*
+queue Q and crossing C: their 8 corners are the calibration points.
 
-**1. set up (10 min)**
-- phone or webcam up high (shelf, tripod, tape it to the wall), pointing down
-  at the floor. **Don't move it after this.**
-- tape a rectangle on the floor = queue Q, and a strip = crossing C. Small is
-  fine (1:4 scale: Q = 1.0 m × 0.5 m, C = 0.25 m × 0.875 m).
-- pick 4 tape corners and write down where they are on the map in metres
-  (for Q at 1:4 scale: (2,5) (6,5) (6,7) (2,7) — the software keeps map units).
+✅ **Processed.** Two things the video needed:
+- **the phone drifted** up to ~67 px during the take → `perception/stabilizer.py`
+  lines every frame up with the first one using the floor pattern
+  (`--stabilize`);
+- **heads are out of the picture and the camera looks down** → OpenCV's HOG
+  (made for whole standing people) finds almost nobody. So we added a third
+  detector: **YOLOv4-tiny** (pretrained on COCO, run by OpenCV DNN,
+  `--detector yolo`, score threshold 0.5). It finds people without heads.
+  HOG stays in as the honest "pretrained baseline that fails here".
 
-**2. film (2–3 min)**
-- friends walk into the queue one by one, wait, leave. Get moments with 0,
-  3, 5 and 4 people. Someone walks through the crossing. Two people stand
-  so one blocks the other for a sec.
-- **feet must be in the picture** (the feet are what we measure). Faces
-  don't matter — filming from above/behind is perfect.
+⏳ **Your job now: label it.** Saidumar sends you `Husan_labeling_kit.zip`:
+141 pictures (one every 0.5 s) + `labels.csv` + `HOW_TO_LABEL.md`. For each
+picture write: people with their feet in the blue box, 1/0 for someone in the
+black box, 1/0 for "someone is partly hidden". Your own counting, ~30–40 min.
+Then the scores (MAE, occluded vs not, HOG vs YOLO), the graph and the report
+text get done from your labels.
 
-**3. calibrate**
-- open one frame, read the pixel position of your 4 tape corners (any
-  image viewer shows it). Those 8 numbers = `image_points`.
+**Get the YOLO files** (once, ~24 MB, not in git — the submission has no
+links, so here is what to look for): the two files `yolov4-tiny.cfg` and
+`yolov4-tiny.weights` from the official AlexeyAB **darknet** repository's
+"darknet_yolo_v4_pre" release, saved into `models/yolov4-tiny/`. Check them:
 
-**4. label ≥ 100 frames (the boring part 😮‍💨)**
-- get a draft first (the detector guesses, you fix):
+| file | size | SHA-256 |
+|---|---|---|
+| `yolov4-tiny.cfg` | 3,231 B | `f858e3724962eedf3ac44e3b6cb3f0c3d9ed067c306bb831f539c578b924c90e` |
+| `yolov4-tiny.weights` | 24,251,276 B | `cf9fbfd0f6d4869b35762f56100f50ed05268084078805f0e7989efe5bb8ca87` |
+
+**The exact commands** (calibration = blue box then black box corners on the
+first frame):
 ```bash
-docker/hub.sh run 'ros2 run smart_hub video_eval --video videos/lab.mp4 --detector hog --prefill videos/labels.csv --every 15 --image-points u1 v1 u2 v2 u3 v3 u4 v4 --map-points 2 5 6 5 6 7 2 7'
+docker/hub.sh run 'ros2 run smart_hub video_eval --video videos/lab/IMG_0572.MOV --detector yolo --stabilize --labels videos/lab/labeling/labels.csv --out output/video_eval_yolo --image-points 488 199 1224 207 1248 335 457 330 933 546 1118 550 1173 1018 943 1018 --map-points 2 7 6 7 6 5 2 5 4.5 4.75 5.5 4.75 5.5 1.25 4.5 1.25'
 ```
-- open `videos/labels.csv` and **fix every row by hand** — look at that
-  frame and write the true number of people in Q (and 1/0 for someone in C).
-  This has to be YOUR counting; the assignment says *manually annotated*.
-
-**5. score it**
-```bash
-docker/hub.sh run 'ros2 run smart_hub video_eval --video videos/lab.mp4 --labels videos/labels.csv --detector hog --out output/video_eval --image-points u1 v1 u2 v2 u3 v3 u4 v4 --map-points 2 5 6 5 6 7 2 7'
-```
-→ `output/video_eval/results.json` (error = MAE, target ≤ 1), a graph
-`count_vs_truth.png`, and pictures with boxes drawn (`frame_*.png`). Want
-precision/recall too? Also make `boxes.csv` (`frame,x,y,w,h` for each
-person) and add `--boxes videos/boxes.csv`.
-
-Put the video in a `videos/` folder in the repo (it's not uploaded to git
-unless you choose to — big files). **Or just send the video + your 4
-measured corners to Saidumar / Claude and the rest (calibration, running,
-graphs, report text) gets done — you still check the labels yourself.**
+(same with `--detector hog --hog-upscale 0.5 --out output/video_eval_hog` for the baseline)
 
 ## still not done (not your fault)
 

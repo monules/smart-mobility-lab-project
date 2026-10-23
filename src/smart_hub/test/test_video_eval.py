@@ -71,3 +71,24 @@ def test_box_matching_counts_true_and_false_positives():
     tp, fp, fn = video_eval.match_boxes([(0, 0, 10, 20), (50, 50, 10, 20)],
                                         [(1, 1, 10, 20), (100, 100, 10, 20)])
     assert (tp, fp, fn) == (1, 1, 1)
+
+
+def test_export_frames_and_occlusion_scores(s1_video):
+    kit = s1_video / 'kit'
+    video_eval.main(args_for(s1_video, '--export-frames', str(kit), '--every', '10'))
+    with open(kit / 'labels.csv') as fh:
+        rows = list(csv.DictReader(fh))
+    assert len(rows) == 25 and list(rows[0]) == ['frame', 't', 'count', 'crossing', 'occluded']
+    assert len(list(kit.glob('frame_*.jpg'))) == 25
+    # score with an occlusion column: frames split into occluded / not occluded
+    labels = s1_video / 'labels_occ.csv'
+    with open(s1_video / 'labels.csv') as src, open(labels, 'w', newline='') as dst:
+        reader, writer = csv.DictReader(src), csv.writer(dst)
+        writer.writerow(['frame', 'count', 'occluded'])
+        for k, r in enumerate(reader):
+            writer.writerow([r['frame'], r['count'], k % 2])
+    video_eval.main(args_for(s1_video, '--labels', str(labels), '--stabilize'))
+    with open(s1_video / 'out' / 'results.json') as fh:
+        r = json.load(fh)
+    assert r['frames_partial_occlusion'] == 12 and r['mae_partial_occlusion'] == 0.0
+    assert r['stabilized'] is True and r['frames_aligned'] is not None
