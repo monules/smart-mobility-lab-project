@@ -8,7 +8,8 @@ Runs the same pipeline as the ROS node (detector -> foot point -> homography
 -> tracker -> queue logic) on every frame, offline and repeatable, and
 compares it with hand labels.
 
-labels.csv   frame,count[,crossing]      one row per labelled frame (>= 100)
+labels.csv   frame,count[,crossing][,occluded]   one row per labelled frame (>= 100);
+             occluded = 1 if a person in Q is partly hidden by another person
 boxes.csv    frame,x,y,w,h               optional, person boxes -> precision/recall
 
 Writes to --out: results.json (MAE, RMSE, exact-count rate, crossing
@@ -18,6 +19,11 @@ annotated frames (frame_<n>.png: boxes, foot points, count).
     --prefill labels_draft.csv   writes the detector's own counts for every
                                  --every-th frame, for a human to CORRECT;
                                  the assignment requires manual labels.
+    --export-frames DIR          writes every --every-th frame as a numbered
+                                 JPEG plus an empty labels.csv to fill in by hand
+    --stabilize                  compensates camera drift (perception/stabilizer.py):
+                                 calibration points are taken on the FIRST frame
+    --image-points / --map-points  4 or more pairs (e.g. queue + crossing corners)
 """
 import argparse
 import csv
@@ -26,9 +32,11 @@ import math
 import os
 
 import cv2
+import numpy as np
 from smart_hub.perception.detectors import foot, make_detector
 from smart_hub.perception.homography import fit_homography, image_to_map
 from smart_hub.perception.queue_logic import QueueLogic
+from smart_hub.perception.stabilizer import FloorStabilizer
 
 
 def read_csv(path):
@@ -59,33 +67,46 @@ def match_boxes(dets, truth, threshold=0.5):
     return tp, len(dets) - tp, len(truth) - tp
 
 
-def run_video(video, detector, h, every=1):
-    """Yield (frame_index, time_s, bgr, detections, state) for every frame."""
+def run_video(video, detector, h, every=1, stabilize=False):
+    """Yield (frame_index, time_s, bgr, detections, state, stabilizer) per frame."""
     cap = cv2.VideoCapture(video)
     if not cap.isOpened():
         raise ValueError('cannot open video %r' % video)
     fps = cap.get(cv2.CAP_PROP_FPS) or 10.0
     logic = QueueLogic()
+    stab = None
     index = 0
     while True:
         ok, frame = cap.read()
         if not ok:
             break
         t = index / fps
+        if stabilize:
+            if stab is None:
+                stab = FloorStabilizer(frame)
+            stab.aligned = stab.update(frame)
         dets = detector.detect(frame)
         people = []
         for d in dets:
+            u, v = foot(d, detector.foot_offset)
+            if stab is not None:
+                u, v = stab.to_reference(u, v)
             try:
-                people.append(image_to_map(h, *foot(d, detector.foot_offset)) + (d[4],))
+                people.append(image_to_map(h, u, v) + (d[4],))
             except ValueError:
                 continue
         logic.on_frame(people, t, t)
-        yield index, t, frame, dets, logic.state(t), logic
+        yield index, t, frame, dets, logic.state(t), stab
         index += 1
 
 
-def annotate(frame, dets, state, foot_offset):
+def annotate(frame, dets, state, foot_offset, zones=(), stab=None):
     img = frame.copy()
+    for poly, color in zones:          # calibrated tape boxes, drawn where they are now
+        pts = np.float32(poly).reshape(-1, 1, 2)
+        if stab is not None:
+            pts = cv2.perspectiveTransform(pts, np.linalg.inv(stab.H))
+        cv2.polylines(img, [pts.astype(np.int32)], True, color, 2)
     for d in dets:
         x, y, w, h, _ = d
         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 200, 0), 2)
@@ -97,15 +118,52 @@ def annotate(frame, dets, state, foot_offset):
     return img
 
 
+def export_frames(args):
+    """Numbered frames + an empty labels.csv for manual annotation."""
+    os.makedirs(args.export_frames, exist_ok=True)
+    cap = cv2.VideoCapture(args.video)
+    fps = cap.get(cv2.CAP_PROP_FPS) or 10.0
+    rows, index = [], 0
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            break
+        if index % args.every == 0:
+            t = index / fps
+            img = frame.copy()
+            cv2.putText(img, 'frame %d   t=%.1f s' % (index, t), (20, img.shape[0] - 24),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.1, (0, 255, 255), 3)
+            cv2.imwrite(os.path.join(args.export_frames, 'frame_%05d.jpg' % index), img,
+                        [cv2.IMWRITE_JPEG_QUALITY, 85])
+            rows.append((index, round(t, 2)))
+        index += 1
+    with open(os.path.join(args.export_frames, 'labels.csv'), 'w', newline='') as fh:
+        writer = csv.writer(fh)
+        writer.writerow(['frame', 't', 'count', 'crossing', 'occluded'])
+        writer.writerows([(i, t, '', '', '') for i, t in rows])
+    return {'exported_frames': len(rows), 'folder': args.export_frames,
+            'next': 'fill count (people in Q) and crossing (1/0) in labels.csv by hand'}
+
+
 def evaluate(args):
-    detector = make_detector(args.detector)
+    if len(args.image_points) != len(args.map_points) or len(args.image_points) % 2 or \
+            len(args.image_points) < 8:
+        raise SystemExit('--image-points and --map-points need the same number (>= 4 pairs)')
+    if args.export_frames:
+        return export_frames(args)
+    detector = make_detector(args.detector, upscale=args.hog_upscale)
     h = fit_homography(args.image_points, args.map_points)
+    corners = np.reshape(args.image_points, (-1, 2))
+    zones = [(corners[0:4], (255, 128, 0))]                   # queue Q (first 4 points)
+    if len(corners) >= 8:
+        zones.append((corners[4:8], (0, 140, 255)))           # crossing C (next 4)
     os.makedirs(args.out, exist_ok=True)
     if args.prefill:
         with open(args.prefill, 'w', newline='') as fh:
             writer = csv.writer(fh)
             writer.writerow(['frame', 'count', 'crossing'])
-            for i, _, _, _, s, _ in run_video(args.video, detector, h):
+            for i, _, _, _, s, _ in run_video(args.video, detector, h,
+                                              stabilize=args.stabilize):
                 if i % args.every == 0:
                     writer.writerow([i, s['count'], int(s['crossing_occupied'])])
         return {'prefill': args.prefill,
@@ -118,15 +176,24 @@ def evaluate(args):
             boxes.setdefault(int(r['frame']), []).append(
                 tuple(float(r[k]) for k in ('x', 'y', 'w', 'h')))
     rows, errors, cross_ok, cross_n = [], [], 0, 0
+    by_occlusion = {0: [], 1: []}
     tp = fp = fn = 0
     keep = set(sorted(labels)[::max(1, len(labels) // 6)][:6]) if labels else set()
-    for i, t, frame, dets, s, _ in run_video(args.video, detector, h):
+    aligned = []
+    for i, t, frame, dets, s, stab in run_video(args.video, detector, h,
+                                                stabilize=args.stabilize):
+        if stab is not None:
+            aligned.append(stab.aligned)
         if i not in labels:
             continue
         truth = int(labels[i]['count'])
         row = {'frame': i, 't': round(t, 2), 'truth': truth, 'count': s['count'],
-               'valid': s['valid'], 'crossing': int(s['crossing_occupied'])}
+               'valid': s['valid'], 'crossing': int(s['crossing_occupied']),
+               'detections': len(dets)}
         errors.append(abs(s['count'] - truth))
+        if labels[i].get('occluded', '') not in ('', None):
+            by_occlusion[int(labels[i]['occluded'])].append(abs(s['count'] - truth))
+            row['occluded'] = int(labels[i]['occluded'])
         if labels[i].get('crossing', '') != '':
             cross_n += 1
             cross_ok += int(int(labels[i]['crossing']) == int(s['crossing_occupied']))
@@ -137,7 +204,7 @@ def evaluate(args):
         rows.append(row)
         if i in keep:
             cv2.imwrite(os.path.join(args.out, 'frame_%05d.png' % i),
-                        annotate(frame, dets, s, detector.foot_offset))
+                        annotate(frame, dets, s, detector.foot_offset, zones, stab))
     n = len(errors)
     result = {
         'video': os.path.basename(args.video), 'detector': detector.name,
@@ -149,10 +216,19 @@ def evaluate(args):
         'precision': round(tp / (tp + fp), 4) if tp + fp else None,
         'recall': round(tp / (tp + fn), 4) if tp + fn else None,
         'target_mae_le_1': (sum(errors) / n <= 1.0) if n else None,
+        'mae_partial_occlusion': round(sum(by_occlusion[1]) / len(by_occlusion[1]), 4)
+        if by_occlusion[1] else None,
+        'frames_partial_occlusion': len(by_occlusion[1]),
+        'mae_no_occlusion': round(sum(by_occlusion[0]) / len(by_occlusion[0]), 4)
+        if by_occlusion[0] else None,
+        'stabilized': bool(args.stabilize),
+        'frames_aligned': round(sum(aligned) / len(aligned), 4) if aligned else None,
+        'calibration_points': len(args.image_points) // 2,
     }
     with open(os.path.join(args.out, 'per_frame.csv'), 'w', newline='') as fh:
-        writer = csv.DictWriter(fh, ['frame', 't', 'truth', 'count', 'valid', 'crossing',
-                                     'truth_crossing'], extrasaction='ignore')
+        fields = ['frame', 't', 'truth', 'count', 'valid', 'crossing', 'truth_crossing',
+                  'occluded', 'detections']
+        writer = csv.DictWriter(fh, fields, extrasaction='ignore')
         writer.writeheader()
         writer.writerows(rows)
     with open(os.path.join(args.out, 'results.json'), 'w') as fh:
@@ -187,15 +263,22 @@ def main(argv=None):
     ap.add_argument('--video', required=True)
     ap.add_argument('--labels', help='frame,count[,crossing] CSV (hand labels)')
     ap.add_argument('--boxes', help='frame,x,y,w,h CSV for precision/recall')
-    ap.add_argument('--image-points', type=float, nargs=8, required=True)
-    ap.add_argument('--map-points', type=float, nargs=8, required=True)
-    ap.add_argument('--detector', choices=('blob', 'hog'), default='hog')
+    ap.add_argument('--image-points', type=float, nargs='+', required=True,
+                    help='u v pairs on the FIRST frame (>= 4 pairs)')
+    ap.add_argument('--map-points', type=float, nargs='+', required=True,
+                    help='matching x y map coordinates')
+    ap.add_argument('--detector', choices=('blob', 'hog', 'yolo'), default='hog')
+    ap.add_argument('--stabilize', action='store_true', help='compensate camera drift')
+    ap.add_argument('--hog-upscale', type=float, default=1.5,
+                    help='HOG image scale: 1.5 for the small simulator camera, '
+                         '0.5 for 1080p video (otherwise very slow)')
+    ap.add_argument('--export-frames', help='write numbered frames + empty labels.csv here')
     ap.add_argument('--out', default='output/video_eval')
     ap.add_argument('--prefill', help='write a draft labels CSV instead of scoring')
     ap.add_argument('--every', type=int, default=10, help='prefill every N-th frame')
     args = ap.parse_args(argv)
-    if not args.prefill and not args.labels:
-        ap.error('--labels is required (or use --prefill to make a draft)')
+    if not (args.prefill or args.labels or args.export_frames):
+        ap.error('--labels is required (or --prefill / --export-frames)')
     print(json.dumps(evaluate(args), indent=2))
 
 

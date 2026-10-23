@@ -7,12 +7,20 @@ Two backends, chosen by the passenger_detector parameter ``detector``:
   minimum area are people. Deterministic; used for S1, T01 and T02.
 * ``hog`` — OpenCV's pretrained HOG + linear SVM people detector
   (``HOGDescriptor_getDefaultPeopleDetector``, Dalal & Triggs), shipped
-  inside OpenCV, for the real camera/video demonstration. Its window is
-  64x128 px, so small images are upscaled first.
+  inside OpenCV. Its window is 64x128 px, so small images are upscaled first.
+  It expects whole upright people; on the lab video (heads out of frame,
+  camera looking down) it misses most of them.
+* ``yolo`` — pretrained YOLOv4-tiny (Darknet, COCO, class 0 = person) run by
+  OpenCV's DNN module. The weights are downloaded once into
+  ``models/yolov4-tiny/`` (README_M1A.md says how); they are not in git.
+  Used for the real lab video: it finds people without heads or seen from
+  above. Score threshold 0.5, non-maximum suppression 0.4.
 
 Each detection is (x, y, w, h, score) in the input image's pixels; foot()
 gives the ground-contact pixel used for the homography (8.2 step 2).
 """
+import os
+
 import cv2
 import numpy as np
 
@@ -56,13 +64,39 @@ class HogDetector:
         return out
 
 
+class YoloDetector:
+    name = 'opencv-dnn-yolov4-tiny-coco'
+
+    def __init__(self, model_dir='models/yolov4-tiny', threshold=0.5, nms=0.4,
+                 size=(608, 352), foot_offset=0.0):
+        cfg = os.path.join(model_dir, 'yolov4-tiny.cfg')
+        weights = os.path.join(model_dir, 'yolov4-tiny.weights')
+        if not (os.path.isfile(cfg) and os.path.isfile(weights)):
+            raise ValueError('YOLOv4-tiny files missing in %r (see README_M1A.md)' % model_dir)
+        self.threshold, self.nms = float(threshold), float(nms)
+        self.foot_offset = float(foot_offset)        # boxes end at the shoes
+        self.model = cv2.dnn_DetectionModel(cv2.dnn.readNetFromDarknet(cfg, weights))
+        self.model.setInputParams(size=tuple(size), scale=1 / 255.0, swapRB=True)
+
+    def detect(self, bgr):
+        classes, scores, boxes = self.model.detect(bgr, confThreshold=self.threshold,
+                                                   nmsThreshold=self.nms)
+        return [(int(x), int(y), int(w), int(h), float(s))
+                for c, s, (x, y, w, h) in zip(np.ravel(classes), np.ravel(scores), boxes)
+                if int(c) == 0]
+
+
 def make_detector(name, **params):
     if name == 'blob':
         return BlobDetector(params.get('max_gray', 110), params.get('min_area', 150))
     if name == 'hog':
         return HogDetector(params.get('threshold', 0.5), params.get('upscale', 1.5),
                            params.get('stride', 8), params.get('foot_offset', 0.15))
-    raise ValueError('detector must be blob or hog, not %r' % (name,))
+    if name == 'yolo':
+        return YoloDetector(params.get('model_dir', os.environ.get(
+            'SMART_HUB_YOLO_DIR', 'models/yolov4-tiny')), params.get('threshold', 0.5),
+            params.get('nms', 0.4))
+    raise ValueError('detector must be blob, hog or yolo, not %r' % (name,))
 
 
 def foot(det, foot_offset):

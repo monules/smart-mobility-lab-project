@@ -11,3 +11,6 @@ videos/
 
 # built upload set (tools/make_submission.sh)
 submission/
+
+# downloaded pretrained detector weights (see README_M1A.md), not committed
+/models/
