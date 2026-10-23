@@ -101,12 +101,32 @@ queue Q and crossing C: their 8 corners are the calibration points.
   `--detector yolo`, score threshold 0.5). It finds people without heads.
   HOG stays in as the honest "pretrained baseline that fails here".
 
-⏳ **Your job now: label it.** Saidumar sends you `Husan_labeling_kit.zip`:
-141 pictures (one every 0.5 s) + `labels.csv` + `HOW_TO_LABEL.md`. For each
-picture write: people with their feet in the blue box, 1/0 for someone in the
-black box, 1/0 for "someone is partly hidden". Your own counting, ~30–40 min.
-Then the scores (MAE, occluded vs not, HOG vs YOLO), the graph and the report
-text get done from your labels.
+✅ **Labelled by you:** 141 pictures, one every 0.5 s
+(`evidence/m1a/real_video/labels_husan.csv`).
+
+✅ **Results** (141 frames, your labels = truth):
+
+| | YOLO, stabilised (main) | HOG | YOLO, not stabilised |
+|---|---|---|---|
+| count error (MAE), target ≤ 1 | **0.149** ✅ | 2.660 ❌ | 0.114 |
+| exactly right | 87 % | 28 % | 89 % |
+| crossing right | 97 % | 91 % | 97 % |
+| error when someone is partly hidden (6 frames) | 0.83 | 4.5 | 0.83 |
+| error otherwise (135 frames) | 0.12 | 2.58 | 0.08 |
+
+- 🟢 YOLO hits the target easily. Its few mistakes: a frame or two late/early
+  while people walk in or out, and the **hiding test** (37.5–39.5 s) — a
+  person fully behind someone else simply can't be seen, and 2 s is longer
+  than the 0.5 s "peekaboo" memory. That's your "partial occlusion" result.
+- 🔴 HOG barely sees anyone here (no heads, camera looking down) — reported as
+  the baseline that fails, with the reason.
+- 🤔 Without stabilisation the error was a bit *lower*; the 5 different
+  frames are all at 63.5–66 s when people step back over the far edge. We
+  keep stabilisation because we chose it before looking at your labels —
+  picking the winner afterwards would be cheating. Say this in the defence:
+  it shows you know how to run a fair test.
+- Graph: `evidence/m1a/real_video/count_vs_truth_yolo.png`; annotated frames
+  `annotated_yolo_frame_*.jpg`; calibration picture `calibration_frame0.jpg`.
 
 **Get the YOLO files** (once, ~24 MB, not in git — the submission has no
 links, so here is what to look for): the two files `yolov4-tiny.cfg` and

@@ -14,7 +14,7 @@ The assignment asks for a simulation-first transport hub in ROS 2: passenger det
 
 | Scenario | Owner | State at the evidence commit |
 |---|---|---|
-| S1 passenger detection | M1-A | implemented, verified in simulation; real-video evaluation pending |
+| S1 passenger detection | M1-A | verified in simulation; real lab video MAE 0.149 over 141 hand-labelled frames |
 | S2 demand prediction | M1-B | implemented, T03 evaluated on held-out seeds |
 | S3 bus docking | M2-A | S3 12/12 live, T05 10/10, T06 passed (code by M5, review by M2-A pending) |
 | S4/S5 parking, congestion | M3 | nodes in the ROS package with unit tests; S4 11/11 and S5 9/9 pass live |
@@ -66,7 +66,22 @@ Every state message is stamped with its *observation* time, and consumers judge 
 
 **A failure found and corrected.** The count-versus-truth plot showed that, right after a camera freeze, the count decayed to a *valid* zero for about 0.6 s before the state became invalid, because the disappearance debounce kept running without frames. The count is now judged at the last processed frame; a regression test (`test_silent_feed_never_reports_a_valid_zero`) prevents it from returning. After the fix: 0 valid-zero samples after the freeze.
 
-**TODO (M1-A):** the §8.3 real-video evaluation — record the lab video, hand-label at least 100 frames, run `video_eval`, and report count MAE, precision/recall and occlusion behaviour here, with annotated before/during/after frames. Tooling is ready and tested (MAE 0.0 on a video rendered from S1).
+**Real lab video (§8.3).** A fixed phone filmed the S1 script on a hall floor with the queue and the crossing marked in tape (`IMG_0572.MOV`, 70.4 s, 1920×1080, 30 fps; not measured, so the eight tape corners define Q and C directly and metric distances are approximate). Husan labelled **141 frames** by hand (one every 0.5 s): people with their feet in Q, someone in C, and whether a person in Q was partly hidden by another (`evidence/m1a/real_video/labels_husan.csv`). Two properties of the video shaped the pipeline. First, the phone drifted up to 67 px during the take; `perception/stabilizer.py` aligns every frame to the first one with ORB features on the lower floor and a RANSAC homography (all 2,112 frames aligned). Second, the heads are out of the picture and the camera looks steeply down, which the pretrained OpenCV HOG people detector (whole upright pedestrians) does not handle; we therefore added a second pretrained detector, YOLOv4-tiny (Darknet, COCO class *person*, OpenCV DNN, input 608×352, score threshold 0.5, NMS 0.4; weights downloaded separately, SHA-256 in README_M1A). Tracking, debouncing, the foot point and the zones are unchanged from the simulated pipeline. The configuration (YOLO, stabilised, 8 calibration points) was fixed before scoring.
+
+| 141 hand-labelled frames | YOLOv4-tiny, stabilised (main) | HOG, stabilised | YOLOv4-tiny, not stabilised (ablation) |
+|---|---|---|---|
+| count MAE (target ≤ 1) | **0.149** | 2.660 | 0.114 |
+| count RMSE | 0.438 | 3.223 | — |
+| exact count | 87.2 % | 27.7 % | 89.4 % |
+| crossing flag correct | 97.2 % | 90.8 % | 97.2 % |
+| MAE, frames with partial occlusion (6) | 0.833 | 4.500 | 0.833 |
+| MAE, frames without occlusion (135) | 0.119 | 2.578 | 0.082 |
+
+The remaining YOLO errors are of two kinds (Figure 3a): one-step lags while people walk into or out of Q, where the 0.4 s confirmation and hold windows and the feet crossing the tape line make the count change a frame or two early or late; and the deliberate hiding test at 37.5–39.5 s, where one person stood directly behind another for 2 s and was not visible at all, so the count stayed at 4 for longer than the 0.5 s occlusion memory — partial occlusion is the main failure mode (MAE 0.83 versus 0.12). HOG detected almost nobody in this view (MAE 2.66) and is reported as the failing baseline. Precision/recall were not computed because no per-person boxes were labelled. The stabilisation ablation is honest in the other direction: without it the MAE was slightly lower (0.114); the five differing frames are all at 63.5–66 s, while people step back over the far edge of Q, where the drift estimate fitted on the lower floor is least exact. Stabilisation stays the documented configuration because it was chosen from the measured drift before scoring, not from these labels.
+
+!img ../../evidence/m1a/real_video/count_vs_truth_yolo.png | Figure 3a — Real lab video: people in Q, Husan's hand labels (line) versus the YOLOv4-tiny pipeline (dots), 141 frames; MAE 0.149. | 14
+
+!img ../../evidence/m1a/real_video/annotated_yolo_frame_01725.jpg | Figure 3b — Annotated lab frame at t = 57.5 s: YOLO boxes, foot points (red) and the calibrated queue (blue) and crossing (orange) outlines, which still match the tape after the drift compensation. | 12
 
 ## 5. M1-B — AI demand prediction (S2)
 
@@ -217,8 +232,8 @@ Phases: start (0.3 s after moving off), cruise 0.20 m/s, turn (0.15 m/s, 0.5 rad
 
 | Test | Requirement | Status |
 |---|---|---|
-| T01 | S1 counting | PASS (simulation, blob); real video TODO |
-| T02 | S1 occlusion / freeze | PASS (simulation) |
+| T01 | S1 counting | PASS (simulation, blob); real lab video: MAE 0.149 over 141 hand-labelled frames (YOLOv4-tiny) |
+| T02 | S1 occlusion / freeze | PASS (simulation); real video: partial occlusion is the main error (MAE 0.83 on 6 occluded frames) |
 | T03 | S2 prediction | PASS (held-out synthetic seeds) |
 | T04 | S2 dispatch | pass: live 6/6 (noise, one goal per mission, invalid forecast, feed gap, FALLBACK) |
 | T05, T06 | S3 docking, cancel | pass: 10/10 dockings (≤ 0.034 m, ≤ 0.006 rad); cancel → zero 0.001 s |

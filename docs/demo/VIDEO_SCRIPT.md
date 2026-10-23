@@ -124,8 +124,9 @@ held still (the empty map) → zoom/point at each area as you name it.
 
 **Screen — demo:** `pictures/camera_during_t13_five_waiting.png` →
 `pictures/camera_crossing_t22_person_in_C.png` → `S1_detection.mp4` (2×) →
-`pictures/s1_count_vs_truth.png`. *If the real lab video is processed, show
-it here with the boxes, and use its numbers.*
+`pictures/s1_count_vs_truth.png` → **real lab video**:
+`evidence/m1a/real_video/annotated_yolo_frame_01725.jpg` and
+`count_vs_truth_yolo.png` (and 5 s of `videos/lab/IMG_0572.MOV`).
 
 > **What:** My part is the camera. It answers two questions, five times a
 > second: how many people are waiting in queue Q, and is anyone standing on
@@ -147,7 +148,11 @@ it here with the boxes, and use its numbers.*
 > **Results:** In S1 the count followed the script exactly: zero, three,
 > five, four. Error zero over 127 samples. Six tracks for six people, so no
 > double counting. The freeze was detected in 1.03 seconds — the limit is
-> 1.2. *(Real video: say the MAE / recall here.)*
+> 1.2. Then the real test: we filmed the same script in a hall. I labelled
+> 141 frames by hand. The YOLO detector's count was off by 0.15 people on
+> average — the target is one — and the old HOG detector by 2.7, because our
+> camera cut off the heads. The hardest moment was someone hiding fully
+> behind another person.
 >
 > **Bug:** The count-versus-truth plot showed one: right after a freeze the
 > count dropped to zero while still saying "valid". Now counts are judged at
@@ -431,7 +436,7 @@ everyone's webcam tile).
 > **Saidumar:** Honest limits: everything here is simulation. The vehicles
 > have no inertia, the people are drawn figures, and several of our tests are
 > very repeatable because the simulated sensors have little noise.
-> *(If done: our camera was also tested on a real lab video, with error X.)*
+> Our camera was also tested on a real lab video: error 0.15 people per frame.
 > What we learned: write the logic so you can test it without ROS, check every
 > interface against the real files, and re-run everything after every fix —
 > half our best bugs were found by re-running.
