@@ -14,7 +14,13 @@ Team Shenanigans · team leader: Egamberdiev Saidumar
   tree visible on the left, open the file named in the script, scroll to the
   function named, *highlight* the lines you talk about.
 - **Clips** are in `videos/demo_clips/` and `CLIP_TIMES.md` there says
-  where each moment is. Put **"Simulation"** in a corner of every clip and
+  where each moment is. That folder exists only on Saidumar's Mac (videos are
+  kept out of git): teammates get the same files from
+  `submission/SME_TeamShenanigans_PROJECT_Midterm_DemoClips.zip` — every
+  "`pictures/…`" or "`X.mp4`" below is inside it.
+- **Hand in your recording** as `videos/raw/NN_part_name.mov` (screen and
+  microphone recorded together; numbers as in the table below) — Saidumar
+  assembles the final video from them (title cards, clips, audio levels). Put **"Simulation"** in a corner of every clip and
   **"N× speed"** when you speed one up.
 - Every number below is from `evidence/`. Say it exactly.
 - Put the final edited file in `videos/final/` and run

@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ros-jazzy-launch-testing ros-jazzy-launch-testing-ros \
         ros-jazzy-ament-flake8 ros-jazzy-ament-pep257 \
         ros-jazzy-foxglove-bridge \
+        ffmpeg fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Keep DDS traffic inside the container; tests never leak onto the LAN.
