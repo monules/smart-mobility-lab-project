@@ -14,3 +14,6 @@ submission/
 
 # downloaded pretrained detector weights (see README_M1A.md), not committed
 /models/
+
+# team members' raw screen / voice recordings for the video
+project-video-recs/
