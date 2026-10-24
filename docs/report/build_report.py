@@ -152,7 +152,7 @@ def build(md_path, pdf_path):
         canvas.saveState()
         canvas.setFont('DV', 7.5)
         canvas.setFillColor(colors.grey)
-        canvas.drawString(2 * cm, 1 * cm, 'Smart Mobility Hub — engineering report (DRAFT)')
+        canvas.drawString(2 * cm, 1 * cm, 'Smart Mobility Hub — engineering report')
         canvas.drawRightString(A4[0] - 2 * cm, 1 * cm, 'page %d' % doc_.page)
         canvas.restoreState()
     doc.build(story, onFirstPage=footer, onLaterPages=footer)

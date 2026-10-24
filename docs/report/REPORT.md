@@ -1,4 +1,4 @@
-# Smart Mobility Hub — Engineering Report (DRAFT)
+# Smart Mobility Hub — Engineering Report
 
 !meta Smart Mobility Engineering Lab, Prof. Mehdi Pirahandeh — Inha University ISE
 !meta **Team Shenanigans** — team leader: Egamberdiev Saidumar
@@ -6,7 +6,7 @@
 !meta Platform: ROS 2 Jazzy, Ubuntu 24.04, Python rclpy, Docker (verified on Apple Silicon aarch64)
 !meta Source: branch integration/current-team-work (included in the submission ZIP); evidence files record their commit
 
-!note This is a working draft. Sections for M1-A, M1-B and M5 contain measured results from the repository. Sections marked **TODO** belong to members whose code is not yet in the repository; they must be completed with real results before submission. No result in this report is invented — every number comes from a file in `evidence/` or `src/smart_hub/results/`. Everything is **simulation only**; no physical hardware was used.
+!note Every number in this report comes from a file in `evidence/` or `src/smart_hub/results/`. All scenarios run in simulation; the only physical data is the M1-A lab video (§4).
 
 ## 1. Requirements and scope
 
@@ -16,9 +16,9 @@ The assignment asks for a simulation-first transport hub in ROS 2: passenger det
 |---|---|---|
 | S1 passenger detection | M1-A | verified in simulation; real lab video MAE 0.149 over 141 hand-labelled frames |
 | S2 demand prediction | M1-B | implemented, T03 evaluated on held-out seeds |
-| S3 bus docking | M2-A | S3 12/12 live, T05 10/10, T06 passed (code by M5, review by M2-A pending) |
+| S3 bus docking | M2-A | S3 12/12 live, T05 10/10, T06 passed (code by M5 with Claude, reviewed by M2-A) |
 | S4/S5 parking, congestion | M3 | nodes in the ROS package with unit tests; S4 11/11 and S5 9/9 pass live |
-| S6/S7 routing, escort | M4 | S6 8/8, S7 9/9, T18 5/5 live (code by M5, review by M4 pending) |
+| S6/S7 routing, escort | M4 | S6 8/8, S7 9/9, T18 5/5 live (code by M5 with Claude, reviewed by M4) |
 | S8 integration | M2-B (+ all) | T15 passed: 20 rush-hour episodes (10 seeds × predictive/reactive), 0 safety violations, 100 % completion |
 | S9 faults, e-stop | M5 | implemented, verified in simulation (T16, T17, 25-trial repetition) |
 
@@ -238,7 +238,7 @@ Phases: start (0.3 s after moving off), cruise 0.20 m/s, turn (0.15 m/s, 0.5 rad
 | T17 | S9 watchdog | PASS (simulation, process kill) |
 | T18 | S9 service loss | pass: absent and late planner → PLANNER_UNAVAILABLE after 1 s × 3, no motion, late answers ignored (robot and bus) |
 
-Automated suite at the evidence commit: `colcon test` 187 tests — 185 passed, 2 expected failures that track M1-B's pending style fixes, 0 errors (`evidence/tests/colcon_test_summary.txt`).
+Automated suite at the final commit: `colcon test` 356 tests, 0 failures, 0 errors — 345 passed, 2 expected failures that keep the remaining M2-B and M3 style debt visible, 9 smoke tests skipped by design (`evidence/tests/colcon_test_summary.txt`).
 
 ## 12. Evidence and reproducibility
 
@@ -246,16 +246,16 @@ Everything above can be re-run with Docker from a clean checkout: `docker/hub.sh
 
 ## 13. Limitations
 
-All results are from the simulator; no physical robot, camera or barrier was used, and "stopped" means the simulated velocity. Synthetic people are simple figures, which favours the blob baseline and handicaps HOG. Scenarios S6–S8 are not yet implemented. A bus waiting for a pedestrian in C was demonstrated in S3 (detector → coordinator → bus); the robot equivalent needs S7.
+All scenario results are from the simulator; no physical robot or barrier was used, and "stopped" means the simulated velocity. The only real-world data is the M1-A lab video: one camera, one 2-minute recording, 141 hand-labelled frames, with the floor zones taken from the tape marks rather than measured, so its MAE is evidence that the pipeline transfers, not a field validation. Synthetic people are simple figures, which favours the blob baseline and handicaps HOG. Dispatch-mode differences in S8 are small (62.7 s vs 64.1 s over 10 seeds) and should not be read as a general result.
 
-## 14. Contribution table — TODO (each member fills their own row)
+## 14. Contribution table
 
 | Member | Role | Implemented | Tests owned | Reviewed | How the work was done (declare tools, incl. AI assistance, per course policy) |
 |---|---|---|---|---|---|
-| Husan | M1-A | passenger_detector, perception/, video tools | T01, T02 | TODO | TODO |
-| Tuymurod | M1-B | demand_predictor, training pipeline | T03 | TODO | TODO |
-| Fazliddin | M2-A | bus_core, bus_manager (written by M5 for M2-A; review by Fazliddin pending) | T05, T06 (S3 checker by M5) | TODO (Fazliddin to confirm) | TODO (Fazliddin to state) |
-| Arkar | M2-B | coordinator_core, hub_coordinator | T04, T15 | TODO | TODO |
-| Carla | M3 | parking_engine, parking_manager, traffic_engine, traffic_monitor, hub_map; T07–T10 unit tests | T07–T10 (S4/S5 live checkers by M5) | TODO (Carla to confirm) | TODO (Carla to state) |
-| Aidil | M4 | route_core, route_planner, robot_core, robot_manager (written by M5 for M4; review by Aidil pending) | T11–T14 (S6/S7 checkers by M5) | TODO (Aidil to confirm) | TODO (Aidil to state) |
-| Saidumar | M5 | interfaces, simulator, safety supervisor, actuator bridge, metrics, dashboard, Docker, docs | T16, T17, T18 | TODO | TODO |
+| Husan | M1-A | passenger_detector, perception/ (detectors, tracker, stabiliser), real-video tools | T01, T02 (simulation S1 + real lab video, MAE 0.149) | reviewed M3 parking state validity / reviewed M1-B's use of /hub/queue | The S1 pipeline and the real-video tools were written by Claude (Anthropic's AI coding assistant). I studied the code and the README_M1A, set up and filmed the lab video, labelled all 141 frames by hand, checked the results. Tools: Claude Code, OpenCV, phone camera, Docker |
+| Tuymurod | M1-B | demand_predictor node; demand/ (features, ridge model, estimator, dispatch policy, episode simulation); training script with the 30/10/10 episode split; shipped model + results (T03); fake_queue_publisher | T03 (held-out MAE 1.215 vs persistence 1.506) | reviewed M1-A's /hub/queue output (validity, stamps) that his model consumes | Built with help from an AI assistant (Claude, by Anthropic): it helped write the demand_predictor node, the demand/ package, the training script and the tests, and helped fix the first-valid-forecast crash. I ran the training, the tests (49 passing) and the 120s rosbag evidence run myself in Docker, checked the results against metrics.json, and reviewed the code so I can explain each part. |
+| Fazliddin | M2-A | bus_core, bus_manager: DockBus action server, docking state machine, crossing acquire/renew/release, door interlock, ETA, bus departure | T05, T06 (S3 live 12/12; S3 checker by M5) | reviewed M2-B's crossing arbiter (the BAD_TOKEN / release rules his bus depends on) | The bus manager code, its tests and the S3 checker were written by Claude (Anthropic's AI coding assistant). I reviewed the code and README_M2A, confirmed the report section, recorded my part of the video, prepared the defence. Tools: Claude Code, Docker, ROS 2. |
+| Arkar | M2-B | coordinator_core (crossing arbiter, dispatch hysteresis) and hub_coordinator node, 28 unit tests; later additions by M5 with Claude: demand freshness fix, clean shutdown, escort trigger, reactive/predictive dispatch mode | T04 (6/6 live), T15 / S8 (20/20 episodes; checkers by M5) | reviewed M4's crossing use / M2-A's lease renewal, which depend on his arbiter | I designed and wrote the crossing arbiter, the dispatch policy and their unit tests |
+| Carla | M3 | parking_engine, parking_manager, traffic_engine, traffic_monitor, hub_map; T07–T10 unit tests | T07–T10 (S4/S5 live checkers by M5) | reviewed M1's data labels / M5's simulator obstacle and parking topics | The parking manager, traffic monitor, their tests (T07–T10) and README_M3 were written by Claude (Anthropic's AI coding assistant), which also ran the tests and fixed the bugs they found. I reviewed the code, ran all 68 tests on my own computer, [integrated the files into the team repository], recorded my part of the video and prepared my defence. Tools: Claude Code, Python 3 (unittest), VS Code on Fedora, Git/GitHub |
+| Aidil | M4 | route_core, route_planner, robot_core, robot_manager | T11–T14 (S6 8/8, S7 9/9); T18 with M5 | reviewed M2-B's crossing logic — the assignment suggests "Review M2 crossing logic" for M4 | The routing and robot code, tests and checkers were written by Claude (Anthropic's AI coding assistant). I reviewed the code and README_M4, confirmed my report section, recorded my video part, prepared the defence. Tools: Claude Code, Docker, ROS 2. |
+| Saidumar | M5 | interfaces (smart_hub_interfaces); simulator + scenario_runner; safety_supervisor; actuator_bridge; metrics_logger; dashboard; Docker setup; all scenario files and live checkers (S1–S9, T04, T18); integration of all members' nodes; bus (M2-A) and routing/robot (M4) code with their permission; real-video processing for M1-A; report, video script and submission tooling | T16, T17, T18; S8 / T15 integration run (20 episodes) | integration review of every subsystem against the interface contract; reviewed integrated failures found in S8 (launch-argument clash, bus counted as its own traffic, dashboard forecast flicker) | I led the team's integration and made the decisions: scope, design choices, what to merge and when, and the camera/video setup with Husan. I ran and checked every result on my own machine. Most of the code, tests, documentation and the report draft were written by Claude (Anthropic's AI coding assistant, via Claude Code) following my instructions; I reviewed the outputs, the test results and the evidence files. Tools: Claude Code, Docker, ROS 2 Jazzy, VS Code, Git/GitHub. |
