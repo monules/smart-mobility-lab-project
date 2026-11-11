@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hub Control Center</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h18M5 17V9l7-4 7 4v8M9 17v-5h6v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+    <div><h1>Hub Control Center</h1><p>Smart Mobility Hub · Team Shenanigans</p></div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="run">Run</button>
+    <button role="tab" aria-selected="false" data-tab="history">History</button>
+    <button role="tab" aria-selected="false" data-tab="explain">How it works</button>
+  </nav>
+  <div class="meta"><span id="conn" class="pill">connecting…</span><span id="commit" class="mono"></span></div>
+</header>
+
+<main id="tab-run" class="grid">
+  <section class="card ask" aria-labelledby="ask-h">
+    <h2 id="ask-h">Ask</h2>
+    <form id="ask-form">
+      <input id="ask" autocomplete="off" placeholder='e.g. "robot escort with 3 trials, then S9"' aria-label="What do you want to run?">
+      <button type="submit" class="primary">Plan</button>
+    </form>
+    <div class="chips" id="examples"></div>
+    <div id="plan" class="plan" hidden></div>
+  </section>
+
+  <section class="card tasks" aria-labelledby="tasks-h">
+    <h2 id="tasks-h">Tasks</h2>
+    <input id="filter" placeholder="Filter: S7, parking, Carla…" aria-label="Filter tasks">
+    <div id="task-list"></div>
+  </section>
+
+  <section class="card map" aria-labelledby="map-h">
+    <div class="row"><h2 id="map-h">Live hub</h2><span id="live-note" class="muted">waiting for a run…</span></div>
+    <svg id="map" viewBox="-0.3 -0.3 12.6 8.6" role="img" aria-label="Live map of the hub"></svg>
+    <div class="legend">
+      <span><i class="dot bus"></i>bus</span><span><i class="dot robot"></i>robot</span>
+      <span><i class="dot car"></i>car</span><span><i class="dot ped"></i>person</span>
+      <span><i class="dot obstacle"></i>obstacle</span><span><i class="sw blocked"></i>blocked</span>
+      <span><i class="sw dense"></i>dense</span>
+    </div>
+  </section>
+
+  <section class="card status" aria-labelledby="status-h">
+    <h2 id="status-h">Status</h2>
+    <div class="tiles" id="tiles"></div>
+    <h3>Missions</h3>
+    <div id="missions" class="missions muted">none yet</div>
+  </section>
+
+  <section class="card runbox" aria-labelledby="run-h">
+    <div class="row"><h2 id="run-h">Current run</h2><button id="stop" class="danger" disabled>Stop</button></div>
+    <div id="active" class="muted">Nothing running. Pick a task or ask.</div>
+    <div id="queue"></div>
+    <pre id="log" class="log" aria-live="off"></pre>
+  </section>
+
+  <section class="card verdict" aria-labelledby="verdict-h">
+    <h2 id="verdict-h">Last result</h2>
+    <div id="verdict" class="muted">No finished run yet.</div>
+  </section>
+</main>
+
+<main id="tab-history" class="single" hidden>
+  <section class="card">
+    <h2>Run history</h2>
+    <div class="table-wrap"><table id="history"><thead><tr><th>When</th><th>Task</th><th>Options</th><th>Result</th><th>Time</th><th></th></tr></thead><tbody></tbody></table></div>
+    <pre id="history-log" class="log tall" hidden></pre>
+  </section>
+</main>
+
+<main id="tab-explain" class="single" hidden>
+  <section class="card">
+    <h2>How the hub fits together</h2>
+    <p class="muted">Click a node to see who owns it, what it listens to and what it says. The red path is the safety rule: managers only <em>suggest</em> speeds; only the safety supervisor sends motor commands.</p>
+    <div class="explain">
+      <svg id="graph" viewBox="0 0 1000 515" role="img" aria-label="ROS graph"></svg>
+      <aside id="node-info" class="node-info muted">Select a node.</aside>
+    </div>
+  </section>
+</main>
+
+<template id="tpl-task">
+  <details class="task">
+    <summary><span class="tid"></span><span class="ttl"></span><span class="who"></span></summary>
+    <p class="sum"></p>
+    <form class="opts"></form>
+    <div class="row"><span class="mins muted"></span><button class="primary run">Run</button></div>
+  </details>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -283,6 +283,7 @@ docker/hub.sh build
 
 | Goal | Command | Result |
 |---|---|---|
+| **Hub Control Center** (pick, run and watch any task) | `docker/hub.sh ui`, then open `http://localhost:8080` | task list with options, plain-language "Ask" box ("robot escort with 2 trials then S9"), live map, status tiles, live log, verdict from the checker file, run history; evidence in `output/ui/<run>/` |
 | Run all tests | `docker/hub.sh test` | colcon test + summary |
 | S9 acceptance demo (~20 s) | `docker/hub.sh s9` | `S9 verdict: PASSED`, exit 0 only if every check passed; evidence in `output/` (check JSON, metrics, rosbag, parameter dumps) |
 | S1 passenger counting (~45 s) | `docker/hub.sh s1` (or `s1 hog`) | `S1 verdict: PASSED`; `output/s1_check.json`, `s1_count_vs_truth.png`, dashboard pictures |

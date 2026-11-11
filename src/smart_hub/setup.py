@@ -18,6 +18,8 @@ setup(
         ('share/' + package_name + '/scenarios', glob('scenarios/*.yaml')),
         ('share/' + package_name + '/models', ['models/demand_ridge_h30.json']),
     ],
+    # the Control Center's web page is served from the installed package
+    package_data={'smart_hub.control_center': ['web/*']},
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='Tuymurod (M1-B), Saidumar (M5)',
@@ -50,6 +52,7 @@ setup(
             'metrics_logger = smart_hub.metrics_logger:main',
             'dashboard_marker_publisher = smart_hub.dashboard_marker_publisher:main',
             'dashboard_snapshot = smart_hub.dashboard_snapshot:main',
+            'control_center = smart_hub.control_center.node:main',
             # M5 test tools (never part of the integrated hub launch)
             'mock_candidate_publisher = smart_hub.mock_candidate_publisher:main',
             's3_check = smart_hub.s3_check:main',

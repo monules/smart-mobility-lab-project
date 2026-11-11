@@ -15,6 +15,8 @@
 #   docker/hub.sh t18            run the T18 planner-loss check (M4 + M5, ~1 min)
 #   docker/hub.sh s8 [seeds]     S8 rush hour + T15: seeds x predictive/reactive (~90 min)
 #   docker/hub.sh s5             run the S5 congestion check (M3, ~90 s)
+#   docker/hub.sh ui             Hub Control Center: pick, run and watch any task
+#                                on http://localhost:8080 (Ctrl+C stops)
 #   docker/hub.sh view [S1|S9]   live dashboard for Foxglove on ws://localhost:8765
 #   docker/hub.sh report         build docs/report/Smart_Mobility_Hub_Report.pdf
 #   docker/hub.sh shell          interactive shell, workspace sourced
@@ -133,6 +135,12 @@ print('S7 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
       ros2 launch smart_hub $1.launch.py output_dir:=/ws/output; \
       python3 -c \"import json, sys; r = json.load(open('output/$1_check.json')); \
 print('$1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['passed'] else 1)\"" ;;
+  ui)
+    # Hub Control Center (M5). Published on 127.0.0.1 only: the page can
+    # start runs, so it must not be reachable from the network.
+    PORT="${2:-8080}"; TTY=""; [ -t 0 ] && TTY="-it"
+    in_container "$TTY --name hub-ui -p 127.0.0.1:$PORT:8080" "echo 'Hub Control Center: open http://localhost:$PORT'
+      exec ros2 run smart_hub control_center" ;;
   view)
     # Live dashboard for the Foxglove app: connect to
     # ws://localhost:8765, add a 3D panel, display frame 'map'. Ctrl+C stops.
@@ -148,5 +156,5 @@ print('$1 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
     in_container "" "python3 docs/report/build_report.py" ;;
   shell) in_container "-it" "exec bash" ;;
   run) in_container "" "${2:?usage: docker/hub.sh run '<command>'}" ;;
-  *) sed -n '2,21p' "$0" ;;
+  *) sed -n '2,23p' "$0" ;;
 esac
