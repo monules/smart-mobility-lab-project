@@ -29,6 +29,10 @@ from smart_hub_interfaces.srv import RequestCrossing
 
 
 def _qos(depth, transient=False):
+    """Return a reliable keep-last QoS profile.
+
+    With transient=True the last sample is also kept for late joiners.
+    """
     return QoSProfile(
         reliability=ReliabilityPolicy.RELIABLE,
         history=HistoryPolicy.KEEP_LAST, depth=depth,
@@ -44,6 +48,10 @@ RADIUS = {'bus': 0.30, 'car': 0.30, 'robot': 0.20}
 
 class HubCoordinator(Node):
     def __init__(self):
+        """Declare and validate parameters, build the arbiter and the dispatch policy.
+
+        Then wire the subscriptions, the crossing service and the two action clients.
+        """
         super().__init__('hub_coordinator')
         defaults = {
             'run_id': 'run-0', 'scenario_id': 'S8',
@@ -122,6 +130,7 @@ class HubCoordinator(Node):
     @staticmethod
     def _validate(g):
         # (condition that must hold, parameter named in the error)
+        """Raise ValueError naming every parameter whose value is outside its allowed range."""
         rules = [
             (0.5 <= g('lease_sec') <= 30, 'lease_sec'),
             (0.5 <= g('crossing_clear_sec') <= 10, 'crossing_clear_sec'),
@@ -185,6 +194,7 @@ class HubCoordinator(Node):
         self.arbiter.update_observation(now, ped, occupants, valid)
 
     def _crossing_tick(self):
+        """Update the arbiter from fresh observations and publish /crossing/state (10 Hz)."""
         self._observe(time.monotonic())
         snap = self.arbiter.snapshot()
         msg = CrossingState()
@@ -196,6 +206,11 @@ class HubCoordinator(Node):
         self._flush_events()
 
     def _on_crossing(self, req, res):
+        """Serve /crossing/request: ACQUIRE, RENEW or RELEASE, answered by the arbiter.
+
+        A denial is published as an event only when its reason changes, so a
+        requester that polls while it waits does not flood /hub/events.
+        """
         granted, token, reason = self.arbiter.request(
             time.monotonic(), req.requester_id, req.operation, req.token)
         res.granted, res.token, res.reason = granted, token, reason
@@ -211,6 +226,12 @@ class HubCoordinator(Node):
 
     # --------------------------------------------------------------- dispatch
     def _dispatch_tick(self):
+        """Evaluate the dispatch policy once and send a bus if it decides so.
+
+        Inputs older than their freshness limit are treated as missing. In
+        'predictive' mode the unserved-demand forecast is used when valid and the
+        observed queue is the FALLBACK; in 'reactive' mode only the observed queue.
+        """
         d = self._fresh_msg('demand') if self.dispatch_mode == 'predictive' else None
         q = self._fresh_msg('queue')
         b = self._fresh_msg('bus')
@@ -228,6 +249,10 @@ class HubCoordinator(Node):
             self._send_dock(decision)
 
     def _send_dock(self, decision):
+        """Send the DockBus goal for a dispatch decision.
+
+        An unavailable server ends the mission at once.
+        """
         corr = decision.correlation_id
         if not self.dock_client.server_is_ready():
             self._event('BUS_DISPATCH_FAILED', self.bus_id, 'DOCK_SERVER_UNAVAILABLE', corr)
@@ -241,6 +266,10 @@ class HubCoordinator(Node):
         fut.add_done_callback(partial(self._on_dock_accept, corr))
 
     def _on_dock_accept(self, corr, fut):
+        """Handle the goal response.
+
+        A rejected or failed goal frees the policy for a later dispatch.
+        """
         try:
             handle = fut.result()
         except Exception as exc:                 # noqa: BLE001
@@ -258,6 +287,10 @@ class HubCoordinator(Node):
         handle.get_result_async().add_done_callback(partial(self._on_dock_result, corr))
 
     def _on_dock_result(self, corr, fut):
+        """Publish how the bus mission ended and mark it finished in the policy.
+
+        Only then can the policy dispatch again: one bus mission at a time.
+        """
         try:
             wrapped = fut.result()
             status, result = wrapped.status, wrapped.result
@@ -310,6 +343,10 @@ class HubCoordinator(Node):
         return True
 
     def _on_escort_accept(self, request_id, passenger_id, fut):
+        """Handle the EscortPassenger goal response.
+
+        A rejection is published and the slot is freed.
+        """
         try:
             handle = fut.result()
         except Exception as exc:                 # noqa: BLE001
@@ -327,6 +364,7 @@ class HubCoordinator(Node):
             partial(self._on_escort_result, request_id, passenger_id))
 
     def _on_escort_result(self, request_id, passenger_id, fut):
+        """Publish how the escort ended and allow the next escort request."""
         try:
             wrapped = fut.result()
             ok = wrapped.status == GoalStatus.STATUS_SUCCEEDED
@@ -339,6 +377,7 @@ class HubCoordinator(Node):
 
     # ----------------------------------------------------------------- events
     def _event(self, event, entity, reason, corr=''):
+        """Publish one HubEvent on /hub/events."""
         msg = HubEvent()
         if hasattr(msg, 'header'):
             msg.header.stamp = self.get_clock().now().to_msg()
@@ -354,6 +393,7 @@ class HubCoordinator(Node):
 
 
 def main(args=None):
+    """Start the node and shut down cleanly on Ctrl+C or an external shutdown."""
     rclpy.init(args=args)
     node = HubCoordinator()
     try:

@@ -62,6 +62,7 @@ DEFAULT_ACK_TIMEOUT = 0.8
 
 
 def default_scenario_dir():
+    """Return the installed scenario folder, or the source folder when run from a checkout."""
     try:
         from ament_index_python.packages import get_package_share_directory
         return os.path.join(get_package_share_directory('smart_hub'), 'scenarios')
@@ -70,6 +71,10 @@ def default_scenario_dir():
 
 
 def load_scenario(directory, scenario_id):
+    """Read and check one scenario YAML.
+
+    Raise ValueError if its id does not match the file name.
+    """
     path = os.path.join(directory, '%s.yaml' % scenario_id)
     with open(path) as fh:
         data = yaml.safe_load(fh)
@@ -80,6 +85,10 @@ def load_scenario(directory, scenario_id):
 
 class ScenarioRunner(Node):
     def __init__(self, **kwargs):
+        """Load the scenario, create the simulator and wire the ROS interfaces.
+
+        Publishers for every observation, the command subscriptions and /scenario/reset.
+        """
         super().__init__('scenario_runner', **kwargs)
         p = declare(self, {'scenario': 'S9', 'seed': 9, 'scenario_dir': '',
                            'publish_estop': True, 'robot_id': 'robot_1',
@@ -154,6 +163,10 @@ class ScenarioRunner(Node):
         self.sim.set_command(self.ids[agent], msg.linear.x, msg.angular.z)
 
     def on_inject(self, msg):
+        """Apply a test stimulus from /scenario/inject.
+
+        Obstacle, freeze, vehicle and similar events; a malformed one is rejected.
+        """
         try:
             event = self.sim.apply_event(json.loads(msg.data))
         except (ValueError, TypeError, KeyError) as exc:
@@ -162,6 +175,7 @@ class ScenarioRunner(Node):
         self._event('FAULT_INJECTED', 'scenario_runner', json.dumps(event, sort_keys=True))
 
     def on_event(self, msg):
+        """Collect RESET_ACK events for the reset that is currently waiting."""
         pending = self.pending
         if pending and msg.event == RESET_ACK and msg.correlation_id == pending['run_id']:
             pending['acked'].add(msg.entity_id)
@@ -224,6 +238,11 @@ class ScenarioRunner(Node):
 
     # --------------------------------------------------------------- tick
     def tick(self):
+        """Advance the world one 50 ms step and publish everything the hub observes.
+
+        Order: reset handshake, simulator step (scripted events become hub events
+        or stimuli), then odometry, vehicles, parking sensors, camera and truth.
+        """
         self._drive_handshake(time.monotonic())
         for event in self.sim.step():
             self._event('SCENARIO_EVENT', 'scenario_runner', json.dumps(event, sort_keys=True))
@@ -256,6 +275,10 @@ class ScenarioRunner(Node):
             self._event('SCENARIO_COMPLETE', 'scenario_runner', 't=%.2f' % self.sim.t)
 
     def _publish_odom(self, stamp):
+        """Publish /robot/odom from the simulated robot.
+
+        The position carries the scenario's seeded observation noise.
+        """
         body = self.sim.bodies.get(self.ids['robot'])
         if body is None:
             return
@@ -274,6 +297,11 @@ class ScenarioRunner(Node):
         self.odom_pub.publish(msg)
 
     def _vehicles(self, stamp, noisy):
+        """Build a VehicleStateArray of every visible body.
+
+        noisy=True is the observation for /hub/vehicles; False is the exact
+        ground truth for the private /sim/truth.
+        """
         msg = VehicleStateArray()
         msg.header.stamp = stamp
         msg.header.frame_id = 'map'
@@ -302,6 +330,11 @@ class ScenarioRunner(Node):
         return msg
 
     def _publish_camera(self, stamp):
+        """Publish the synthetic camera image.
+
+        While a camera fault is injected: nothing, or the last frame again with
+        its old stamp.
+        """
         if self.camera is None or self.sim.is_frozen('camera'):
             return
         if self.sim.is_frozen('camera_repeat') and self.last_frame is not None:
@@ -317,6 +350,7 @@ class ScenarioRunner(Node):
         self.camera_pub.publish(msg)
 
     def _publish_parking(self, stamp):
+        """Publish the parking sensor observations of the simulated slots."""
         msg = SlotObservationArray()
         msg.header.stamp = stamp
         msg.header.frame_id = 'map'
@@ -338,6 +372,7 @@ class ScenarioRunner(Node):
                 f.result().message if f.result() else 'no answer')))
 
     def _event(self, event, entity, reason):
+        """Publish one HubEvent on /hub/events."""
         msg = HubEvent()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.run_id, msg.scenario_id = self.run_id, self.scenario_id
@@ -347,6 +382,7 @@ class ScenarioRunner(Node):
 
 
 def main(args=None):
+    """Start the node and shut down cleanly on Ctrl+C."""
     rclpy.init(args=args)
     node = ScenarioRunner()
     try:

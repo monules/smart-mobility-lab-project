@@ -76,6 +76,7 @@ class BusConfig:
     approach_allowance: float = 1.5  # s, declared extra time of the final slow-down
 
     def validate(self):
+        """Raise ValueError naming every parameter that is outside its allowed range."""
         bad = [n for n in ('radius', 'cruise_speed', 'min_speed', 'slow_gain', 'turn_rate',
                            'pos_tol', 'yaw_tol', 'dock_hold', 'board_sec', 'pose_timeout',
                            'renew_period', 'eta_tau') if not getattr(self, n) > 0]
@@ -101,6 +102,7 @@ class Path:
     """Polyline with arc length, corners and the crossing span."""
 
     def __init__(self, points, radius):
+        """Build a polyline path and find where it enters and leaves crossing C for this radius."""
         self.p = [tuple(map(float, pt)) for pt in points]
         if len(self.p) < 2:
             raise ValueError('a route needs at least two points')
@@ -124,6 +126,7 @@ class Path:
         return [i * step for i in range(n + 1)] + [self.total]
 
     def point(self, s):
+        """Return the (x, y) point at arc length s along the path (clamped to its ends)."""
         s = max(0.0, min(self.total, s))
         for k, length in enumerate(self.seg_len):
             if s <= self.cum[k + 1] or k == len(self.seg_len) - 1:
@@ -157,6 +160,7 @@ class Output:
 
 class BusCore:
     def __init__(self, cfg=None):
+        """Create an idle bus with the given configuration (validated)."""
         self.cfg = cfg or BusConfig()
         self.cfg.validate()
         self.pose = None            # (x, y, theta, speed, t)
@@ -186,6 +190,10 @@ class BusCore:
         self.pedestrian = (bool(pedestrian), now)
 
     def on_crossing_response(self, operation, granted, token, reason, now):
+        """Record the arbiter's answer to an ACQUIRE, RENEW or RELEASE request.
+
+        A refused RENEW drops the token: the bus must not rely on an expired lease.
+        """
         self.cross_inflight = False
         if operation in ('ACQUIRE', 'RENEW'):
             if granted:
@@ -203,6 +211,7 @@ class BusCore:
 
     # ------------------------------------------------------------- goal
     def _clear_goal(self):
+        """Forget the mission and return to IDLE."""
         self.phase, self.reason = IDLE, ''
         self.path = None
         self.seg = 0
@@ -256,12 +265,14 @@ class BusCore:
         self.safety_latched = False
 
     def _set(self, phase, reason):
+        """Change phase and reason, publishing a BUS_PHASE event when the phase changes."""
         if phase != self.phase or reason != self.reason:
             if phase != self.phase:
                 self.events.append(('BUS_PHASE', '%s->%s %s' % (self.phase, phase, reason)))
             self.phase, self.reason = phase, reason
 
     def _end(self, out, success, final, reason):
+        """Finish the mission with the given result and stop following the path."""
         self._set(final, reason)
         out.done = (success, final, reason)
         out.phase, out.reason = final, reason
@@ -330,6 +341,11 @@ class BusCore:
 
     # ------------------------------------------------------------- 20 Hz
     def step(self, now):
+        """Advance the docking state machine by one tick and return the Output.
+
+        Output carries the candidate command (zero whenever the bus must wait),
+        the door request, phase, reason, ETA and any crossing request to send.
+        """
         c, out = self.cfg, Output()
         if self.path is None:
             out.phase = self.phase

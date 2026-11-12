@@ -50,6 +50,10 @@ CONFIG_KEYS = ('cruise_speed', 'turn_rate', 'goal_tol', 'arrive_hold', 'odom_tim
 
 class RobotManager(Node):
     def __init__(self, **kwargs):
+        """Declare parameters, build the escort core and wire the ROS interfaces.
+
+        Topics, the ready service, the two service clients and both action servers.
+        """
         super().__init__('robot_manager', **kwargs)
         cfg = robot_core.RobotConfig()
         p = declare(self, dict({'robot_id': 'robot_1', 'run_id': '', 'scenario_id': '',
@@ -95,6 +99,13 @@ class RobotManager(Node):
 
     # ------------------------------------------------------------- inputs
     def on_odom(self, msg):
+        """Feed the robot's own pose to the core.
+
+        Unstamped, stale or future-stamped odometry is dropped.
+
+        A dropped sample is not replaced by an old one: the core notices the gap
+        itself and stops the mission with ODOM_STALE (fail-safe).
+        """
         age = stamp_age(self, msg.header.stamp)
         if age is None or age > self.core.cfg.odom_timeout or age < -self.future_tol:
             return
@@ -104,13 +115,20 @@ class RobotManager(Node):
                           abs(msg.twist.twist.linear.x), time.monotonic())
 
     def on_safety(self, msg):
+        """Tell the core whether the safety supervisor has latched a stop."""
         self.core.on_safety(msg.stop_latched)
 
     def on_edges(self, msg):
+        """Pass the traffic monitor's edge states to the route cost view (used for replanning)."""
         self.view.on_traffic([(e.edge_id, e.mean_speed_mps, e.density_ratio, e.blocked,
                                e.valid) for e in msg.edges], time.monotonic())
 
     def on_vehicles(self, msg):
+        """Pass obstacles (edges near them are removed) and the agents' positions to the cost view.
+
+        The agents' own positions are needed so that the robot is not counted as
+        traffic on the road it is standing on.
+        """
         self.view.on_bodies([(v.pose.x, v.pose.y, geo.RADIUS_BY_KIND['obstacle'])
                              for v in msg.vehicles if v.kind == 'obstacle' and v.valid],
                             time.monotonic(),
@@ -118,6 +136,7 @@ class RobotManager(Node):
                              if v.valid and v.kind in ('bus', 'robot')})
 
     def on_crossing(self, msg):
+        """Pass the crossing state (owner, pedestrian, validity) to the cost view."""
         self.view.on_crossing(msg.owner_id, msg.pedestrian_present, msg.valid,
                               time.monotonic())
 
@@ -134,11 +153,20 @@ class RobotManager(Node):
         self.event_pub.publish(reset_ack(self, msg.correlation_id, 'robot idle'))
 
     def on_ready(self, request, response):
+        """Serve /robot/confirm_ready, the passenger's button.
+
+        A press is accepted only while the robot waits at the pickup node.
+        """
         response.success, response.message = self.core.confirm_ready()
         return response
 
     # ------------------------------------------------------------- actions
     def _check_goal(self, request_id, nodes, duration):
+        """Return the reason a goal must be rejected, or '' if it is acceptable.
+
+        Checked before acceptance (assignment 7.2): request id present and never
+        seen before, known nodes, positive duration, no mission already running.
+        """
         if not request_id:
             return 'INVALID_REQUEST_ID'
         if request_id in self.seen_requests:
@@ -154,6 +182,7 @@ class RobotManager(Node):
         return ''
 
     def _decide(self, kind, request_id, reason):
+        """Publish the accept/reject event for a goal and return the action response."""
         self.event('%s_GOAL_%s' % (kind.upper(), 'REJECTED' if reason else 'ACCEPTED'),
                    '%s %s' % (request_id, reason or 'OK'))
         if reason:
@@ -162,6 +191,7 @@ class RobotManager(Node):
         return GoalResponse.ACCEPT
 
     def on_escort_goal(self, goal):
+        """Goal callback of /robot/escort (EscortPassenger)."""
         reason = self._check_goal(goal.request_id, [goal.pickup_node, goal.destination_node],
                                   goal.max_duration_sec)
         if not reason and not goal.passenger_id:
@@ -169,25 +199,34 @@ class RobotManager(Node):
         return self._decide('escort', goal.request_id, reason)
 
     def on_navigate_goal(self, goal):
+        """Goal callback of /robot/navigate_to (NavigateTo)."""
         reason = self._check_goal(goal.request_id, [goal.goal_node], goal.max_duration_sec)
         return self._decide('navigate', goal.request_id, reason)
 
     def on_cancel(self, goal_handle):
+        """Accept a cancel request: stop the core and publish a zero candidate at once."""
         self.core.cancel()
         self.publish_cmd(0.0, 0.0)                      # zero at once
         self.event('ROBOT_CANCEL_ACCEPTED', 'client request')
         return CancelResponse.ACCEPT
 
     async def execute_escort(self, goal_handle):
+        """Run one escort: pickup leg, wait for readiness, destination leg."""
         g = goal_handle.request
         return await self._execute('escort', goal_handle,
                                    [g.pickup_node, g.destination_node], g.max_duration_sec)
 
     async def execute_navigate(self, goal_handle):
+        """Run one plain navigation to a single goal node."""
         g = goal_handle.request
         return await self._execute('navigate', goal_handle, [g.goal_node], g.max_duration_sec)
 
     async def _execute(self, kind, goal_handle, legs, duration):
+        """Start the mission in the core and wait until tick() reports its end.
+
+        The action's execute callback only awaits a Future, so it never blocks the
+        executor: the 20 Hz timer keeps running and completes the Future in finish().
+        """
         self.goal, self.goal_done = (kind, goal_handle), Future()
         try:
             self.core.start(kind, legs, time.monotonic(), duration)
@@ -196,6 +235,11 @@ class RobotManager(Node):
         return await self.goal_done
 
     def finish(self, done):
+        """Fill the action result from the core's outcome and set the goal's final status.
+
+        Every terminal path (success, cancel, abort) ends here, so a result is
+        always populated (assignment 7.2).
+        """
         success, final, reason, node, err, travelled = done
         kind, handle = self.goal
         self.goal = None
@@ -221,6 +265,13 @@ class RobotManager(Node):
 
     # ------------------------------------------------------------- 20 Hz
     def tick(self):
+        """Run one 20 Hz control step.
+
+        Step the core, publish its candidate velocity (never a final command: only
+        the safety supervisor may do that), forward its route and crossing
+        requests, publish feedback and events, and finish the goal when the core
+        reports the mission over.
+        """
         now = time.monotonic()
         if self.goal is not None and self.goal[1].is_cancel_requested:
             self.core.cancel()
@@ -248,6 +299,11 @@ class RobotManager(Node):
 
     # ------------------------------------------------------------- outputs
     def send_route(self, attempt, start, goal):
+        """Call /route/compute without blocking; the answer goes back to the core.
+
+        The core owns the timeout and retry policy (1 s, at most 2 retries, late
+        answers ignored), so an unavailable planner needs no special case here.
+        """
         if not self.route_cli.service_is_ready():
             self.event('PLANNER_NOT_READY', 'attempt %d %s->%s' % (attempt, start, goal))
             return                                       # core times the attempt out
@@ -255,6 +311,7 @@ class RobotManager(Node):
             start_node=start, goal_node=goal, agent_type='robot'))
 
         def done(fut):
+            """Hand the service answer to the core (runs later, when the response arrives)."""
             res = fut.result()
             if res is None:
                 return
@@ -263,6 +320,11 @@ class RobotManager(Node):
         future.add_done_callback(done)
 
     def send_crossing(self, operation, token):
+        """Call /crossing/request (ACQUIRE, RENEW or RELEASE) without blocking.
+
+        No arbiter or no answer is reported to the core as 'not granted': the
+        robot then waits outside C instead of assuming permission.
+        """
         self.core.cross_inflight = True
         if not self.crossing_cli.service_is_ready():
             self.core.on_crossing_response(operation, False, '', 'NO_ARBITER', time.monotonic())
@@ -271,6 +333,7 @@ class RobotManager(Node):
             requester_id=self.robot_id, operation=operation, token=token))
 
         def done(fut):
+            """Hand the service answer to the core (runs later, when the response arrives)."""
             res = fut.result()
             if res is None:
                 self.core.on_crossing_response(operation, False, '', 'NO_RESPONSE',
@@ -281,6 +344,7 @@ class RobotManager(Node):
         future.add_done_callback(done)
 
     def publish_cmd(self, v, w):
+        """Publish the candidate velocity for the safety supervisor (stamped, robot frame)."""
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = '%s/base_link' % self.robot_id
@@ -288,6 +352,7 @@ class RobotManager(Node):
         self.cmd_pub.publish(msg)
 
     def publish_route(self, points):
+        """Publish the planned route as nav_msgs/Path in the map frame (for the dashboards)."""
         path = Path()
         path.header.frame_id = 'map'
         path.header.stamp = self.get_clock().now().to_msg()
@@ -299,6 +364,7 @@ class RobotManager(Node):
         self.route_pub.publish(path)
 
     def event(self, event, reason):
+        """Publish one HubEvent for this robot on /hub/events."""
         msg = HubEvent()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'map'
@@ -309,6 +375,7 @@ class RobotManager(Node):
 
 
 def main(args=None):
+    """Start the node and shut down cleanly on Ctrl+C or an external shutdown."""
     rclpy.init(args=args)
     node = RobotManager()
     try:

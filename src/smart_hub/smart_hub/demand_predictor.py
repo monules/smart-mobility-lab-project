@@ -68,6 +68,7 @@ def _stamp_to_sec(stamp):
 
 
 def default_model_path(name=DEFAULT_MODEL_FILE):
+    """Return the path of an installed model file (or the source copy in a checkout)."""
     try:
         from ament_index_python.packages import get_package_share_directory
         share = get_package_share_directory('smart_hub')
@@ -105,6 +106,7 @@ class DemandPredictor(Node):
 
     def __init__(self, **node_kwargs):
         # node_kwargs (e.g. parameter_overrides) are used by the node tests.
+        """Declare and validate parameters, load both models and wire the ROS interfaces."""
         super().__init__(NODE_NAME, **node_kwargs)
         for name, (default, desc) in self.PARAMS.items():
             self.declare_parameter(name, default,
@@ -156,6 +158,7 @@ class DemandPredictor(Node):
                dict(sorted(p.items()))))
 
     def _new_estimator(self, model=None):
+        """Create an estimator for the given model (default: the future-queue model)."""
         p = self.p
         return DemandEstimator(
             model or self.model,
@@ -186,6 +189,7 @@ class DemandPredictor(Node):
     # ------------------------------------------------------------ startup
     @staticmethod
     def _validate(p):
+        """Raise ValueError for a parameter outside its allowed range."""
         def bad(msg):
             raise ValueError('invalid parameter: ' + msg)
         if int(p['prediction_horizon_sec']) != 30:
@@ -210,6 +214,7 @@ class DemandPredictor(Node):
             bad('latency_report_sec must be positive')
 
     def _load_model(self, p, param='model_path', default_file=DEFAULT_MODEL_FILE):
+        """Load a model file; on failure fall back to persistence unless require_model is set."""
         if not p['use_model']:
             return PersistenceModel(), 'use_model=false'
         path = p[param] or default_model_path(default_file)
@@ -234,6 +239,7 @@ class DemandPredictor(Node):
         # Parameters are part of the experiment record: restart to change.
         # Only this node's own parameters are locked (use_sim_time etc. are
         # left to rclpy).
+        """Refuse runtime changes of this node's parameters (they belong to the run record)."""
         names = ', '.join(x.name for x in params if x.name in self.PARAMS)
         if not names:
             return SetParametersResult(successful=True)
@@ -244,6 +250,7 @@ class DemandPredictor(Node):
 
     # ----------------------------------------------------------- callbacks
     def on_queue(self, msg):
+        """Feed one /hub/queue sample to both estimators (wrong zones are ignored)."""
         if msg.zone_id and msg.zone_id != self.p['queue_zone_id']:
             self._wrong_zone += 1
             return
@@ -264,6 +271,7 @@ class DemandPredictor(Node):
         # A timer-callback exception would stop rclpy.spin and kill the node
         # (silencing /hub/demand). Log it loudly and keep the 1 Hz loop alive;
         # consumers already treat a missing/old forecast as invalid.
+        """Run one publication cycle; an exception is logged and the 1 Hz loop keeps running."""
         try:
             self._tick()
         except Exception as exc:  # noqa: BLE001
@@ -271,6 +279,7 @@ class DemandPredictor(Node):
                                     throttle_duration_sec=5.0)
 
     def _tick(self):
+        """Compute and publish both forecasts and report validity changes and latency."""
         t0 = time.perf_counter()
         now_mono, now_ros = time.monotonic(), self._now()
         pred = self.estimator.tick(now_mono, now_ros)
@@ -319,6 +328,7 @@ class DemandPredictor(Node):
         return self.get_clock().now().nanoseconds * 1e-9
 
     def _event(self, event, reason, correlation_id):
+        """Publish one HubEvent on /hub/events."""
         msg = HubEvent()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'map'
@@ -331,12 +341,14 @@ class DemandPredictor(Node):
         self.events.publish(msg)
 
     def _maybe_log_latency(self):
+        """Log inference and tick latency percentiles every latency_report_sec seconds."""
         now = time.monotonic()
         if now - self._last_latency_log < float(self.p['latency_report_sec']):
             return
         self._last_latency_log = now
 
         def p(xs, q):
+            """Return the q-quantile of xs (nearest rank), or NaN for no samples."""
             if not xs:
                 return float('nan')
             s = sorted(xs)
@@ -350,6 +362,7 @@ class DemandPredictor(Node):
 
 
 def main(args=None):
+    """Start the node and shut down cleanly on Ctrl+C."""
     rclpy.init(args=args)
     node = None
     try:

@@ -35,6 +35,7 @@ class CrossingArbiter:
     """
 
     def __init__(self, lease_sec=3.0, clear_debounce=2.0, wait_ttl=5.0):
+        """Create a free crossing with its lease, clear-debounce and waiting-list times."""
         self.lease_sec = lease_sec
         self.clear_debounce = clear_debounce
         self.wait_ttl = wait_ttl
@@ -62,6 +63,7 @@ class CrossingArbiter:
                 and now - self.clear_since >= self.clear_debounce)
 
     def _clear_owner(self):
+        """Remove the current owner and its token (the crossing becomes ownerless)."""
         self.owner = ''
         self.token = ''
         self.lease_expiry = 0.0
@@ -69,6 +71,11 @@ class CrossingArbiter:
 
     # ---- inputs --------------------------------------------------------
     def update_observation(self, now, pedestrian, occupants, valid):
+        """Feed what is physically in C: pedestrian, vehicles, data validity.
+
+        The time since C was last seen clear is tracked here; a grant needs C to
+        have been continuously clear for clear_debounce seconds.
+        """
         self.valid = bool(valid)
         self.pedestrian = bool(pedestrian)
         self.occupants = frozenset(occupants)
@@ -80,6 +87,12 @@ class CrossingArbiter:
         self.tick(now)
 
     def tick(self, now):
+        """Expire old waiters and a lapsed lease.
+
+        A lease that expires while its owner is still inside C is not given away:
+        the crossing is held until the owner is observed outside (10.3: never
+        reassign an occupied crossing merely because a lease expired).
+        """
         for r in [r for r, t in self.waiting.items() if now - t > self.wait_ttl]:
             del self.waiting[r]
         if self.owner and not self.hold and now > self.lease_expiry:
@@ -105,6 +118,7 @@ class CrossingArbiter:
         return self._release(requester, token)
 
     def _acquire(self, now, requester, token):
+        """Grant C to the requester if it is free, clear long enough and nobody waits before it."""
         if token:
             return False, '', 'INVALID_REQUEST'
         if requester == self.owner:  # retry of a timed-out request: same token
@@ -135,6 +149,7 @@ class CrossingArbiter:
         return True, self.token, 'OK'
 
     def _renew(self, now, requester, token):
+        """Extend the owner's lease; a wrong requester or token gets BAD_TOKEN."""
         if not self.owner or requester != self.owner or token != self.token:
             return False, '', 'BAD_TOKEN'
         self.lease_expiry = now + self.lease_sec
@@ -144,6 +159,7 @@ class CrossingArbiter:
         return True, self.token, 'OK'
 
     def _release(self, requester, token):
+        """Give C back; refused while the owner's footprint is still observed inside."""
         if not self.owner or requester != self.owner or token != self.token:
             return False, '', 'BAD_TOKEN'
         if not self.valid or requester in self.occupants:
@@ -194,6 +210,7 @@ class DispatchPolicy:
 
     def __init__(self, high=6.0, low=4.0, need_high=3, need_low=5,
                  cooldown=30.0):
+        """Create the dispatch policy: thresholds, consecutive-sample counts and cooldown."""
         self.high, self.low = high, low
         self.need_high, self.need_low = need_high, need_low
         self.cooldown = cooldown
