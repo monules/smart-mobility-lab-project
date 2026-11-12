@@ -212,6 +212,7 @@ function drawTiles(live) {
   const c = val(live.crossing);
   const q = val(live.queue);
   const d = val(live.demand);
+  const u = val(live.demand_unserved);
   const slots = val(live.parking);
   const veh = val(live.vehicles) || [];
   const safety = !s ? tile('Safety', '—', 'no supervisor data')
@@ -226,8 +227,10 @@ function drawTiles(live) {
     tile('Crossing C', c ? c.state || 'FREE' : '—', c ? (c.owner ? 'owner ' + c.owner : 'no owner') + (c.pedestrian ? ' · person in C' : '') : '',
       c ? (c.pedestrian ? 'warn' : 'ok') : ''),
     tile('Queue Q', q ? String(q.count) : '—', q ? `confidence ${q.confidence}${q.valid ? '' : ' · invalid'}` : '', q ? (q.valid ? 'ok' : 'warn') : ''),
-    tile('Forecast +30 s', d && d.valid ? d.predicted.toFixed(1) : '—', d ? (d.valid ? `persistence ${d.baseline.toFixed(1)}` : 'warming up / invalid') : '',
+    tile('Queue in 30 s', d && d.valid ? d.predicted.toFixed(1) : '—', d ? (d.valid ? `forecast · persistence ${d.baseline.toFixed(1)}` : 'warming up / invalid') : '',
       d ? (d.valid ? 'ok' : 'warn') : ''),
+    tile('Unserved demand 30 s', u && u.valid ? u.predicted.toFixed(1) : '—', u ? (u.valid ? 'if no bus came · used for dispatch' : 'warming up / invalid') : '',
+      u ? (u.valid ? 'ok' : 'warn') : ''),
     tile('Parking', free === null ? '—' : `${free}/3 free`, slots ? Object.entries(slots).map(([k, x]) => `${k} ${x.state}`).join(' · ') : '', slots ? 'ok' : ''),
     tile('Bus', speed('bus'), '', veh.some((x) => x.kind === 'bus') ? 'ok' : ''),
     tile('Robot', speed('robot'), '', veh.some((x) => x.kind === 'robot') ? 'ok' : ''));

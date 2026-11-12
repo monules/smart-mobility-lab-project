@@ -47,15 +47,21 @@ def _verdict_real_video(r):
 
 
 def _verdict_training(r):
-    target = r.get('shipped_target', '?')
-    test = r.get('test', {}).get(target, {})
-    checks = [{'check': name.replace('_', ' '), 'passed': bool(ok), 'detail': ''}
-              for name, ok in sorted(r.get('pass_criteria', {}).items())]
-    checks.insert(0, {'check': 'held-out MAE (%s target)' % target,
-                      'passed': test.get('ridge_mae', 9) <= test.get('persistence_mae', 0),
-                      'detail': 'ridge %.3f vs persistence %.3f' % (
-                          test.get('ridge_mae', float('nan')),
-                          test.get('persistence_mae', float('nan')))})
+    checks = []
+    # one line per target: /hub/demand (future queue) and /hub/demand_unserved
+    for target, topic in (('queue', '/hub/demand'), ('demand', '/hub/demand_unserved')):
+        test = r.get('test', {}).get(target)
+        if not test:
+            continue
+        ci = test.get('mae_difference_95ci_episode_bootstrap') or [float('nan')] * 2
+        checks.append({'check': 'held-out MAE, %s target (%s)' % (target, topic),
+                       'passed': test['ridge_mae'] <= test['persistence_mae'],
+                       'detail': 'ridge %.3f vs persistence %.3f; difference 95%% CI '
+                                 '[%.3f, %.3f]%s' % (
+                                     test['ridge_mae'], test['persistence_mae'], ci[0], ci[1],
+                                     '' if ci[1] < 0 else ' (includes 0: gain uncertain)')})
+    checks += [{'check': name.replace('_', ' '), 'passed': bool(ok), 'detail': ''}
+               for name, ok in sorted(r.get('pass_criteria', {}).items())]
     return all(c['passed'] for c in checks), checks
 
 

@@ -5,6 +5,44 @@ All numbers come from `python3 scripts/train_demand_model.py` (seeds
 **synthetic**: seeded simulator episodes with a noisy 5 Hz detector model, not
 camera-derived tracks.
 
+## Two targets, two topics (changed after the midterm review)
+
+The midterm version published one forecast on `/hub/demand`, and it was the
+*unserved demand*, not the *future queue* the assignment asks for. The review
+was right that this answered a different question under the assignment's
+name. Both forecasts are now published, each under its own name, and each is
+scored only against its own label:
+
+| Topic | Target (what the number means) | Model | Held-out MAE: ridge vs persistence | 95 % CI of the difference (episode bootstrap) | Episodes better / worse |
+|---|---|---|---|---|---|
+| `/hub/demand` | **future queue**: people standing in Q at t+30 s under the running system, boarding included (assignment 9; T03 is judged here) | `ridge-queue-h30` | **1.6245 vs 1.6684** | [−0.157, +0.070] (includes 0) | 5 / 5 |
+| `/hub/demand_unserved` | **unserved demand** (team extension): people who would be waiting at t+30 s if no bus boarded anyone after t | `ridge-demand-h30` | **1.2147 vs 1.5064** | [−0.543, −0.044] | 7 / 3 |
+
+What this does and does not show:
+
+* On the assignment's target the ridge model is **not worse** than persistence
+  (the T03 criterion), but its gain of 0.04 passengers is **not statistically
+  clear**: the interval includes zero and it wins only 5 of 10 test episodes.
+  We report that as it is.
+* The two MAE values must not be compared with each other. They are errors
+  against different labels; "1.21 < 1.62" does not mean one model is better.
+* Why the second target exists: the future queue falls when a bus boards, so a
+  forecast of it says "few people soon" exactly when a bus is already
+  solving the problem. As a *dispatch trigger* that is the wrong signal. In
+  the offline 50-seed policy study, dispatching on the future-queue forecast
+  was slightly worse than the reactive rule (mean wait **+1.4 s**, lower in
+  only 4 of 50 episodes), while dispatching on unserved demand was better
+  (**−10.0 s**, 95 % CI −14.9 to −6.0, lower in 35 of 50). `hub_coordinator`
+  therefore dispatches on `/hub/demand_unserved` (parameter
+  `dispatch_demand_topic`); `/hub/demand` is published, logged and shown on
+  the dashboards as the assignment's forecast.
+* Limits of that policy study (also from the review): the predictive arm made
+  more dispatches (234 vs 213) and includes FALLBACK dispatches, so the
+  −10 s is not the effect of the forecast alone; and it is an offline study,
+  not the integrated ROS S8 experiment (there the gain is about 1 s).
+* The unserved-demand label assumes no boarding and ignores the bus capacity;
+  it is a counterfactual, never a measured occupancy.
+
 ## Method
 
 * **Data:** 50 independent six-minute episodes covering seven demand
@@ -22,9 +60,10 @@ camera-derived tracks.
   scaler is fitted on train only. Alpha is chosen from 8 values on
   validation MAE (selected: 30).
 * **Baseline:** persistence, `q̂(t+30) = q_t`.
-* **Target:** unserved demand at t+30, i.e. people who would still be
-  waiting at t+30 if no bus boarded after t. A second model trained on the
-  raw future queue length is reported for comparison.
+* **Targets:** two models with the same features, one per target (table
+  above): the future queue length (`/hub/demand`) and the unserved demand at
+  t+30, i.e. people who would still be waiting at t+30 if no bus boarded
+  after t (`/hub/demand_unserved`).
 
 ## T03 — held-out test episodes (2,500 forecasts)
 

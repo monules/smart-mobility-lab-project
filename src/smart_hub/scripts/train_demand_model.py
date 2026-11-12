@@ -29,6 +29,7 @@ import json
 import os
 import platform
 import random
+import shutil
 import statistics
 import subprocess
 import sys
@@ -359,6 +360,12 @@ def main(argv=None):
     shipped = models[args.target]
     # Cross-check: shipped model scored against the other target as well.
     other = [t for t in TARGETS if t != args.target][0]
+    # Both models are published by demand_predictor (queue -> /hub/demand,
+    # demand -> /hub/demand_unserved), so both are installed side by side.
+    other_installed = os.path.join(os.path.dirname(os.path.abspath(args.model_out)),
+                                   '%s_ridge_h30.json' % other)
+    shutil.copyfile(os.path.join(args.out_dir, 'alt_ridge_%s_h30.json' % other),
+                    other_installed)
     cross = evaluate(shipped, per_ep, split, other)
 
     # 6. inference latency through the online estimator path ----------------
@@ -400,6 +407,20 @@ def main(argv=None):
         'fit': fits,
         'test': evals,
         'shipped_model_scored_on_other_target': cross,
+        # What demand_predictor publishes, and which label each is scored on.
+        # MAE values of different targets must not be compared with each other.
+        'published_topics': {
+            '/hub/demand': {
+                'target': 'queue', 'definition': TARGET_TEXT['queue'],
+                'model_id': models['queue'].model_id,
+                'role': 'assignment 9 forecast; T03 is judged on this target'},
+            '/hub/demand_unserved': {
+                'target': 'demand', 'definition': TARGET_TEXT['demand'],
+                'model_id': models['demand'].model_id,
+                'role': 'team extension; hub_coordinator dispatches on it'},
+        },
+        'queue_target_gain_is_uncertain':
+            evals['queue']['mae_difference_95ci_episode_bootstrap'][1] >= 0,
         'latency_ms': {
             'features_plus_predict_p50': pctl(lat, 50),
             'features_plus_predict_p95': pctl(lat, 95),
@@ -415,6 +436,9 @@ def main(argv=None):
         'pass_criteria': {
             'T03_ridge_mae_le_persistence':
                 ev['ridge_mae'] <= ev['persistence_mae'],
+            # the same criterion on the assignment's own target (future queue)
+            'T03_queue_target_ridge_mae_le_persistence':
+                evals['queue']['ridge_mae'] <= evals['queue']['persistence_mae'],
             'T03_inference_p95_lt_100ms': pctl(lat, 95) < 100.0,
             'at_least_30_episodes': len(seeds) >= 30,
             'documented_worse_case_exists':

@@ -1,5 +1,5 @@
 {
- "model_id": "ridge-demand-h30-d31fd020ac",
+ "model_id": "ridge-demand-h30-fff83576d0",
  "model_type": "standardized_linear",
  "horizon_sec": 30,
  "feature_names": [
@@ -27,12 +27,12 @@
   2.0269903504329787
  ],
  "coef": [
-  2.4386487856809933,
-  1.122590465596021,
-  -0.07833614541124344,
-  0.1817856066613628,
-  0.27786522298664035,
-  -0.07171163056128581
+  2.4386487856802663,
+  1.1225904655983925,
+  -0.07833614541281836,
+  0.18178560666143626,
+  0.27786522298631594,
+  -0.07171163056097392
  ],
  "intercept": 5.914581066376509,
  "metadata": {
@@ -93,13 +93,13 @@
    1044
   ],
   "split_seed": 42,
-  "sklearn": "1.9.1",
-  "numpy": "2.5.3",
-  "python": "3.13.16",
-  "code_commit": "not-a-git-repo",
+  "sklearn": "1.4.1.post1",
+  "numpy": "1.26.4",
+  "python": "3.12.3",
+  "code_commit": "f1c1ecd",
   "data_source": "synthetic seeded episodes (smart_hub/demand/simulation.py)",
   "features": "count-delta proxies; see smart_hub/demand/features.py",
-  "created_utc": "2026-10-16T13:22:39+00:00",
+  "created_utc": "2026-11-12T06:22:52+00:00",
   "target": "demand",
   "target_definition": "unserved demand at t+30 s: passengers who would be waiting at t+30 if no bus boarded after t (synthetic ground truth)",
   "alpha": 30.0,

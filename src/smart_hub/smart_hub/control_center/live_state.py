@@ -13,6 +13,7 @@ from smart_hub import geometry as geo
 
 STALE_AFTER = 1.0          # s for 5-20 Hz streams
 SLOW_STALE_AFTER = 2.5     # s for the 1 Hz forecast and traffic labels
+SLOW_KEYS = ('demand', 'demand_unserved', 'edges')
 EVENTS_KEPT = 40
 MISSION_ENTITIES = ('robot', 'bus', 'coordinator')
 MISSION_EVENTS = ('ESCORT', 'DOCK', 'DISPATCH', 'MISSION', 'ROUTE', 'ARRIVED', 'FAILED',
@@ -62,9 +63,11 @@ class LiveState:
         self._put('queue', {'count': count, 'confidence': round(confidence, 2),
                             'crossing_occupied': crossing_occupied, 'valid': valid}, now)
 
-    def on_demand(self, predicted, baseline, horizon_sec, model_id, valid, now):
-        self._put('demand', {'predicted': round(predicted, 2), 'baseline': round(baseline, 2),
-                             'horizon': horizon_sec, 'model': model_id, 'valid': valid}, now)
+    def on_demand(self, predicted, baseline, horizon_sec, model_id, valid, now,
+                  key='demand'):
+        """Store a forecast: key 'demand' (future queue) or 'demand_unserved'."""
+        self._put(key, {'predicted': round(predicted, 2), 'baseline': round(baseline, 2),
+                        'horizon': horizon_sec, 'model': model_id, 'valid': valid}, now)
 
     def on_edges(self, edges, now):
         self._put('edges', edges, now)
@@ -86,7 +89,7 @@ class LiveState:
         with self._lock:
             out = {}
             for key, (value, t) in self._latest.items():
-                limit = SLOW_STALE_AFTER if key in ('demand', 'edges') else STALE_AFTER
+                limit = SLOW_STALE_AFTER if key in SLOW_KEYS else STALE_AFTER
                 age = now - t
                 out[key] = {'value': value, 'age': round(age, 2), 'stale': age > limit}
             out['routes'] = {a: pts for a, (pts, t) in self._routes.items()

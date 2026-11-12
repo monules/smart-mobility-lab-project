@@ -9,7 +9,8 @@ Subscribes  /hub/vehicles     VehicleStateArray  R10   agents and obstacle O
             /crossing/state   CrossingState      R1T   owner of C
             /parking/state    ParkingState       R1T   slots P1-P3
             /hub/queue        QueueState         R10   count in Q, C occupied
-            /hub/demand       DemandPrediction   R10   30 s forecast
+            /hub/demand       DemandPrediction   R10   30 s future-queue forecast
+            /hub/demand_unserved  DemandPrediction  R10  30 s unserved-demand forecast
             /traffic/edges    EdgeStateArray     R10   road labels
             /robot/route,
             /bus/route        nav_msgs/Path      R1T   planned routes
@@ -68,6 +69,8 @@ class ControlCenter(Node):
         self.create_subscription(ParkingState, '/parking/state', self.on_parking, R1T)
         self.create_subscription(QueueState, '/hub/queue', self.on_queue, R10)
         self.create_subscription(DemandPrediction, '/hub/demand', self.on_demand, R10)
+        self.create_subscription(DemandPrediction, '/hub/demand_unserved',
+                                 lambda m: self.on_demand(m, 'demand_unserved'), R10)
         self.create_subscription(EdgeStateArray, '/traffic/edges', self.on_edges, R10)
         self.create_subscription(HubEvent, '/hub/events', self.on_event, R100)
         for agent in ('robot', 'bus'):
@@ -110,9 +113,9 @@ class ControlCenter(Node):
         self.live.on_queue(msg.count, msg.confidence, msg.crossing_occupied, msg.valid,
                            time.monotonic())
 
-    def on_demand(self, msg):
+    def on_demand(self, msg, key='demand'):
         self.live.on_demand(msg.predicted_count, msg.baseline_count, msg.horizon_sec,
-                            msg.model_id, msg.valid, time.monotonic())
+                            msg.model_id, msg.valid, time.monotonic(), key)
 
     def on_edges(self, msg):
         self.live.on_edges({e.edge_id: {'blocked': e.blocked, 'valid': e.valid,

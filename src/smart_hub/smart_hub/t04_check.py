@@ -1,8 +1,9 @@
 """t04_check (M2-B, written by M5): T04 dispatch test on the live ROS graph.
 
-It plays the forecaster and the queue sensor: it publishes /hub/demand
-(1 Hz, like demand_predictor) and /hub/queue (5 Hz, like passenger_detector)
-with exactly the values each phase needs, and watches what the real
+It plays the forecaster and the queue sensor: it publishes /hub/demand_unserved,
+the forecast the coordinator dispatches on (1 Hz, like demand_predictor),
+and /hub/queue (5 Hz, like passenger_detector) with exactly the values each
+phase needs, and watches what the real
 hub_coordinator does with the real bus_manager (assignment 9.3, 9.4, T04).
 
 Phases (the scenario is reset before each, so the bus starts at A):
@@ -13,7 +14,7 @@ Phases (the scenario is reset before each, so the bus starts at A):
                                                      it (escalated, but below 6)
   3  forecast invalid (valid=false, predicted 9)   -> no dispatch from an invalid
      with a low observed queue                       forecast
-  4  forecast feed gap (no /hub/demand at all)     -> no dispatch
+  4  forecast feed gap (no forecast at all)         -> no dispatch
      with a low observed queue
   5  no forecast, observed queue 7                 -> one dispatch, reason FALLBACK
 
@@ -34,6 +35,8 @@ from smart_hub.ros_common import declare, R10, R100
 from smart_hub_interfaces.msg import DemandPrediction, HubEvent, QueueState
 from smart_hub_interfaces.srv import ResetScenario
 
+# the forecast hub_coordinator dispatches on (its dispatch_demand_topic)
+DISPATCH_TOPIC = '/hub/demand_unserved'
 ENDED = ('BUS_MISSION_SUCCEEDED', 'BUS_MISSION_ABORTED', 'BUS_MISSION_CANCELED',
          'BUS_MISSION_ENDED')
 
@@ -51,7 +54,7 @@ class T04Check(Node):
         self.sent = []            # (t, phase, predicted, valid, queue)
         self.events = []          # (t, phase, entity, event, reason, correlation)
         self.results = []
-        self.demand_pub = self.create_publisher(DemandPrediction, '/hub/demand', R10)
+        self.demand_pub = self.create_publisher(DemandPrediction, DISPATCH_TOPIC, R10)
         self.queue_pub = self.create_publisher(QueueState, '/hub/queue', R10)
         self.create_subscription(HubEvent, '/hub/events', self.on_event, R100)
         self.reset_cli = self.create_client(ResetScenario, '/scenario/reset')
@@ -195,7 +198,7 @@ class T04Check(Node):
         time.sleep(15.0)
         n = len(self.of(4, 'BUS_DISPATCH_REQUESTED'))
         self.check('T04 feed gap', n == 0,
-                   '%d dispatches in 15 s without any /hub/demand, observed queue 2' % n)
+                   '%d dispatches in 15 s without any forecast, observed queue 2' % n)
 
         # 5. no forecast, observed queue 7 -> FALLBACK
         self.start_phase(5, None, 7)
