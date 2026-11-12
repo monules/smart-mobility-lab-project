@@ -1,22 +1,27 @@
 """Smoke tests of parking_manager.py / traffic_monitor.py against rclpy STUBS.
 
-Skipped automatically when a real rclpy is importable (use colcon test / the
-launch_testing integration tests there instead).
+The stubs replace rclpy in sys.modules, so these tests must never share an
+interpreter with tests that use the real rclpy. Where ROS 2 is installed
+(colcon test) the suite is therefore not skipped but run in a child
+interpreter that cannot see ROS, and the parent asserts that all of its
+tests passed (NodeSmokeIsolated). Where ROS 2 is not installed the tests run
+directly. Either way every stub test is executed; none is reported as
+skipped (midterm review: a skipped test is not a pass).
 """
 import importlib.util
 import json
+import os
+import subprocess
+import sys
 import time
 import unittest
 
 import ros_stubs
 
-# Integration fix: skip whenever real rclpy exists. The old condition ran the
-# stub test (replacing rclpy in sys.modules for every later test) once any
-# earlier test had imported the real rclpy.node.
 REAL_ROS = importlib.util.find_spec('rclpy') is not None
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-@unittest.skipIf(REAL_ROS, 'real rclpy present: stub smoke test not applicable')
 class NodeSmoke(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -125,8 +130,8 @@ class NodeSmoke(unittest.TestCase):
         n = self.ParkingManager(parameter_overrides={'debounce_sec': 0.0})
         n.on_observed(self.obs_msg(n, {'P2': 'FREE'}))
         Req, Resp = ros_stubs.ReserveParking.Request, ros_stubs.ReserveParking.Response
-        r = n.on_reserve(Req(request_id='a', vehicle_id='C1', preferred_slot='P2',
-                             ttl_sec=30.0), Resp())
+        n.on_reserve(Req(request_id='a', vehicle_id='C1', preferred_slot='P2',
+                         ttl_sec=30.0), Resp())
         self.assertEqual(self.state_of(n)['P2'], 'RESERVED')
         before = len(n.pubs['/parking/state'].sent)
         n.on_tick()
@@ -209,6 +214,28 @@ class NodeSmoke(unittest.TestCase):
                     {'congestion_density_threshold': 0.0}, {'slow_fraction': 2.0}):
             with self.assertRaises(ValueError, msg=str(bad)):
                 self.TrafficMonitor(parameter_overrides=bad)
+
+
+class NodeSmokeIsolated(unittest.TestCase):
+    """Run the stub suite above in an interpreter without ROS on its path."""
+
+    def test_stub_smoke_suite_passes_in_a_ros_free_interpreter(self):
+        env = {'PATH': os.environ.get('PATH', ''),
+               'PYTHONPATH': os.path.join(HERE, '..'),        # the package, no ROS
+               'PYTHONDONTWRITEBYTECODE': '1'}
+        res = subprocess.run([sys.executable, '-m', 'unittest', '-v', 'test_node_smoke'],
+                             cwd=HERE, env=env, capture_output=True, text=True, timeout=120)
+        report = res.stderr[-3000:]
+        self.assertEqual(res.returncode, 0, report)
+        self.assertIn('Ran %d tests' % STUB_TESTS, report)
+        self.assertNotIn('skipped', report)
+
+
+STUB_TESTS = len([name for name in dir(NodeSmoke) if name.startswith('test_')])
+if REAL_ROS:
+    del NodeSmoke              # never import the stubs next to the real rclpy
+else:
+    del NodeSmokeIsolated      # no ROS here: the stub tests run directly
 
 
 if __name__ == '__main__':

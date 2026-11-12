@@ -28,15 +28,15 @@ Definitions (documented design interpretation of assignment 12.2):
 """
 from __future__ import annotations
 
+from collections import Counter, deque
+from dataclasses import dataclass, field
 import math
 import statistics
 import threading
-from collections import Counter, deque
-from dataclasses import dataclass, field
 from typing import Deque, Dict, List, Optional, Sequence, Tuple
 
-from .hub_map import (VEHICLE_EDGES, edge_endpoints, edge_length,
-                      normalize_edge_id, point_segment_distance)
+from .hub_map import (edge_endpoints, edge_length, normalize_edge_id,
+                      point_segment_distance, VEHICLE_EDGES)
 
 NORMAL = 'NORMAL'
 CONGESTED = 'CONGESTED'
@@ -104,7 +104,8 @@ class TrafficConfig:
     def validate(self) -> None:
         checks = [
             (self.window_sec > 0, 'window_sec must be > 0'),
-            (0.0 < self.stale_sec <= 1.2, 'stale_sec must be in (0, 1.2]: UNKNOWN is required within 1.2 s'),
+            (0.0 < self.stale_sec <= 1.2,
+             'stale_sec must be in (0, 1.2]: UNKNOWN is required within 1.2 s'),
             (0.0 < self.presence_hold_sec <= self.window_sec,
              'presence_hold_sec must be in (0, window_sec]'),
             (0.0 < self.corridor_halfwidth_m <= 2.0, 'corridor_halfwidth_m in (0, 2]'),

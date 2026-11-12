@@ -18,7 +18,8 @@ class TestGeometry(unittest.TestCase):
         self.assertFalse(footprint_overlaps_crossing(8.0, 4.0, 0.3))
         # 4.25 and 0.25 are exact in binary, so the boundary case is reliable
         self.assertTrue(footprint_overlaps_crossing(4.3125, 3.0, 0.25))   # 0.1875 m away < r
-        self.assertFalse(footprint_overlaps_crossing(4.25, 3.0, 0.25))    # exactly r away: touching only
+        # exactly r away: touching only
+        self.assertFalse(footprint_overlaps_crossing(4.25, 3.0, 0.25))
 
 
 class TestCrossing(unittest.TestCase):
@@ -94,7 +95,8 @@ class TestCrossing(unittest.TestCase):
         a, t = clear_arbiter(lease_sec=1.0)
         a.request(t, 'bus_1', 'ACQUIRE', '')
         a.update_observation(t + 0.5, False, ['bus_1'], True)
-        a.update_observation(t + 1.5, False, ['bus_1'], True)   # lease (1 s) expired while inside C
+        # lease (1 s) expired while inside C
+        a.update_observation(t + 1.5, False, ['bus_1'], True)
         self.assertTrue(a.hold)
         a.update_observation(t + 2.0, False, [], True)          # bus leaves C, clear starts
         a.update_observation(t + 3.5, False, [], True)          # 1.5 s clear: not enough
@@ -184,7 +186,8 @@ class TestDispatch(unittest.TestCase):
         p = DispatchPolicy()
         first = self.feed(p, [7, 7, 7])[2]
         self.assertTrue(first)
-        res = self.feed(p, [1, 1, 1, 1, 1, 7, 7, 7, 7], t0=100.0)  # lows clear latch, but mission still active
+        # lows clear latch, but mission still active
+        res = self.feed(p, [1, 1, 1, 1, 1, 7, 7, 7, 7], t0=100.0)
         self.assertTrue(all(r is None for r in res))
 
     def test_second_bus_only_after_finish_and_cooldown_if_still_high(self):
@@ -210,7 +213,8 @@ class TestDispatch(unittest.TestCase):
         p = DispatchPolicy()
         d = self.feed(p, [7, 7, 7])[2]
         p.finished(d.correlation_id)
-        res = self.feed(p, [5, 5, 3, 3], t0=40.0)         # cooldown over, still escalated, demand falling
+        # cooldown over, still escalated, demand falling
+        res = self.feed(p, [5, 5, 3, 3], t0=40.0)
         self.assertTrue(all(r is None for r in res))
         self.assertTrue(p.escalated)
         self.assertEqual(p.last_reason, 'SIGNAL_BELOW_HIGH')

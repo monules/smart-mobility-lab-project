@@ -1,6 +1,8 @@
-"""T09 - S5 congestion: correct NORMAL/CONGESTED/BLOCKED transitions with
-precision / recall against scenario labels, detection delay, false alarms,
-valid-data fraction, and ten free-flow runs with zero false congestion.
+"""T09 - S5 congestion: correct NORMAL/CONGESTED/BLOCKED transitions.
+
+Checked with precision / recall against scenario labels, detection delay,
+false alarms, valid-data fraction, and ten free-flow runs with zero false
+congestion.
 
 Run:  python3 -m unittest discover -s tests -p 'test_t09*.py' -v
 Writes evidence/t09_*.csv|json (per-tick labels, metrics summary).
@@ -10,8 +12,8 @@ import json
 import os
 import unittest
 
-from traffic_sim import (BLOCKED, CONGESTED, NORMAL, UNKNOWN, EVIDENCE_DIR,
-                         Mover, Obstacle, TrafficConfig, first_time, run_feed)
+from traffic_sim import (BLOCKED, CONGESTED, EVIDENCE_DIR, first_time, Mover, NORMAL,
+                         Obstacle, run_feed, TrafficConfig, UNKNOWN)
 
 EDGE = 'Cs-J'
 FREEZE = (45.0, 52.0)
@@ -40,7 +42,8 @@ def s5_movers():
         Mover('slow1', 'Cs-J', 0.08, 0.15, active_from=20.0),         # t=20: three slow cars
         Mover('slow2', 'Cs-J', 0.08, 0.35, active_from=20.0),
         Mover('slow3', 'Cs-J', 0.08, 0.55, active_from=20.0),
-        Mover('bg', 'J-E', 0.35, claimed_edge='J-E'),                 # unaffected edge, other spelling
+        # unaffected edge, other spelling
+        Mover('bg', 'J-E', 0.35, claimed_edge='J-E'),
         Obstacle(7.0, 2.0, active_from=60.0),                         # t=60: O across Cs-J
     ]
 

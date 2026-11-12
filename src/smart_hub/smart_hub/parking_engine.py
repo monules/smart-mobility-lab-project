@@ -18,12 +18,12 @@ the engine deterministic in tests.
 """
 from __future__ import annotations
 
+from collections import deque, OrderedDict
+from dataclasses import dataclass, field, replace
 import math
 import threading
-import uuid
-from collections import OrderedDict, deque
-from dataclasses import dataclass, field, replace
 from typing import Callable, Deque, Dict, List, Optional, Tuple
+import uuid
 
 from .hub_map import access_distances
 
@@ -134,8 +134,11 @@ class ParkingEngine:
     # ---------------- sensing ----------------
     def observe(self, slot_id: str, occupied: bool, valid: bool = True,
                 confidence: float = 1.0, now: float = 0.0) -> None:
-        """Feed one sensor reading.  A change is committed only after
-        ``debounce_sec`` of consecutive identical valid readings."""
+        """Feed one sensor reading.
+
+        A change is committed only after ``debounce_sec`` of consecutive
+        identical valid readings.
+        """
         with self._lock:
             s = self._slots.get(slot_id)
             if s is None:
@@ -237,8 +240,10 @@ class ParkingEngine:
 
     def release(self, request_id: str, reservation_id: str, vehicle_id: str,
                 now: float) -> ReleaseResult:
-        """Token- and vehicle-validated release of the *administrative*
-        reservation.  The sensed state is never touched."""
+        """Release the *administrative* reservation after checking token and vehicle.
+
+        The sensed state is never touched.
+        """
         with self._lock:
             self._expire_locked(now)
             if not request_id or not reservation_id or not vehicle_id:
@@ -286,8 +291,10 @@ class ParkingEngine:
                 s.token, s.vehicle, s.expiry = '', '', 0.0
 
     def snapshot(self, now: float) -> Tuple[Tuple[SlotView, ...], int]:
-        """Consistent view of all slots plus the count of allocatable (FREE)
-        slots.  RESERVED slots are excluded from the count."""
+        """Return a consistent view of all slots and the number of FREE slots.
+
+        RESERVED slots are excluded from the count of allocatable slots.
+        """
         with self._lock:
             self._expire_locked(now)
             views = tuple(SlotView(sid, self._eff(s, now), s.vehicle, s.token,

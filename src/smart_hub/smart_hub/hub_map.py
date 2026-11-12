@@ -69,8 +69,11 @@ def point_segment_distance(px: float, py: float, ax: float, ay: float,
 
 
 def access_distances(access: str = ACCESS_NODE) -> Dict[str, float]:
-    """Graph distance from the parking access node to P1..P3 (Dijkstra over
-    the parking edges only), used for the 'nearest free slot' policy."""
+    """Return the graph distance from the parking access node to P1..P3.
+
+    Dijkstra over the parking edges only; used for the 'nearest free slot'
+    policy.
+    """
     graph: Dict[str, list] = {}
     for a, b in _PARKING_RAW:
         d = math.dist(NODES[a], NODES[b])

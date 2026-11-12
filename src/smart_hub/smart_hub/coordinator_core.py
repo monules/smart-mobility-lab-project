@@ -93,7 +93,7 @@ class CrossingArbiter:
 
     # ---- service logic -------------------------------------------------
     def request(self, now, requester, operation, token):
-        """Returns (granted, token, reason)."""
+        """Return (granted, token, reason) for one crossing request."""
         self.tick(now)
         op = (operation or '').upper()
         if not requester or op not in ('ACQUIRE', 'RENEW', 'RELEASE'):
@@ -165,8 +165,8 @@ class CrossingArbiter:
             state = 'OCCUPIED'
         else:
             state = 'FREE'
-        return dict(owner_id=self.owner, token=self.token, state=state,
-                    pedestrian_present=self.pedestrian, valid=self.valid)
+        return {'owner_id': self.owner, 'token': self.token, 'state': state,
+                'pedestrian_present': self.pedestrian, 'valid': self.valid}
 
 
 @dataclass(frozen=True)
