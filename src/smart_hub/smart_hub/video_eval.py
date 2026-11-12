@@ -33,6 +33,7 @@ import os
 
 import cv2
 import numpy as np
+from smart_hub.perception.crossing_metrics import crossing_report
 from smart_hub.perception.detectors import foot, make_detector
 from smart_hub.perception.homography import fit_homography, image_to_map
 from smart_hub.perception.queue_logic import QueueLogic
@@ -67,6 +68,9 @@ def match_boxes(dets, truth, threshold=0.5):
     return tp, len(dets) - tp, len(truth) - tp
 
 
+ALIGN_MAX_LOST = 5      # frames a failed image alignment may reuse the last transform
+
+
 def run_video(video, detector, h, every=1, stabilize=False):
     """Yield (frame_index, time_s, bgr, detections, state, stabilizer) per frame."""
     cap = cv2.VideoCapture(video)
@@ -84,19 +88,31 @@ def run_video(video, detector, h, every=1, stabilize=False):
         if stabilize:
             if stab is None:
                 stab = FloorStabilizer(frame)
+                stab.lost_frames = 0
             stab.aligned = stab.update(frame)
+            stab.lost_frames = 0 if stab.aligned else stab.lost_frames + 1
         dets = detector.detect(frame)
-        people = []
-        for d in dets:
-            u, v = foot(d, detector.foot_offset)
-            if stab is not None:
-                u, v = stab.to_reference(u, v)
-            try:
-                people.append(image_to_map(h, u, v) + (d[4],))
-            except ValueError:
-                continue
-        logic.on_frame(people, t, t)
-        yield index, t, frame, dets, logic.state(t), stab
+        # A failed alignment leaves the previous transform in the stabilizer.
+        # It is reused only for ALIGN_MAX_LOST frames; after that the floor
+        # zones can no longer be trusted, so the frame is not fed to the
+        # queue logic and is reported invalid with the crossing NOT clear
+        # (fail-safe), instead of drawing a convincing but stale overlay.
+        trusted = stab is None or stab.lost_frames <= ALIGN_MAX_LOST
+        if trusted:
+            people = []
+            for d in dets:
+                u, v = foot(d, detector.foot_offset)
+                if stab is not None:
+                    u, v = stab.to_reference(u, v)
+                try:
+                    people.append(image_to_map(h, u, v) + (d[4],))
+                except ValueError:
+                    continue
+            logic.on_frame(people, t, t)
+            state = logic.state(t)
+        else:
+            state = dict(logic.state(t), valid=False, crossing_occupied=True)
+        yield index, t, frame, dets, state, stab
         index += 1
 
 
@@ -145,6 +161,12 @@ def export_frames(args):
             'next': 'fill count (people in Q) and crossing (1/0) in labels.csv by hand'}
 
 
+def label_period(rows):
+    """Return the usual spacing in seconds between labelled frames (median)."""
+    gaps = sorted(b[0] - a[0] for a, b in zip(rows, rows[1:]))
+    return round(gaps[len(gaps) // 2], 3) if gaps else 0.0
+
+
 def evaluate(args):
     if len(args.image_points) != len(args.map_points) or len(args.image_points) % 2 or \
             len(args.image_points) < 8:
@@ -179,11 +201,12 @@ def evaluate(args):
     by_occlusion = {0: [], 1: []}
     tp = fp = fn = 0
     keep = set(sorted(labels)[::max(1, len(labels) // 6)][:6]) if labels else set()
-    aligned = []
+    aligned, untrusted, cross_rows = [], 0, []
     for i, t, frame, dets, s, stab in run_video(args.video, detector, h,
                                                 stabilize=args.stabilize):
         if stab is not None:
             aligned.append(stab.aligned)
+            untrusted += int(stab.lost_frames > ALIGN_MAX_LOST)
         if i not in labels:
             continue
         truth = int(labels[i]['count'])
@@ -198,6 +221,8 @@ def evaluate(args):
             cross_n += 1
             cross_ok += int(int(labels[i]['crossing']) == int(s['crossing_occupied']))
             row['truth_crossing'] = int(labels[i]['crossing'])
+            cross_rows.append((t, int(labels[i]['crossing']), int(s['crossing_occupied']),
+                               bool(s['valid'])))
         if i in boxes:
             a, b, c = match_boxes([d[:4] for d in dets], boxes[i])
             tp, fp, fn = tp + a, fp + b, fn + c
@@ -223,6 +248,10 @@ def evaluate(args):
         if by_occlusion[0] else None,
         'stabilized': bool(args.stabilize),
         'frames_aligned': round(sum(aligned) / len(aligned), 4) if aligned else None,
+        # frames reported invalid because alignment was lost for too long
+        'frames_alignment_untrusted': untrusted if aligned else None,
+        # confusion matrix, false-clear episodes, entry delay (crossing_metrics.py)
+        'crossing': crossing_report(cross_rows, label_period(cross_rows)),
         'calibration_points': len(args.image_points) // 2,
     }
     with open(os.path.join(args.out, 'per_frame.csv'), 'w', newline='') as fh:

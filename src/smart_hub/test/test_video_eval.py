@@ -59,6 +59,21 @@ def test_scores_a_video_against_labels(s1_video):
     assert any(p.name.startswith('frame_') for p in (s1_video / 'out').iterdir())
 
 
+def test_alignment_lost_for_too_long_makes_frames_invalid_and_not_clear(s1_video, monkeypatch):
+    # a stabilizer that never aligns: after ALIGN_MAX_LOST frames the stale
+    # transform must not be used any more
+    from smart_hub import video_eval
+    from smart_hub.perception.detectors import make_detector
+    from smart_hub.perception.homography import fit_homography
+    monkeypatch.setattr(video_eval.FloorStabilizer, 'update', lambda self, bgr: False)
+    h = fit_homography([(0, 0), (1, 0), (1, 1), (0, 1)], [(0, 0), (1, 0), (1, 1), (0, 1)])
+    states = [s for _, _, _, _, s, _ in video_eval.run_video(
+        str(s1_video / 's1.mp4'), make_detector('blob'), h, stabilize=True)]
+    assert len(states) > video_eval.ALIGN_MAX_LOST + 1
+    late = states[video_eval.ALIGN_MAX_LOST + 1:]
+    assert all(not s['valid'] and s['crossing_occupied'] for s in late)
+
+
 def test_prefill_writes_a_draft_to_correct(s1_video):
     draft = s1_video / 'draft.csv'
     video_eval.main(args_for(s1_video, '--prefill', str(draft), '--every', '10'))

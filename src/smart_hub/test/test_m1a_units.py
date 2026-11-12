@@ -153,3 +153,44 @@ def test_silent_feed_never_reports_a_valid_zero():
         s = q.state(now)
         assert s['valid'] and s['count'] == 2, (now, s)
     assert not q.state(2.1)['valid']
+
+
+# ------------------------------------------------- crossing evaluation (8.3)
+def test_crossing_report_separates_false_clear_from_false_busy():
+    from smart_hub.perception.crossing_metrics import crossing_report
+    # truth: person in C from t=2.0 to t=3.5; detector notices one label late,
+    # and later reports "occupied" once on an empty crossing.
+    truth = [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
+    pred = [0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0]
+    rows = [(0.5 * i, t, p, True) for i, (t, p) in enumerate(zip(truth, pred))]
+    rep = crossing_report(rows, 0.5)
+    assert rep['confusion'] == {'occupied_reported_occupied': 3, 'clear_reported_clear': 7,
+                                'false_busy': 1, 'false_clear': 1}
+    assert rep['accuracy'] == pytest.approx(10 / 12, abs=1e-4)
+    assert rep['occupied_recall'] == 0.75
+    assert rep['always_clear_baseline_accuracy'] == pytest.approx(8 / 12, abs=1e-4)
+    # one false-clear episode at the entry: seen on 1 label = 0 to 1.0 s long
+    assert rep['false_clear_episodes'] == [{'onset_s': 2.0, 'labels': 1,
+                                            'duration_min_s': 0.0, 'duration_max_s': 1.0}]
+    assert rep['entries'] == 1 and rep['entry_delay_max_s'] == 0.5
+    assert rep['exit_to_clear_delay_s'] == [{'t_s': 4.0, 'delay_s': 0.0}]
+
+
+def test_crossing_report_always_clear_detector_is_exposed():
+    from smart_hub.perception.crossing_metrics import crossing_report
+    truth = [0] * 9 + [1]
+    rows = [(0.5 * i, t, 0, True) for i, t in enumerate(truth)]
+    rep = crossing_report(rows, 0.5)
+    # 90 % "accuracy" equals the always-clear baseline and hides a total miss
+    assert rep['accuracy'] == rep['always_clear_baseline_accuracy'] == 0.9
+    assert rep['occupied_recall'] == 0.0 and rep['entries_never_noticed'] == 1
+
+
+def test_crossing_report_invalid_frame_is_never_a_clear():
+    from smart_hub.perception.crossing_metrics import crossing_report
+    rows = [(0.0, 1, 0, False), (0.5, 0, 0, False), (1.0, 0, 0, True)]
+    rep = crossing_report(rows, 0.5)
+    assert rep['confusion']['false_clear'] == 0          # invalid -> treated as occupied
+    assert rep['confusion']['false_busy'] == 1
+    assert rep['valid_coverage'] == pytest.approx(1 / 3, abs=1e-4)
+    assert crossing_report([], 0.5) is None
