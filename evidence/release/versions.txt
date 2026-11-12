@@ -1,0 +1,41 @@
+# written by tools/release_info.py; do not edit by hand
+commit 16ab1dc
+base_image ros:jazzy-ros-base@sha256:103b6c417973394659af6804d4917cd489b91e5ed22eb7bef263025a3bed2410
+os Ubuntu 24.04.5 LTS
+machine aarch64
+kernel 7.0.14-linuxkit
+ros_distro jazzy
+rmw rmw_fastrtps_cpp (default)
+ros_domain_id 37
+python 3.12.3
+
+# Debian packages
+ros-jazzy-ros-base 0.11.0-1noble.20261006.040749
+ros-jazzy-rclpy 7.1.12-1noble.20260911.111116
+ros-jazzy-launch 3.4.12-1noble.20260920.232315
+ros-jazzy-launch-ros 0.26.13-1noble.20260920.234332
+ros-jazzy-launch-testing 3.4.12-1noble.20260920.235800
+ros-jazzy-rosbag2 0.26.11-1noble.20261006.034453
+ros-jazzy-rmw-fastrtps-cpp 8.4.4-1noble.20260911.054759
+ros-jazzy-ament-flake8 0.17.5-1noble.20260411.112228
+ros-jazzy-ament-pep257 0.17.5-1noble.20260411.112251
+ros-jazzy-foxglove-bridge 3.6.0-1noble.20260929.221626
+python3-colcon-core 0.21.3+upstream-1
+python3-numpy 1:1.26.4+ds-6ubuntu1
+python3-sklearn 1.4.1.post1+dfsg-1build1
+python3-matplotlib 3.6.3-1ubuntu5
+python3-pytest 7.4.4-1
+python3-yaml 6.0.1-2build2
+python3-opencv 4.6.0+dfsg-13.1ubuntu1
+python3-reportlab 4.1.0-4
+ffmpeg 7:6.1.1-3ubuntu5
+
+# Python modules as imported
+numpy 1.26.4
+sklearn 1.4.1.post1
+cv2 4.6.0
+matplotlib 3.6.3
+yaml 6.0.1
+reportlab 4.1.0
+pytest 7.4.4
+rclpy unknown

@@ -15,6 +15,19 @@ decision, see README_M5.md):
   affected agent(s) are zeroed, and only while the condition lasts.
 
 Fail-safe rule used everywhere: missing or stale data is treated as unsafe.
+
+Clearance uses the stopping-distance rule of assignment 3.3: an agent moving
+at speed v needs, before it can be standing still,
+
+    d_stop = |v| * reaction_time + v^2 / (2 * brake_decel)
+
+so the supervisor predicts the pose after that distance (the same time span
+is applied to the other bodies, which keep their measured speed and heading)
+and requires the free gap there to be at least `clearance`. The horizon thus
+grows with speed instead of being one fixed look-ahead for every speed
+(midterm review). reaction_time and brake_decel are configured bounds, not
+measurements of a real vehicle: the simulator stops faster than brake_decel
+assumes, and hardware would need its own measured values (assignment 22).
 """
 from dataclasses import dataclass, field
 import math
@@ -37,8 +50,14 @@ class SafetyConfig:
     estop_timeout: float = 1.0         # s, /hub/estop is sent at 10 Hz (5)
     future_tolerance: float = 0.2      # s, assignment 5: reject future stamps
     stopped_speed: float = 0.02        # m/s, "stopped" threshold (10.2)
-    clearance: float = 0.20            # m, added clearance (3.3)
-    lookahead: float = 0.5             # s, motion-footprint horizon
+    clearance: float = 0.20            # m, margin m left after stopping (3.3)
+    # Stopping model (3.3: distance >= v*tau + v^2/(2*a_min) + m).
+    # tau: hazard seen -> zero applied. 0.10 s vehicle-state period + 0.05 s
+    # supervisor tick + 0.05 s bridge tick + 0.05 s simulator tick.
+    reaction_time: float = 0.25        # s
+    # a_min: assumed braking. The simulator needs <= 0.10 s from 0.25 m/s
+    # (>= 2.5 m/s^2, S9 evidence); 0.5 m/s^2 is five times more cautious.
+    brake_decel: float = 0.5           # m/s^2
     require_estop_heartbeat: bool = True
     enforce_crossing: bool = True
 
@@ -46,7 +65,7 @@ class SafetyConfig:
         bad = []
         positive = ('robot_speed_limit', 'bus_speed_limit', 'robot_turn_limit',
                     'bus_turn_limit', 'command_timeout', 'sensor_timeout',
-                    'estop_timeout', 'stopped_speed', 'lookahead')
+                    'estop_timeout', 'stopped_speed', 'reaction_time', 'brake_decel')
         for name in positive:
             value = getattr(self, name)
             if not (math.isfinite(value) and value > 0):
@@ -59,6 +78,19 @@ class SafetyConfig:
             bad.append('robot_id/bus_id')
         if bad:
             raise ValueError('invalid safety parameter(s): ' + ', '.join(bad))
+
+    def stopping_distance(self, v):
+        """Return metres travelled from speed v until standstill (3.3 formula, no margin)."""
+        return abs(v) * self.reaction_time + v * v / (2.0 * self.brake_decel)
+
+    def stop_horizon(self, v):
+        """Return the time in which constant speed v covers stopping_distance(v).
+
+        Predicting the commanded motion (straight or arc) over this time gives
+        the pose where the agent would come to rest, so one prediction serves
+        the boundary, clearance and crossing checks.
+        """
+        return self.reaction_time + abs(v) / (2.0 * self.brake_decel)
 
 
 @dataclass
@@ -107,7 +139,7 @@ class SafetyCore:
                          c.bus_speed_limit, c.bus_turn_limit),
         }
         self.estop = None        # Sample(bool)
-        self.vehicles = None     # Sample(list of (id, kind, x, y, valid))
+        self.vehicles = None     # Sample(list of (id, kind, x, y, theta, speed, valid))
         self.crossing = None     # Sample((owner_id, valid))
         self.door = None         # Sample(bool), measured bus door state
         self.latched = False
@@ -115,6 +147,7 @@ class SafetyCore:
         self.events = []         # (event, entity, reason); drained by the node
         self._last_holds = {}
         self._last_system = []
+        self._last_final = {}      # vehicle_id -> (vx, wz) of the previous tick
 
     # ------------------------------------------------------------ inputs
     def observed_at(self, now, src_age):
@@ -151,7 +184,7 @@ class SafetyCore:
         t = self.observed_at(now, src_age)
         if t is None:
             return False
-        self.vehicles = Sample([(e[0], e[1], e[2], e[3], e[6]) for e in entries], t)
+        self.vehicles = Sample([tuple(e) for e in entries], t)
         bus = self.agents['bus']
         mine = [e for e in entries if e[0] == bus.vehicle_id]
         if mine and mine[0][6]:
@@ -185,13 +218,14 @@ class SafetyCore:
         self.latched = True
 
     def _others(self, agent):
-        """Other bodies from /hub/vehicles: (id, x, y, radius, valid)."""
+        """Other bodies from /hub/vehicles: (id, x, y, radius, valid, theta, speed)."""
         if self.vehicles is None:
             return []
         out = []
-        for vid, kind, x, y, valid in self.vehicles.value:
+        for vid, kind, x, y, theta, speed, valid in self.vehicles.value:
             if vid != agent.vehicle_id:
-                out.append((vid, x, y, geo.RADIUS_BY_KIND.get(kind, 0.35), valid))
+                out.append((vid, x, y, geo.RADIUS_BY_KIND.get(kind, 0.35), valid,
+                            theta, speed))
         return out
 
     def _hazards(self, agent, now):
@@ -202,7 +236,7 @@ class SafetyCore:
         found = []
         if not geo.circle_inside_rect(x, y, agent.radius, geo.SITE):
             found.append('BOUNDARY:' + agent.name)
-        for oid, ox, oy, orad, valid in self._others(agent):
+        for oid, ox, oy, orad, valid, _, _ in self._others(agent):
             if valid and geo.gap_between(x, y, agent.radius, ox, oy, orad) < 0:
                 found.append('COLLISION:%s-%s' % (agent.name, oid))
         return found
@@ -230,16 +264,19 @@ class SafetyCore:
 
         vx, wz, clamped = self._clamp(agent, *agent.command.value)
         x, y, theta, _ = agent.pose.value
-        # Motion footprint: where will this command put the agent soon?
-        px, py, _ = geo.predict_pose(x, y, theta, vx, wz, c.lookahead)
+        # Motion footprint: where would this command leave the agent once it
+        # has stopped (reaction distance + braking distance, see module doc)?
+        horizon = c.stop_horizon(vx)
+        px, py, _ = geo.predict_pose(x, y, theta, vx, wz, horizon)
         if not geo.circle_inside_rect(px, py, agent.radius, geo.SITE):
             reasons.append('BOUNDARY_AHEAD')
-        for oid, ox, oy, orad, valid in self._others(agent):
+        for oid, ox, oy, orad, valid, otheta, ospeed in self._others(agent):
             if not valid:
                 reasons.append('UNKNOWN_BODY:' + oid)
                 continue
+            qx, qy = self._predict_other(oid, ox, oy, otheta, ospeed, horizon)
             gap_now = geo.gap_between(x, y, agent.radius, ox, oy, orad)
-            gap_next = geo.gap_between(px, py, agent.radius, ox, oy, orad)
+            gap_next = geo.gap_between(px, py, agent.radius, qx, qy, orad)
             # Only block motion that closes in; moving away is allowed.
             if gap_next < c.clearance and gap_next < gap_now:
                 reasons.append('CLEARANCE:' + oid)
@@ -250,6 +287,22 @@ class SafetyCore:
         if reasons:
             return reasons, (0.0, 0.0), False
         return [], (vx, wz), clamped
+
+    def _predict_other(self, oid, ox, oy, otheta, ospeed, horizon):
+        """Return where another body will be after horizon seconds.
+
+        /hub/vehicles reports speed without a sign, so for a body this
+        supervisor commands (robot or bus) the last final command is used:
+        it is signed and includes the turn. Any other body (car, obstacle)
+        is assumed to keep its measured speed along its heading; a parked
+        body has speed 0 and stays where it is.
+        """
+        if oid in self._last_final:
+            vx, wz = self._last_final[oid]
+            return geo.predict_pose(ox, oy, otheta, vx, wz, horizon)[:2]
+        if math.isfinite(otheta) and math.isfinite(ospeed):
+            return geo.predict_pose(ox, oy, otheta, ospeed, 0.0, horizon)[:2]
+        return ox, oy
 
     def _crossing_reason(self, agent, x, y, px, py, now):
         inside = geo.circle_overlaps_rect(x, y, agent.radius, geo.CROSSING)
@@ -289,6 +342,8 @@ class SafetyCore:
                 if was_clamped:
                     clamped.append(name)
 
+        # remembered for the next tick's prediction of the other agent
+        self._last_final = {self.agents[n].vehicle_id: cmd for n, cmd in commands.items()}
         self._record_transitions(system, holds)
         parts = []
         if self.latched:

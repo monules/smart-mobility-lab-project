@@ -126,5 +126,26 @@ class TestScenarioRunnerNode(unittest.TestCase):
         node._event = lambda event, *a: (sent.append(event), original(event, *a))
         self.run_reset(node, 'S9', 5)
         node.destroy_node()
-        # first request + resends every 0.25 s until the 1.0 s timeout
+        # first request + resends every 0.2 s until the 1.0 s timeout
         self.assertGreaterEqual(sent.count(RESET_REQUEST), 3)
+
+    def test_default_timeout_answers_inside_the_one_second_client_contract(self):
+        # assignment 7.1: client timeout 1 s. With the default parameter a
+        # silent participant must be reported before a client gives up.
+        from smart_hub.scenario_runner import CLIENT_TIMEOUT_SEC, DEFAULT_ACK_TIMEOUT
+        self.assertLess(DEFAULT_ACK_TIMEOUT, CLIENT_TIMEOUT_SEC)
+        node = self.make('safety_supervisor', timeout=DEFAULT_ACK_TIMEOUT)
+        t0 = time.monotonic()
+        res = self.run_reset(node, 'S9', 6)
+        elapsed = time.monotonic() - t0
+        node.destroy_node()
+        self.assertFalse(res.success)
+        self.assertEqual(res.reason, 'MISSING_ACK: safety_supervisor')
+        self.assertLess(elapsed, CLIENT_TIMEOUT_SEC)
+
+    def test_success_reason_reports_the_handshake_time(self):
+        node = self.make('')
+        res = self.run_reset(node, 'S9', 7)
+        node.destroy_node()
+        self.assertTrue(res.success)
+        self.assertRegex(res.reason, r'acks=0 handshake_ms=\d+$')

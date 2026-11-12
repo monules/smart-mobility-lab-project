@@ -1,0 +1,29 @@
+Smart Mobility Hub
+Copyright 2026 Team Shenanigans (Smart Mobility Engineering Lab, Inha University):
+Husan, Tuymurod, Fazliddin, Arkar, Carla, Aidil, Egamberdiev Saidumar
+
+SPDX-License-Identifier: Apache-2.0
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use the files in this repository except in compliance with the License.
+
+The full License text is not repeated here. It is installed with every
+ROS 2 / Ubuntu system this project runs on, at
+
+    /usr/share/common-licenses/Apache-2.0
+
+(inside the project's Docker image: `docker/hub.sh run 'cat
+/usr/share/common-licenses/Apache-2.0'`).
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations
+under the License.
+
+This is an educational model of a transport hub. It is not a road-ready
+autonomous transport system and must not be used to control real vehicles
+(assignment section 1, "Engineering boundary").
+
+Third-party software, the pretrained detector and the lab recording are
+listed with their own terms in THIRD_PARTY_NOTICES.md.

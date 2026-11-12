@@ -54,6 +54,26 @@ class TestSafetySupervisorNode(unittest.TestCase):
         self.node.on_estop(Bool(data=False))
         self.assertTrue(self.node.core.latched)        # false never clears
 
+    def test_every_decision_is_recorded_with_the_commands_it_published(self):
+        from std_msgs.msg import Bool
+        records, finals = [], []
+        self.node.decision_pub.publish = records.append
+        for agent, pub in self.node.cmd_pub.items():
+            pub.publish = lambda m, a=agent: finals.append((a, m.linear.x, m.angular.z))
+        self.node.tick()
+        self.node.on_estop(Bool(data=True))            # immediate zero, own record
+        self.node.tick()
+        self.assertEqual([r.seq for r in records], [1, 2, 3])
+        self.assertEqual([r.stop_latched for r in records], [False, True, True])
+        self.assertEqual(records[1].reason, 'LATCHED:ESTOP')
+        for r in records[1:]:                           # latched: every command zero
+            self.assertEqual(list(r.agents), ['bus', 'robot'])
+            self.assertEqual(list(r.linear_x) + list(r.angular_z), [0.0] * 4)
+        # each record repeats exactly what went to the motors in that decision
+        last = {a: (x, z) for a, x, z in finals[-2:]}
+        self.assertEqual(dict(zip(records[2].agents,
+                                  zip(records[2].linear_x, records[2].angular_z))), last)
+
     def test_parameters_validated(self):
         from rclpy.parameter import Parameter
         from smart_hub.safety_supervisor import SafetySupervisor

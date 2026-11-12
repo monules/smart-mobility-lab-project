@@ -37,7 +37,26 @@ def test_motion_while_latched_counted_after_grace():
     m.on_final_command(5.35, 'robot', 0.0, 0.0)
     m.on_safety(6.0, False)
     m.on_final_command(6.5, 'robot', 0.2, 0.0)     # allowed after clear
-    assert m.summary()['motion_while_latched'] == 1
+    s = m.summary()
+    assert s['motion_while_latched'] == 1
+    # the sample inside the grace window is kept as ambiguous, not dropped
+    assert s['motion_while_latched_ambiguous']['count'] == 1
+    assert s['motion_while_latched_ambiguous']['samples'][0]['agent'] == 'robot'
+
+
+def test_decision_records_need_no_grace_and_show_lost_records():
+    m = MetricsCore('run-1')
+    m.on_decision(1.00, 1, False, {'robot': (0.2, 0.0), 'bus': (0.0, 0.0)})
+    m.on_decision(1.05, 2, True, {'robot': (0.0, 0.0), 'bus': (0.0, 0.0)})
+    # a latched decision with a nonzero command counts at once, even 1 ms
+    # after the latch (no ordering ambiguity inside one message)
+    m.on_decision(1.051, 3, True, {'robot': (0.2, 0.0), 'bus': (0.0, 0.1)})
+    m.on_decision(1.20, 6, True, {'robot': (0.0, 0.0), 'bus': (0.0, 0.0)})   # 4, 5 lost
+    m.on_decision(1.25, 1, False, {'robot': (0.0, 0.0)})                     # restart
+    d = m.summary()['safety_decisions']
+    assert d['seen'] == 5 and d['seq_gaps'] == 2 and d['supervisor_restarts'] == 1
+    assert d['latched_with_nonzero_command'] == 2
+    assert [x['agent'] for x in d['samples']] == ['bus', 'robot']
 
 
 def test_interventions_and_files(tmp_path):

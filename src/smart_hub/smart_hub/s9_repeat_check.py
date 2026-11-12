@@ -32,7 +32,9 @@ import time
 
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
+from smart_hub.ros_common import R100
 from smart_hub.s9_fault_check import EPS, S9Check, STOPPED
+from smart_hub_interfaces.msg import SafetyDecision
 from smart_hub_interfaces.srv import ResetScenario
 from std_msgs.msg import String
 
@@ -47,6 +49,7 @@ FAULTS = {'estop': ('LATCHED:ESTOP', 0.20, True),
           'vehicles_freeze': ('VEHICLES_STALE', 1.0 + 0.25, False),
           'estop_signal': ('ESTOP_SIGNAL_STALE', 1.0 + 0.25, False)}
 FAULT_SEC = 2.0
+RESET_CLIENT_TIMEOUT = 1.0     # s, assignment 7.1 client timeout for short transactions
 
 
 class S9Repeat(S9Check):
@@ -55,11 +58,29 @@ class S9Repeat(S9Check):
         self.reset_cli = self.create_client(ResetScenario, '/scenario/reset')
         self.trial_rows = []
         self.reasons = []                       # (t, reason) of /hub/safety
+        self.last_reset_ms = None
+        # the supervisor's own decision records: latch state and commands in
+        # one numbered message (no cross-topic ordering, no grace window)
+        self.decisions = {'seen': 0, 'last_seq': None, 'seq_gaps': 0,
+                          'latched_with_nonzero_command': 0}
+        self.create_subscription(SafetyDecision, '/hub/safety_decision', self.on_decision,
+                                 R100)
 
     def on_safety(self, msg):
         super().on_safety(msg)
         with self.lock:
             self.reasons.append((time.monotonic(), msg.reason))
+
+    def on_decision(self, msg):
+        with self.lock:
+            dec = self.decisions
+            dec['seen'] += 1
+            if dec['last_seq'] is not None and msg.seq > dec['last_seq'] + 1:
+                dec['seq_gaps'] += msg.seq - dec['last_seq'] - 1
+            dec['last_seq'] = msg.seq
+            if msg.stop_latched and any(abs(v) > EPS for v in
+                                        list(msg.linear_x) + list(msg.angular_z)):
+                dec['latched_with_nonzero_command'] += 1
 
     def call(self, client, req, timeout=5.0):
         fut = client.call_async(req)
@@ -78,9 +99,15 @@ class S9Repeat(S9Check):
         return self.wait_for(seen, timeout)
 
     def fresh_world(self, seed):
-        res = self.call(self.reset_cli, ResetScenario.Request(scenario_id='S9', seed=seed))
-        if res is None or not res.success:
-            return False, 'reset failed: %s' % (res and res.reason)
+        # assignment 7.1: the client waits 1 s for a short transaction
+        t0 = time.monotonic()
+        res = self.call(self.reset_cli, ResetScenario.Request(scenario_id='S9', seed=seed),
+                        timeout=RESET_CLIENT_TIMEOUT)
+        self.last_reset_ms = round((time.monotonic() - t0) * 1000, 1)
+        if res is None:
+            return False, 'reset not answered within %.1f s' % RESET_CLIENT_TIMEOUT
+        if not res.success:
+            return False, 'reset failed: %s' % res.reason
         if self.latched():
             self.set_cand((0.0, 0.0))
             self.set_estop(False)
@@ -118,6 +145,7 @@ class S9Repeat(S9Check):
             row.update(passed=False, note=info)
             return row
         row['run_id'] = info
+        row['reset_ms'] = self.last_reset_ms
         cmd = (v, w)
         self.set_cand(cmd)
         moving = self.wait_for(lambda: self.moving_cmd(v) and self.robot_speed() > 0.7 * abs(v),
@@ -177,7 +205,14 @@ class S9Repeat(S9Check):
                                         row.get('zero_latency_s'), FAULTS[fault][1],
                                         row.get('sim_stop_s'), row.get('reason_named'),
                                         row.get('recovered')), flush=True)
-        return all(r['passed'] for r in self.trial_rows)
+        with self.lock:
+            dec = dict(self.decisions)
+        print('[%s] decision records: %d seen, %d lost, %d latched with a nonzero command'
+              % ('PASS' if dec['seen'] and not dec['latched_with_nonzero_command'] else 'FAIL',
+                 dec['seen'], dec['seq_gaps'], dec['latched_with_nonzero_command']),
+              flush=True)
+        return all(r['passed'] for r in self.trial_rows) and dec['seen'] > 0 \
+            and dec['latched_with_nonzero_command'] == 0
 
     def summary(self):
         out = {}
@@ -192,14 +227,25 @@ class S9Repeat(S9Check):
                           'latency_limit_s': FAULTS[fault][1]}
         return out
 
+    def reset_summary(self):
+        """Client-side /scenario/reset response times over all trials (7.1: 1 s)."""
+        resets = [r['reset_ms'] for r in self.trial_rows if r.get('reset_ms') is not None]
+        return {'trials': len(self.trial_rows), 'answered_in_time': len(resets),
+                'response_max_ms': max(resets) if resets else None,
+                'response_mean_ms': round(sum(resets) / len(resets), 1) if resets else None,
+                'client_timeout_ms': RESET_CLIENT_TIMEOUT * 1000}
+
     def write_repeat(self, ok):
         os.makedirs(self.output_dir, exist_ok=True)
         with open(os.path.join(self.output_dir, 's9_repeat.json'), 'w') as fh:
-            json.dump({'passed': ok, 'summary': self.summary(), 'trials': self.trial_rows,
+            json.dump({'passed': ok, 'summary': self.summary(),
+                       'reset_handshake': self.reset_summary(),
+                       'safety_decisions': dict(self.decisions),
+                       'trials': self.trial_rows,
                        'commit': os.environ.get('GIT_COMMIT', 'unknown')}, fh, indent=2)
-        keys = ['fault', 'phase', 'seed', 'run_id', 'speed_at_fault', 'zero_latency_s',
-                'latency_limit_s', 'sim_stop_s', 'reason_named', 'nonzero_during_fault',
-                'recovered', 'passed']
+        keys = ['fault', 'phase', 'seed', 'run_id', 'reset_ms', 'speed_at_fault',
+                'zero_latency_s', 'latency_limit_s', 'sim_stop_s', 'reason_named',
+                'nonzero_during_fault', 'recovered', 'passed']
         with open(os.path.join(self.output_dir, 's9_repeat.csv'), 'w', newline='') as fh:
             writer = csv.DictWriter(fh, keys, extrasaction='ignore')
             writer.writeheader()

@@ -62,6 +62,7 @@ case "${1:-help}" in
     in_container "" "set -m
       mkdir -p output/params && rm -rf output/s9_check.json output/bag_S9_seed$SEED
       ros2 bag record -o output/bag_S9_seed$SEED --topics /hub/estop /hub/safety \
+        /hub/safety_decision \
         /hub/events /robot/cmd_vel_candidate /robot/cmd_vel /robot/cmd_vel_applied \
         /bus/cmd_vel_candidate /bus/cmd_vel /robot/odom /hub/vehicles /sim/truth \
         > output/bag_record.log 2>&1 &

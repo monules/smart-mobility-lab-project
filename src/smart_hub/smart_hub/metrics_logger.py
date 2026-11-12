@@ -19,7 +19,8 @@ import rclpy
 from rclpy.node import Node
 from smart_hub.metrics_core import MetricsCore
 from smart_hub.ros_common import declare, R10, R100, R1T, reset_ack, RESET_REQUEST
-from smart_hub_interfaces.msg import HubEvent, SafetyState, VehicleStateArray
+from smart_hub_interfaces.msg import (HubEvent, SafetyDecision, SafetyState,
+                                      VehicleStateArray)
 from std_msgs.msg import Bool
 
 
@@ -40,6 +41,8 @@ class MetricsLogger(Node):
         self.event_pub = self.create_publisher(HubEvent, '/hub/events', R100)
         self.create_subscription(Bool, '/hub/estop', self.on_estop, R1T)
         self.create_subscription(SafetyState, '/hub/safety', self.on_safety, R1T)
+        self.create_subscription(SafetyDecision, '/hub/safety_decision', self.on_decision,
+                                 R100)
         for agent in ('robot', 'bus'):
             self.create_subscription(Twist, '/%s/cmd_vel' % agent,
                                      lambda m, a=agent: self.on_cmd(a, m), R10)
@@ -72,6 +75,10 @@ class MetricsLogger(Node):
 
     def on_safety(self, msg):
         self.metrics.on_safety(time.monotonic(), msg.stop_latched)
+
+    def on_decision(self, msg):
+        self.metrics.on_decision(time.monotonic(), msg.seq, msg.stop_latched,
+                                 dict(zip(msg.agents, zip(msg.linear_x, msg.angular_z))))
 
     def on_cmd(self, agent, msg):
         self.metrics.on_final_command(time.monotonic(), agent, msg.linear.x, msg.angular.z)
