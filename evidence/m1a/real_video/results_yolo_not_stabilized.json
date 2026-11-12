@@ -15,5 +15,58 @@
   "mae_no_occlusion": 0.0815,
   "stabilized": false,
   "frames_aligned": null,
+  "frames_alignment_untrusted": null,
+  "crossing": {
+    "labelled_frames": 141,
+    "label_period_s": 0.5,
+    "class_balance": {
+      "occupied": 13,
+      "clear": 128,
+      "occupied_share": 0.0922
+    },
+    "confusion": {
+      "occupied_reported_occupied": 13,
+      "clear_reported_clear": 124,
+      "false_busy": 4,
+      "false_clear": 0
+    },
+    "accuracy": 0.9716,
+    "occupied_recall": 1.0,
+    "clear_specificity": 0.9688,
+    "always_clear_baseline_accuracy": 0.9078,
+    "false_clear_episodes": [],
+    "false_busy_episodes": [
+      {
+        "onset_s": 48.01,
+        "labels": 1,
+        "duration_min_s": 0.0,
+        "duration_max_s": 1.0
+      },
+      {
+        "onset_s": 55.01,
+        "labels": 3,
+        "duration_min_s": 1.0,
+        "duration_max_s": 2.0
+      }
+    ],
+    "entries": 1,
+    "entries_never_noticed": 0,
+    "entry_to_occupied_delay_s": [
+      {
+        "t_s": 48.51,
+        "delay_s": 0.0
+      }
+    ],
+    "entry_delay_max_s": 0.0,
+    "exit_to_clear_delay_s": [
+      {
+        "t_s": 55.01,
+        "delay_s": 1.5
+      }
+    ],
+    "valid_frames": 141,
+    "valid_coverage": 1.0,
+    "invalid_counted_as_occupied": 0
+  },
   "calibration_points": 8
 }
