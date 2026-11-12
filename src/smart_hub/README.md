@@ -74,14 +74,25 @@ Same seeds give the same model ID. Outputs: `results/metrics.json`
 `split_manifest.json`, three PNG figures, `train_log.txt`, and
 `alt_ridge_queue_h30.json` (the rejected queue-target model, kept as evidence).
 
-## 4. What `/hub/demand` means
+## 4. What `/hub/demand` and `/hub/demand_unserved` mean
+
+Two forecasts, same message type, same fields, **different targets**:
+
+| Topic | The number is | Used by |
+|---|---|---|
+| `/hub/demand` | the **future queue**: people standing in Q in 30 s, boarding included. This is the assignment's forecast (T03). `model_id` = `ridge-queue-h30-…` | dashboards, logs, the report |
+| `/hub/demand_unserved` | the **unserved demand**: people who would be waiting in 30 s if no bus boarded anyone from now on (team extension). `model_id` = `ridge-demand-h30-…` | `hub_coordinator` for dispatch |
+
+Never compare the two numbers or their errors with each other (they are
+different questions; see `results/S2_report.md`, first section). The fields
+below are the same on both topics.
 
 | Field | Valid forecast | Invalid forecast |
 |---|---|---|
 | `valid` | `true` | `false` |
 | `predicted_count` | ridge forecast, ≥ 0 | `-1.0` |
 | `baseline_count` | persistence `q_t` | `q_t` if the current sample is fresh, else `-1.0` |
-| `model_id` | e.g. `ridge-demand-h30-d31fd020ac` | same (or `persistence-h30`) |
+| `model_id` | `ridge-queue-h30-…` on `/hub/demand`, `ridge-demand-h30-…` on `/hub/demand_unserved` | same (or `persistence-h30`) |
 | `horizon_sec` | `30` | `30` |
 | `header.stamp` | observation time of the `/hub/queue` sample used | publication time |
 

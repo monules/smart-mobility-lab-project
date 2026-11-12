@@ -112,7 +112,7 @@ print('S3 verdict:', 'PASSED' if r['passed'] else 'FAILED'); sys.exit(0 if r['pa
         if [ \$SEED = 1 ] && [ \$MODE = predictive ]; then
           EXTRA='record_dashboard:=true'
           ros2 bag record -o output/s8/bag_seed1_predictive --topics /hub/events \
-            /hub/vehicles /sim/truth /hub/queue /hub/demand /crossing/state /hub/safety \
+            /hub/vehicles /sim/truth /hub/queue /hub/demand /hub/demand_unserved /crossing/state /hub/safety \
             /parking/state /traffic/edges /robot/cmd_vel /bus/cmd_vel /robot/route \
             /bus/route /hub/bus_arrival > output/s8/bag.log 2>&1 &
           BAG=\$!; sleep 2
