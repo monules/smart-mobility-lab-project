@@ -13,12 +13,16 @@ Trials:
                                         a ready press while idle is refused
   +2    obstacle O before the crossing  reroute via Cn-B-U-E-J-D, arrives, no contact;
                                         travel time compared with the nominal trials
-  +3    cancel while moving             request->acceptance and acceptance->zero
+  +3    slow traffic on Cs-J (road      cost-only replan (13.2): the edge stays valid
+        stays open, never BLOCKED)      and unblocked, the planner's alternative is at
+                                        least replan_gain (15 %) cheaper, the robot
+                                        switches to Cn-B-U-E-J-D and arrives
+  +4    cancel while moving             request->acceptance and acceptance->zero
                                         /robot/cmd_vel, stop time and distance
-  +4    second goal while busy, reused  both rejected (T14)
+  +5    second goal while busy, reused  both rejected (T14)
         request id
-  +5    unreachable destination (P1)    FAILED NO_ROUTE, no motion
-  +6    odometry freeze while moving    zero candidate, bounded SAFE_STOP ODOM_STALE
+  +6    unreachable destination (P1)    FAILED NO_ROUTE, no motion
+  +7    odometry freeze while moving    zero candidate, bounded SAFE_STOP ODOM_STALE
 
 Writes <output_dir>/s7_check.json, s7_trials.csv, s7_trace.csv, s7_events.csv
 and s7_paths.png. Exit code 0 only if every check passed.
@@ -30,6 +34,7 @@ import os
 import sys
 import threading
 import time
+import traceback
 
 from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import Twist, TwistStamped
@@ -47,6 +52,12 @@ from std_srvs.srv import Trigger
 
 D = geo.NODES['D']
 GOAL_TOL = 0.20
+# cost-only replan trial: slow cars on Cs-J, well clear of J (9, 2)
+CONGESTED_EDGE = 'Cs-J'
+JAM_CAR_X = (5.8, 6.6, 7.4)       # m, start positions on the edge (y = 2)
+JAM_LOOP_X = (5.6, 7.9)           # m, the cars turn round inside this span
+JAM_SPEED = 0.05                  # m/s, a crawl (free flow is 0.40 m/s)
+REPLAN_GAIN = 0.15                # robot_core.RobotConfig.replan_gain (assignment 13.2)
 STOPPED = 0.02
 STATUS = {GoalStatus.STATUS_SUCCEEDED: 'SUCCEEDED', GoalStatus.STATUS_CANCELED: 'CANCELED',
           GoalStatus.STATUS_ABORTED: 'ABORTED'}
@@ -74,6 +85,8 @@ class S7Check(Node):
         self.create_subscription(Twist, '/robot/cmd_vel', self.on_final, R10)
         self.create_subscription(TwistStamped, '/robot/cmd_vel_candidate', self.on_cand, R10)
         self.create_subscription(HubEvent, '/hub/events', self.on_event, R100)
+        self.labels = []      # (t, trial, label of Cs-J) from traffic_monitor
+        self.create_subscription(String, '/traffic/edge_labels', self.on_labels, R10)
         self.escort = ActionClient(self, EscortPassenger, '/robot/escort')
         self.nav = ActionClient(self, NavigateTo, '/robot/navigate_to')
         self.ready_cli = self.create_client(Trigger, '/robot/confirm_ready')
@@ -114,6 +127,14 @@ class S7Check(Node):
                                 msg.reason))
 
     # ------------------------------------------------------------- helpers
+    def on_labels(self, msg):
+        try:
+            label = json.loads(msg.data).get('edges', {}).get(CONGESTED_EDGE, {}).get('label')
+        except (ValueError, AttributeError):
+            return
+        with self.lock:
+            self.labels.append((time.monotonic(), self.trial, label))
+
     def check(self, name, passed, detail):
         self.results.append({'check': name, 'passed': bool(passed), 'detail': detail})
         print('[%s] %s: %s' % ('PASS' if passed else 'FAIL', name, detail), flush=True)
@@ -230,10 +251,11 @@ class S7Check(Node):
         n = self.nominal
         self.no_ready_trial(n + 1)
         self.obstacle_trial(n + 2)
-        self.cancel_trial(n + 3)
-        self.busy_trial(n + 4)
-        self.unreachable_trial(n + 5)
-        self.odom_trial(n + 6)
+        self.congestion_trial(n + 3)
+        self.cancel_trial(n + 4)
+        self.busy_trial(n + 5)
+        self.unreachable_trial(n + 6)
+        self.odom_trial(n + 7)
         return all(r['passed'] for r in self.results)
 
     def nominal_trial(self, trial):
@@ -305,6 +327,50 @@ class S7Check(Node):
                    'time %s s vs %.1f s nominal mean (paired runs, same start); arrival '
                    'error %s m' % (reroute[0] if reroute else 'no reroute', before, after,
                                    row['escort_time_s'], mean, row.get('arrival_error_m')))
+
+    def congestion_trial(self, trial):
+        """Cost-only replan: traffic makes Cs-J slow, but never invalid or blocked."""
+        if not self.begin(trial):
+            return
+        start = time.monotonic()
+        handle = self.send_escort('esc-%d' % trial)
+        self.wait_ready_and_press(trial)
+        self.wait_for(lambda: self.robot()[2] > 3.6, 30.0)
+        t_jam = time.monotonic()
+        # Three cars crawl on Cs-J (they stay 1 m away from J, where the
+        # robot later turns to D). Cars are traffic, not obstacles: the
+        # planner keeps the edge and only its cost rises.
+        for k, x in enumerate(JAM_CAR_X):
+            self.inject(type='vehicle', id='jam_%d' % k, x=x, y=2.0, cruise=JAM_SPEED,
+                        loop_x=list(JAM_LOOP_X))
+        status, result = self.result(handle, 240.0)
+        row = self.summarize(trial, 'congestion', status, result, start)
+        events = self.of(self.events, trial)
+        reroute = [(e[0], e[4]) for e in events if e[3] == 'REROUTE']
+        cheaper = [(t, r) for t, r in reroute if r.startswith('CHEAPER')]
+        blocked = [r for _, r in reroute if r.startswith('BLOCKED')]
+        labels = {lab for t, _, lab in self.of(self.labels, trial) if t >= t_jam}
+        gain, costs = None, ''
+        if cheaper:
+            # reason text: 'CHEAPER <new> s < <old> s: <old route> -> <new route>'
+            words = cheaper[0][1].split()
+            new, old = float(words[1]), float(words[4])
+            gain, costs = 1.0 - new / old, '%.1f s instead of %.1f s' % (new, old)
+        self.check('S7 cost-only replan (13.2)',
+                   status == 'SUCCEEDED' and bool(cheaper) and not blocked
+                   and 'Cn-B-U-E-J-D' in cheaper[0][1] and gain >= REPLAN_GAIN
+                   and 'BLOCKED' not in labels and 'CONGESTED' in labels
+                   and row['obstacle_contacts'] == 0
+                   and row.get('arrival_error_m', 9) <= GOAL_TOL,
+                   '%s; planned cost %s (gain %s, needs >= %.0f %%); switched %s s after the '
+                   'cars appeared; Cs-J labels during the jam: %s (never BLOCKED, so the '
+                   'route stayed valid); escort %s s, arrival error %s m' % (
+                       cheaper[0][1] if cheaper else 'no CHEAPER reroute %s' % reroute,
+                       costs, 'n/a' if gain is None else '%.0f %%' % (100 * gain),
+                       100 * REPLAN_GAIN,
+                       'n/a' if not cheaper else '%.1f' % (cheaper[0][0] - t_jam),
+                       sorted(x for x in labels if x), row['escort_time_s'],
+                       row.get('arrival_error_m')))
 
     def cancel_trial(self, trial):
         if not self.begin(trial):
@@ -476,6 +542,11 @@ def main(args=None):
     ok = False
     try:
         node.run()
+    except Exception as exc:        # a crashed checker must never report PASSED
+        node.check('S7 checker ran to the end', False,
+                   'stopped by %s: %s (the remaining trials did not run)'
+                   % (type(exc).__name__, exc))
+        traceback.print_exc()
     finally:
         ok = node.write()
         executor.shutdown()
