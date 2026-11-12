@@ -47,6 +47,7 @@ FAULTS = {'estop': ('LATCHED:ESTOP', 0.20, True),
           'vehicles_freeze': ('VEHICLES_STALE', 1.0 + 0.25, False),
           'estop_signal': ('ESTOP_SIGNAL_STALE', 1.0 + 0.25, False)}
 FAULT_SEC = 2.0
+RESET_CLIENT_TIMEOUT = 1.0     # s, assignment 7.1 client timeout for short transactions
 
 
 class S9Repeat(S9Check):
@@ -55,6 +56,7 @@ class S9Repeat(S9Check):
         self.reset_cli = self.create_client(ResetScenario, '/scenario/reset')
         self.trial_rows = []
         self.reasons = []                       # (t, reason) of /hub/safety
+        self.last_reset_ms = None
 
     def on_safety(self, msg):
         super().on_safety(msg)
@@ -78,9 +80,15 @@ class S9Repeat(S9Check):
         return self.wait_for(seen, timeout)
 
     def fresh_world(self, seed):
-        res = self.call(self.reset_cli, ResetScenario.Request(scenario_id='S9', seed=seed))
-        if res is None or not res.success:
-            return False, 'reset failed: %s' % (res and res.reason)
+        # assignment 7.1: the client waits 1 s for a short transaction
+        t0 = time.monotonic()
+        res = self.call(self.reset_cli, ResetScenario.Request(scenario_id='S9', seed=seed),
+                        timeout=RESET_CLIENT_TIMEOUT)
+        self.last_reset_ms = round((time.monotonic() - t0) * 1000, 1)
+        if res is None:
+            return False, 'reset not answered within %.1f s' % RESET_CLIENT_TIMEOUT
+        if not res.success:
+            return False, 'reset failed: %s' % res.reason
         if self.latched():
             self.set_cand((0.0, 0.0))
             self.set_estop(False)
@@ -118,6 +126,7 @@ class S9Repeat(S9Check):
             row.update(passed=False, note=info)
             return row
         row['run_id'] = info
+        row['reset_ms'] = self.last_reset_ms
         cmd = (v, w)
         self.set_cand(cmd)
         moving = self.wait_for(lambda: self.moving_cmd(v) and self.robot_speed() > 0.7 * abs(v),
@@ -192,14 +201,24 @@ class S9Repeat(S9Check):
                           'latency_limit_s': FAULTS[fault][1]}
         return out
 
+    def reset_summary(self):
+        """Client-side /scenario/reset response times over all trials (7.1: 1 s)."""
+        resets = [r['reset_ms'] for r in self.trial_rows if r.get('reset_ms') is not None]
+        return {'trials': len(self.trial_rows), 'answered_in_time': len(resets),
+                'response_max_ms': max(resets) if resets else None,
+                'response_mean_ms': round(sum(resets) / len(resets), 1) if resets else None,
+                'client_timeout_ms': RESET_CLIENT_TIMEOUT * 1000}
+
     def write_repeat(self, ok):
         os.makedirs(self.output_dir, exist_ok=True)
         with open(os.path.join(self.output_dir, 's9_repeat.json'), 'w') as fh:
-            json.dump({'passed': ok, 'summary': self.summary(), 'trials': self.trial_rows,
+            json.dump({'passed': ok, 'summary': self.summary(),
+                       'reset_handshake': self.reset_summary(),
+                       'trials': self.trial_rows,
                        'commit': os.environ.get('GIT_COMMIT', 'unknown')}, fh, indent=2)
-        keys = ['fault', 'phase', 'seed', 'run_id', 'speed_at_fault', 'zero_latency_s',
-                'latency_limit_s', 'sim_stop_s', 'reason_named', 'nonzero_during_fault',
-                'recovered', 'passed']
+        keys = ['fault', 'phase', 'seed', 'run_id', 'reset_ms', 'speed_at_fault',
+                'zero_latency_s', 'latency_limit_s', 'sim_stop_s', 'reason_named',
+                'nonzero_during_fault', 'recovered', 'passed']
         with open(os.path.join(self.output_dir, 's9_repeat.csv'), 'w', newline='') as fh:
             writer = csv.DictWriter(fh, keys, extrasaction='ignore')
             writer.writeheader()

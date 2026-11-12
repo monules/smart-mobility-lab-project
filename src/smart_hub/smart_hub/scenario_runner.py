@@ -54,7 +54,11 @@ CAMERA_FLOOR = ((2.0, 5.0, 6.0, 7.0), geo.CROSSING)
 # add more (e.g. passenger_detector) through the reset_participants parameter.
 DEFAULT_PARTICIPANTS = ('safety_supervisor,actuator_bridge,metrics_logger,'
                         'dashboard_marker_publisher')
-RESEND_SEC = 0.25    # /hub/events is volatile: repeat the request until all ack
+RESEND_SEC = 0.2     # /hub/events is volatile: repeat the request until all ack
+# Assignment 7.1: a service client waits 1 s. The reset therefore answers
+# (success or MISSING_ACK) within 0.8 s, leaving 0.2 s for transport.
+CLIENT_TIMEOUT_SEC = 1.0
+DEFAULT_ACK_TIMEOUT = 0.8
 
 
 def default_scenario_dir():
@@ -83,12 +87,17 @@ class ScenarioRunner(Node):
                            'publish_camera': True,
                            # nodes that must acknowledge /scenario/reset (comma list)
                            'reset_participants': DEFAULT_PARTICIPANTS,
-                           'reset_ack_timeout': 2.0})
+                           'reset_ack_timeout': DEFAULT_ACK_TIMEOUT})
         self.dir = p['scenario_dir'] or default_scenario_dir()
         self.participants = {n.strip() for n in p['reset_participants'].split(',') if n.strip()}
         self.ack_timeout = float(p['reset_ack_timeout'])
         if not 0.1 <= self.ack_timeout <= 10.0:
             raise ValueError('reset_ack_timeout must be in [0.1, 10]')
+        if self.ack_timeout >= CLIENT_TIMEOUT_SEC:
+            self.get_logger().warning(
+                'reset_ack_timeout %.2f s is not below the %.1f s client timeout of '
+                'assignment 7.1: a client may give up before MISSING_ACK is reported'
+                % (self.ack_timeout, CLIENT_TIMEOUT_SEC))
         self.pending = None                    # reset waiting for acknowledgements
         self.camera = None
         if p['publish_camera']:
@@ -207,8 +216,9 @@ class ScenarioRunner(Node):
         if missing:
             res.reason = 'MISSING_ACK: %s' % ','.join(missing)
         else:
-            res.reason = 'RESET preserve_logs=%s acks=%d' % (req.preserve_logs,
-                                                             len(self.participants))
+            res.reason = 'RESET preserve_logs=%s acks=%d handshake_ms=%d' % (
+                req.preserve_logs, len(self.participants),
+                round((time.monotonic() - now) * 1000))
         self._event('SCENARIO_RESET', 'scenario_runner', res.reason)
         return res
 
