@@ -281,6 +281,69 @@ def test_clearance_blocks_approach_but_allows_retreat():
     assert core.tick(T0).commands['robot'] == (-0.25, 0.0)
 
 
+def test_stopping_distance_follows_the_assignment_formula():
+    cfg = SafetyConfig()                            # tau 0.25 s, a 0.5 m/s^2
+    assert cfg.stopping_distance(0.0) == 0.0
+    assert cfg.stopping_distance(0.25) == pytest.approx(0.25 * 0.25 + 0.25 ** 2 / 1.0)
+    assert cfg.stopping_distance(0.40) == pytest.approx(0.26)     # bus at its cap
+    assert cfg.stopping_distance(-0.10) == cfg.stopping_distance(0.10)   # reversing
+    # the prediction horizon covers exactly that distance at constant speed
+    for v in (0.05, 0.25, 0.40):
+        assert v * cfg.stop_horizon(v) == pytest.approx(cfg.stopping_distance(v))
+
+
+def test_required_gap_grows_with_speed():
+    # Obstacle 0.24 m ahead of the robot's footprint. A slow approach can
+    # still stop with the 0.20 m margin; a fast one cannot.
+    obstacle = [('O', 'obstacle', 3.79, 6.0, 0.0, 0.0, True)]
+    core = ready_core()
+    feed(core, T0, extra=obstacle)
+    core.on_command('robot', 0.10, 0.0, T0, 0.0)    # stops after 0.035 m: gap 0.205
+    assert core.tick(T0).commands['robot'] == (0.10, 0.0)
+    core.on_command('robot', 0.25, 0.0, T0, 0.0)    # stops after 0.125 m: gap 0.115
+    assert 'CLEARANCE:O' in core.tick(T0).holds['robot']
+
+
+def test_approaching_body_counts_with_its_own_motion():
+    # A car 0.60 m ahead: harmless while parked, too close when it drives
+    # towards the robot at 0.30 m/s (it covers 0.15 m during the robot's stop).
+    def car(speed):
+        return [('car_1', 'car', 3.0 + 0.20 + 0.30 + 0.60, 6.0, math.pi, speed, True)]
+    core = ready_core()
+    feed(core, T0, extra=car(0.0))
+    core.on_command('robot', 0.25, 0.0, T0, 0.0)
+    assert core.tick(T0).commands['robot'] == (0.25, 0.0)
+    feed(core, T0, extra=car(0.30))
+    core.on_command('robot', 0.25, 0.0, T0, 0.0)
+    assert core.tick(T0).holds['robot'] == []      # 0.60 - 0.125 - 0.15 = 0.325 m left
+    feed(core, T0, extra=[('car_1', 'car', 3.0 + 0.20 + 0.30 + 0.45, 6.0, math.pi, 0.30, True)])
+    core.on_command('robot', 0.25, 0.0, T0, 0.0)
+    assert 'CLEARANCE:car_1' in core.tick(T0).holds['robot']   # 0.45 - 0.275 = 0.175 m
+
+
+def test_other_agent_is_predicted_from_its_own_final_command():
+    # Bus 0.55 m east of the robot's footprint, facing east. /hub/vehicles
+    # has no speed sign; the supervisor's last command for the bus has.
+    bus = (3.0 + 0.20 + 0.30 + 0.55, 6.0, 0.0)
+    core = ready_core()
+    feed(core, T0, bus=bus, bus_speed=0.10)
+    core.on_command('bus', -0.10, 0.0, T0, 0.0)     # bus reverses towards the robot
+    core.on_command('robot', 0.25, 0.0, T0, 0.0)
+    first = core.tick(T0)                            # no bus command known yet
+    assert first.commands['bus'] == (-0.10, 0.0)
+    feed(core, T0 + 0.05, bus=bus, bus_speed=0.10)
+    core.on_command('bus', -0.10, 0.0, T0 + 0.05, 0.0)
+    core.on_command('robot', 0.25, 0.0, T0 + 0.05, 0.0)
+    # robot needs 0.125 m, the reversing bus covers 0.05 m in the same 0.5 s:
+    # 0.55 - 0.175 = 0.375 m left, still fine ...
+    assert core.tick(T0 + 0.05).holds['robot'] == []
+    near = (3.0 + 0.20 + 0.30 + 0.36, 6.0, 0.0)      # ... but not from 0.36 m
+    feed(core, T0 + 0.10, bus=near, bus_speed=0.10)
+    core.on_command('bus', -0.10, 0.0, T0 + 0.10, 0.0)
+    core.on_command('robot', 0.25, 0.0, T0 + 0.10, 0.0)
+    assert 'CLEARANCE:bus_1' in core.tick(T0 + 0.10).holds['robot']
+
+
 def test_unknown_body_holds_agent():
     core = ready_core()
     feed(core, T0, extra=[('car_7', 'car', 9.0, 2.0, 0.0, 0.0, False)])
@@ -328,7 +391,7 @@ def test_hold_events_only_on_transitions():
 
 @pytest.mark.parametrize('field, value', [
     ('robot_speed_limit', 0.0), ('command_timeout', -1.0), ('sensor_timeout', math.nan),
-    ('clearance', 5.0), ('bus_id', 'robot_1')])
+    ('clearance', 5.0), ('bus_id', 'robot_1'), ('reaction_time', 0.0), ('brake_decel', -0.5)])
 def test_invalid_config_rejected(field, value):
     with pytest.raises(ValueError):
         SafetyCore(SafetyConfig(**{field: value}))
