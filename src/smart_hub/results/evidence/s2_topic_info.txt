@@ -7,7 +7,7 @@ Node namespace: /
 Topic type: smart_hub_interfaces/msg/DemandPrediction
 Topic type hash: RIHS01_2e03881740c76356e7fce579892d413e7b7abbb442547b05baa0a2e0be2bda54
 Endpoint type: PUBLISHER
-GID: 01.0f.70.b7.24.00.8b.51.00.00.00.00.00.00.14.03
+GID: 01.0f.eb.7d.25.00.ae.16.00.00.00.00.00.00.15.03
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -17,5 +17,107 @@ QoS profile:
   Liveliness: AUTOMATIC
   Liveliness lease duration: Infinite
 
-Subscription count: 0
+Subscription count: 1
+
+Node name: rosbag2_recorder
+Node namespace: /
+Topic type: smart_hub_interfaces/msg/DemandPrediction
+Topic type hash: RIHS01_2e03881740c76356e7fce579892d413e7b7abbb442547b05baa0a2e0be2bda54
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.eb.7d.40.00.b2.7d.00.00.00.00.00.00.27.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Type: smart_hub_interfaces/msg/DemandPrediction
+
+Publisher count: 1
+
+Node name: demand_predictor
+Node namespace: /
+Topic type: smart_hub_interfaces/msg/DemandPrediction
+Topic type hash: RIHS01_2e03881740c76356e7fce579892d413e7b7abbb442547b05baa0a2e0be2bda54
+Endpoint type: PUBLISHER
+GID: 01.0f.eb.7d.25.00.ae.16.00.00.00.00.00.00.14.03
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 1
+
+Node name: rosbag2_recorder
+Node namespace: /
+Topic type: smart_hub_interfaces/msg/DemandPrediction
+Topic type hash: RIHS01_2e03881740c76356e7fce579892d413e7b7abbb442547b05baa0a2e0be2bda54
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.eb.7d.40.00.b2.7d.00.00.00.00.00.00.28.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Type: smart_hub_interfaces/msg/QueueState
+
+Publisher count: 1
+
+Node name: fake_queue_publisher
+Node namespace: /
+Topic type: smart_hub_interfaces/msg/QueueState
+Topic type hash: RIHS01_3c1caa293a68867c14e1e7a957a5555e5939d4fea1dae36e306f5a7def384ab5
+Endpoint type: PUBLISHER
+GID: 01.0f.eb.7d.24.00.f9.86.00.00.00.00.00.00.13.03
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Subscription count: 2
+
+Node name: demand_predictor
+Node namespace: /
+Topic type: smart_hub_interfaces/msg/QueueState
+Topic type hash: RIHS01_3c1caa293a68867c14e1e7a957a5555e5939d4fea1dae36e306f5a7def384ab5
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.eb.7d.25.00.ae.16.00.00.00.00.00.00.16.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: rosbag2_recorder
+Node namespace: /
+Topic type: smart_hub_interfaces/msg/QueueState
+Topic type hash: RIHS01_3c1caa293a68867c14e1e7a957a5555e5939d4fea1dae36e306f5a7def384ab5
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.eb.7d.40.00.b2.7d.00.00.00.00.00.00.26.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
 
