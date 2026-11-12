@@ -101,7 +101,16 @@ uncommitted S4/S5 work (recorded as `72e2fde-dirty` in the JSON).
 
 ## Tests
 
-`tests/colcon_test_summary.txt`: 187 tests, 185 passed, 2 expected failures
-(M1-B style debt), 0 errors.
+`tests/colcon_test_summary.txt`: the full `colcon test` transcript of the
+release commit (counts are in the file's last lines; SKIP and XFAIL are
+listed as such and are not passes).
+
+## Release identity
+
+`release/versions.txt`: commit, base image digest, OS, ROS distribution, RMW,
+Python and the exact version of every package used.
+`release/MANIFEST.sha256`: SHA-256 and size of every evidence, result, model
+and dataset file (including the raw lab video and the detector weights).
+Both are written by `tools/release_info.py`.
 
 M1-B's S2 evidence lives in `src/smart_hub/results/` (his branch layout).
