@@ -56,6 +56,10 @@ class HubCoordinator(Node):
         # to go stale exactly when the next one is due, so jitter could reset
         # the dispatch counters (found by review while writing the T04 check)
         p('demand_freshness_sec', 2.5)
+        # Dispatch uses the UNSERVED-demand forecast (people who would wait at
+        # t+30 if no bus came): unlike the future-queue forecast on
+        # /hub/demand it does not fall when a bus is already boarding.
+        p('dispatch_demand_topic', '/hub/demand_unserved')
         p('dispatch_high', 6.0); p('dispatch_low', 4.0)
         p('dispatch_need_high', 3); p('dispatch_need_low', 5)
         p('dispatch_cooldown_sec', 30.0)
@@ -85,7 +89,8 @@ class HubCoordinator(Node):
         # latest message + local receipt time (monotonic) per input
         self.latest = {k: None for k in ('demand', 'queue', 'vehicles', 'bus', 'safety')}
         self.sub = [
-            self.create_subscription(DemandPrediction, '/hub/demand', partial(self._rx, 'demand'), R10),
+            self.create_subscription(DemandPrediction, self.get_parameter('dispatch_demand_topic').value,
+                                     partial(self._rx, 'demand'), R10),
             self.create_subscription(QueueState, '/hub/queue', partial(self._rx, 'queue'), R10),
             self.create_subscription(VehicleStateArray, '/hub/vehicles', partial(self._rx, 'vehicles'), R10),
             self.create_subscription(BusArrival, '/hub/bus_arrival', partial(self._rx, 'bus'), R10),

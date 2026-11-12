@@ -16,7 +16,7 @@ setup(
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
         ('share/' + package_name + '/config', glob('config/*.yaml')),
         ('share/' + package_name + '/scenarios', glob('scenarios/*.yaml')),
-        ('share/' + package_name + '/models', ['models/demand_ridge_h30.json']),
+        ('share/' + package_name + '/models', glob('models/*_ridge_h30.json')),
     ],
     # the Control Center's web page is served from the installed package
     package_data={'smart_hub.control_center': ['web/*']},

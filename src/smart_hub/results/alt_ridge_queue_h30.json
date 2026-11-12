@@ -1,5 +1,5 @@
 {
- "model_id": "ridge-queue-h30-5556dc157f",
+ "model_id": "ridge-queue-h30-7cf4bd2c26",
  "model_type": "standardized_linear",
  "horizon_sec": 30,
  "feature_names": [
@@ -27,12 +27,12 @@
   2.0269903504329787
  ],
  "coef": [
-  3.986206785762164,
-  -0.21884963463371573,
-  -0.7611482446378323,
-  -0.21798090215724533,
-  0.19953254377387242,
-  -0.04316053050820528
+  3.9862067857524943,
+  -0.21884963462629167,
+  -0.7611482446358303,
+  -0.21798090215552346,
+  0.19953254377408094,
+  -0.04316053050845314
  ],
  "intercept": 4.938928182807421,
  "metadata": {
@@ -93,13 +93,13 @@
    1044
   ],
   "split_seed": 42,
-  "sklearn": "1.9.1",
-  "numpy": "2.5.3",
-  "python": "3.13.16",
-  "code_commit": "not-a-git-repo",
+  "sklearn": "1.4.1.post1",
+  "numpy": "1.26.4",
+  "python": "3.12.3",
+  "code_commit": "f1c1ecd",
   "data_source": "synthetic seeded episodes (smart_hub/demand/simulation.py)",
   "features": "count-delta proxies; see smart_hub/demand/features.py",
-  "created_utc": "2026-10-16T13:22:39+00:00",
+  "created_utc": "2026-11-12T06:22:52+00:00",
   "target": "queue",
   "target_definition": "true queue length at t+30 s, including the effect of any bus boarding in between (synthetic ground truth)",
   "alpha": 0.1,

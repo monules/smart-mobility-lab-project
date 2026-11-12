@@ -51,7 +51,8 @@ volatile; T = transient-local. "Status" is for this branch.
 |---|---|---|---|---|---|
 | `/camera/image_raw` | sensor_msgs/Image | 10 Hz, sensor | scenario_runner synthetic camera (M5) or `video_publisher` (M1-A) | passenger_detector | (Impl) bgr8 640×480; freeze modes `camera`, `camera_repeat` |
 | `/hub/queue` | QueueState | 5 Hz, R10 | passenger_detector (M1-A) | demand_predictor, coordinator, safety | (Impl) stamp = frame time; invalid ⇒ count 0, `crossing_occupied` true; M1-B `fake_queue_publisher` remains a test stand-in |
-| `/hub/demand` | DemandPrediction | 1 Hz, R10 | demand_predictor (M1-B) | coordinator, dashboard | (Impl) |
+| `/hub/demand` | DemandPrediction | 1 Hz, R10 | demand_predictor (M1-B) | dashboards, logger | (Impl) **future queue** at t+30 s with boarding (assignment 9 target, T03); `model_id` starts with `ridge-queue-` |
+| `/hub/demand_unserved` | DemandPrediction | 1 Hz, R10 | demand_predictor (M1-B) | hub_coordinator (dispatch), dashboards | (Team, after the midterm review) **unserved demand** at t+30 s if no bus boarded after t; `model_id` starts with `ridge-demand-`. Never compare its values or errors with `/hub/demand` |
 | `/hub/vehicles` | VehicleStateArray | 10 Hz, R10 | scenario_runner (M5) | bus_manager, traffic_monitor, safety, coordinator, dashboard | (Impl) observed state; `valid` per entry |
 | `/sim/truth` | VehicleStateArray | 10 Hz, R10 | scenario_runner (M5) | metrics_logger, tests | (Impl) M5-internal, private ground truth (§3.2) |
 | `/robot/odom` | nav_msgs/Odometry | 20 Hz, R10 | scenario_runner (M5) | robot_manager, safety | (Impl) |

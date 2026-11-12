@@ -1,8 +1,26 @@
-"""demand_predictor: S2 thirty-second passenger-demand forecast (owner M1-B).
+"""demand_predictor: S2 thirty-second passenger forecasts (owner M1-B).
 
-Subscribes  /hub/queue   smart_hub_interfaces/QueueState        reliable, depth 10
-Publishes   /hub/demand  smart_hub_interfaces/DemandPrediction  1 Hz, reliable 10
-Publishes   /hub/events  smart_hub_interfaces/HubEvent          on change, R100
+Subscribes  /hub/queue            smart_hub_interfaces/QueueState        reliable, depth 10
+Publishes   /hub/demand           smart_hub_interfaces/DemandPrediction  1 Hz, reliable 10
+Publishes   /hub/demand_unserved  smart_hub_interfaces/DemandPrediction  1 Hz, reliable 10
+Publishes   /hub/events           smart_hub_interfaces/HubEvent          on change, R100
+
+Two forecasts with two different targets (changed after the midterm review,
+which found that one topic had silently carried the second target):
+
+  /hub/demand           FUTURE QUEUE: how many people will be standing in Q
+                        at t+30 s under the running system, i.e. including
+                        boarding. This is the quantity assignment 9 asks for
+                        and the one T03 is judged on. model_id ridge-queue-...
+  /hub/demand_unserved  UNSERVED DEMAND (team extension): how many people
+                        would be waiting at t+30 s if no bus boarded anyone
+                        after t. It does not drop when a bus arrives, so it
+                        is the better trigger for "send a bus" and is what
+                        hub_coordinator dispatches on. model_id ridge-demand-...
+
+Both use the same causal features, history and validity rules; only the
+trained coefficients differ. The two numbers must never be compared with
+each other: they answer different questions (see results/S2_report.md).
 
 Behaviour (assignment sections 9.1-9.3, handbook S2):
   * keeps 1 Hz history of valid queue counts (60 s), publishes valid=false
@@ -35,7 +53,8 @@ from smart_hub.ros_common import reset_ack, RESET_REQUEST
 from smart_hub_interfaces.msg import DemandPrediction, HubEvent, QueueState
 
 NODE_NAME = 'demand_predictor'
-DEFAULT_MODEL_FILE = 'demand_ridge_h30.json'
+DEFAULT_MODEL_FILE = 'queue_ridge_h30.json'        # /hub/demand (assignment target)
+UNSERVED_MODEL_FILE = 'demand_ridge_h30.json'      # /hub/demand_unserved (extension)
 
 
 def _qos(depth):
@@ -48,20 +67,23 @@ def _stamp_to_sec(stamp):
     return stamp.sec + stamp.nanosec * 1e-9
 
 
-def default_model_path():
+def default_model_path(name=DEFAULT_MODEL_FILE):
     try:
         from ament_index_python.packages import get_package_share_directory
         share = get_package_share_directory('smart_hub')
-        return os.path.join(share, 'models', DEFAULT_MODEL_FILE)
+        return os.path.join(share, 'models', name)
     except Exception:  # noqa: BLE001 - package not installed (dev checkout)
         here = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(os.path.dirname(here), 'models', DEFAULT_MODEL_FILE)
+        return os.path.join(os.path.dirname(here), 'models', name)
 
 
 class DemandPredictor(Node):
     PARAMS = {
         # name: (default, description)
-        'model_path': ('', 'model JSON; empty = installed default'),
+        'model_path': ('', 'future-queue model JSON; empty = installed default'),
+        'unserved_model_path': ('', 'unserved-demand model JSON; empty = installed default'),
+        'publish_unserved': (True, 'false = publish only /hub/demand'),
+        'unserved_topic': ('/hub/demand_unserved', ''),
         'use_model': (True, 'false = publish persistence baseline only'),
         'require_model': (False, 'true = refuse to start without the model'),
         'prediction_horizon_sec': (30, 'must equal the model horizon'),
@@ -95,6 +117,19 @@ class DemandPredictor(Node):
                                             _qos(100))
         self.model, model_note = self._load_model(p)
         self.estimator = self._new_estimator()
+        # Second forecast, same inputs and rules, other target (module doc).
+        self.unserved_model = self.unserved_estimator = self.unserved_pub = None
+        if p['publish_unserved']:
+            self.unserved_model, _ = self._load_model(
+                p, 'unserved_model_path', UNSERVED_MODEL_FILE)
+            self.unserved_estimator = self._new_estimator(self.unserved_model)
+            self.unserved_pub = self.create_publisher(
+                DemandPrediction, p['unserved_topic'], _qos(10))
+            self._event('FORECAST_TARGETS',
+                        '%s=future queue at t+30 (with boarding); %s=unserved demand '
+                        'at t+30 (no boarding after t)' % (p['demand_topic'],
+                                                           p['unserved_topic']),
+                        '%s|%s' % (self.model.model_id, self.unserved_model.model_id))
         self._reset_id = ''
         self._stamps = collections.OrderedDict()  # float -> original Time
         self._last_state = None
@@ -103,6 +138,7 @@ class DemandPredictor(Node):
         self._last_latency_log = time.monotonic()
         self._wrong_zone = 0
         self.last_output = None
+        self.last_unserved = None
 
         self.pub = self.create_publisher(DemandPrediction, p['demand_topic'],
                                          _qos(10))
@@ -119,10 +155,10 @@ class DemandPredictor(Node):
             % (self.model.model_id, model_note,
                dict(sorted(p.items()))))
 
-    def _new_estimator(self):
+    def _new_estimator(self, model=None):
         p = self.p
         return DemandEstimator(
-            self.model,
+            model or self.model,
             history_sec=int(p['history_sec']),
             warmup_sec=int(p['warmup_sec']),
             reset_gap_sec=int(p['reset_gap_sec']),
@@ -142,6 +178,8 @@ class DemandPredictor(Node):
         if msg.correlation_id != self._reset_id:     # once per run id
             self._reset_id = msg.correlation_id
             self.estimator = self._new_estimator()
+            if self.unserved_estimator is not None:
+                self.unserved_estimator = self._new_estimator(self.unserved_model)
             self._stamps.clear()
         self.events.publish(reset_ack(self, msg.correlation_id, 'history cleared'))
 
@@ -171,10 +209,10 @@ class DemandPredictor(Node):
         if float(p['latency_report_sec']) <= 0:
             bad('latency_report_sec must be positive')
 
-    def _load_model(self, p):
+    def _load_model(self, p, param='model_path', default_file=DEFAULT_MODEL_FILE):
         if not p['use_model']:
             return PersistenceModel(), 'use_model=false'
-        path = p['model_path'] or default_model_path()
+        path = p[param] or default_model_path(default_file)
         try:
             model = load_model(path)
             if model.horizon_sec != int(p['prediction_horizon_sec']):
@@ -213,6 +251,10 @@ class DemandPredictor(Node):
         result = self.estimator.on_queue(
             msg.count, msg.valid, msg.confidence, stamp,
             time.monotonic(), self._now())
+        if self.unserved_estimator is not None:
+            self.unserved_estimator.on_queue(
+                msg.count, msg.valid, msg.confidence, stamp,
+                time.monotonic(), self._now())
         if result == 'ACCEPTED':
             self._stamps[stamp] = msg.header.stamp
             while len(self._stamps) > 20:
@@ -230,21 +272,14 @@ class DemandPredictor(Node):
 
     def _tick(self):
         t0 = time.perf_counter()
-        pred = self.estimator.tick(time.monotonic(), self._now())
-
-        out = DemandPrediction()
-        out.header.frame_id = 'map'
-        if pred.source_stamp is not None and pred.source_stamp in self._stamps:
-            out.header.stamp = self._stamps[pred.source_stamp]
-        else:
-            out.header.stamp = self.get_clock().now().to_msg()
-        out.horizon_sec = int(pred.horizon_sec)
-        out.predicted_count = float(pred.predicted_count)
-        out.baseline_count = float(pred.baseline_count)
-        out.model_id = pred.model_id
-        out.valid = bool(pred.valid)
+        now_mono, now_ros = time.monotonic(), self._now()
+        pred = self.estimator.tick(now_mono, now_ros)
+        out = self._to_msg(pred)
         self.pub.publish(out)
         self.last_output = out  # inspected by the node tests
+        if self.unserved_estimator is not None:
+            self.last_unserved = self._to_msg(self.unserved_estimator.tick(now_mono, now_ros))
+            self.unserved_pub.publish(self.last_unserved)
 
         state = (pred.valid, pred.reason)
         if state != self._last_state:
@@ -265,6 +300,21 @@ class DemandPredictor(Node):
         self._maybe_log_latency()
 
     # ------------------------------------------------------------- helpers
+    def _to_msg(self, pred):
+        """Convert an estimator Prediction into the DemandPrediction message."""
+        out = DemandPrediction()
+        out.header.frame_id = 'map'
+        if pred.source_stamp is not None and pred.source_stamp in self._stamps:
+            out.header.stamp = self._stamps[pred.source_stamp]
+        else:
+            out.header.stamp = self.get_clock().now().to_msg()
+        out.horizon_sec = int(pred.horizon_sec)
+        out.predicted_count = float(pred.predicted_count)
+        out.baseline_count = float(pred.baseline_count)
+        out.model_id = pred.model_id
+        out.valid = bool(pred.valid)
+        return out
+
     def _now(self):
         return self.get_clock().now().nanoseconds * 1e-9
 

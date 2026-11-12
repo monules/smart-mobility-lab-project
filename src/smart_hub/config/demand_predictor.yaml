@@ -3,7 +3,10 @@
 # runtime changes (parameters are part of each run's experiment record).
 demand_predictor:
   ros__parameters:
-    model_path: ""                 # empty = <smart_hub share>/models/demand_ridge_h30.json
+    model_path: ""                 # /hub/demand: future queue; empty = models/queue_ridge_h30.json
+    unserved_model_path: ""        # /hub/demand_unserved; empty = models/demand_ridge_h30.json
+    publish_unserved: true         # false = only /hub/demand
+    unserved_topic: /hub/demand_unserved
     use_model: true                # false = persistence baseline only
     require_model: false           # true = do not start if the model is missing/invalid
     prediction_horizon_sec: 30     # must equal the model horizon

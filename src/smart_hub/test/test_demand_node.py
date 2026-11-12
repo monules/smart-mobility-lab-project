@@ -98,6 +98,19 @@ class TestDemandPredictorNode(unittest.TestCase):
         self.assertEqual((out.header.stamp.sec, out.header.stamp.nanosec),
                          (msg.header.stamp.sec, msg.header.stamp.nanosec))
 
+    def test_two_topics_carry_two_named_targets(self):
+        # /hub/demand = future queue (assignment target); /hub/demand_unserved
+        # = unserved demand (extension). Same validity, different models.
+        for k in range(40):
+            out = self.second(k)
+        unserved = self.node.last_unserved
+        self.assertTrue(out.valid and unserved.valid)
+        self.assertTrue(out.model_id.startswith('ridge-queue-h30-'), out.model_id)
+        self.assertTrue(unserved.model_id.startswith('ridge-demand-h30-'), unserved.model_id)
+        self.assertEqual(out.header.stamp, unserved.header.stamp)     # same observation
+        self.assertEqual(out.baseline_count, unserved.baseline_count)  # same persistence
+        self.assertNotEqual(out.predicted_count, unserved.predicted_count)
+
     def test_wrong_zone_ignored(self):
         from smart_hub_interfaces.msg import QueueState
         msg = QueueState()
