@@ -25,6 +25,7 @@ import os
 import sys
 import threading
 import time
+import traceback
 
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
@@ -259,6 +260,11 @@ def main(args=None):
     ok = False
     try:
         node.run()
+    except Exception as exc:        # a crashed checker must never report PASSED
+        node.check('S4 checker ran to the end', False,
+                   'stopped by %s: %s (the remaining checks did not run)'
+                   % (type(exc).__name__, exc))
+        traceback.print_exc()
     finally:
         ok = node.write()
         executor.shutdown()

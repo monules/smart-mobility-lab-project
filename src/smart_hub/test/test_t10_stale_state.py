@@ -1,11 +1,14 @@
-"""T10 (S5 freshness) plus the S5 failure cases from section 12.3: incorrect
-edge ids, pose outside the claimed corridor, zero vehicles, frozen timestamps,
-sensor recovery.  Bonus coverage next to T09 since it uses the same engine."""
+"""T10 (S5 freshness) plus the S5 failure cases from section 12.3.
+
+Incorrect edge ids, pose outside the claimed corridor, zero vehicles, frozen
+timestamps, sensor recovery. Bonus coverage next to T09 since it uses the
+same engine.
+"""
 import math
 import unittest
 
-from traffic_sim import (BLOCKED, CONGESTED, NORMAL, UNKNOWN, Mover, TrafficConfig,
-                         TrafficEngine, VehicleObs, first_time, run_feed)
+from traffic_sim import (BLOCKED, first_time, Mover, NORMAL, run_feed, TrafficConfig,
+                         TrafficEngine, UNKNOWN, VehicleObs)
 
 V = VehicleObs
 
@@ -47,7 +50,7 @@ class RejectImpossibleSamples(unittest.TestCase):
                V('c', 'car', 7.0, 2.0, math.nan, 'Cs-J'),
                V('d', 'car', math.nan, 2.0, 0.3, 'Cs-J'),
                V('e', 'car', 7.0, math.inf, 0.3, 'Cs-J')]
-        t = warm(e, bad, n=1)
+        warm(e, bad, n=1)
         self.assertEqual(e.rejections['BAD_SPEED'], 3)
         self.assertEqual(e.rejections['BAD_POSE'], 2)
         self.assertEqual(label(e, warm(e, bad, t0=0.1, n=5)).count, 0)
@@ -106,7 +109,7 @@ class ZeroVehiclesAndStale(unittest.TestCase):
     def test_repeated_old_stamp_never_refreshes_the_feed(self):
         e = TrafficEngine()
         t = warm(e, [V('c', 'car', 7.0, 2.0, 0.3, 'Cs-J')])
-        for i in range(1, 30):                                        # same stamp, new arrival times
+        for i in range(1, 30):              # same stamp, new arrival times
             rep = e.ingest(0.5, t + 0.1 * i, [V('c', 'car', 7.0, 2.0, 0.3, 'Cs-J')])
             self.assertEqual(rep.snapshot_reason, 'STALE_STAMP')
         self.assertEqual(label(e, t + 3.0).label, UNKNOWN)

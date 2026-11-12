@@ -14,6 +14,7 @@ from helpers import EVIDENCE_DIR, make_engine, paper_scene, percentile
 
 class _NoLock:
     """Stand-in for the engine lock: used ONLY by the negative control."""
+
     def __enter__(self):
         return self
 
@@ -102,8 +103,10 @@ class T07Atomicity(unittest.TestCase):
             self.assertEqual(loser.reason, 'PREFERRED_UNAVAILABLE')
 
     def test_same_request_id_racing_is_idempotent(self):
-        """Two threads using the SAME request id (a retry racing the original)
-        must get the same token and consume only one slot."""
+        """Two threads with the SAME request id get one token and one slot.
+
+        This is a retry racing the original request.
+        """
         for _ in range(self.TRIALS):
             e = make_engine()
             now = paper_scene(e)
@@ -140,8 +143,11 @@ class T07Atomicity(unittest.TestCase):
         self.assertEqual({r.reason for r in res if not r.success}, {'FULL'})
 
     def test_negative_control_without_lock_the_test_detects_double_allocation(self):
-        """Proof the test can fail: remove the lock, widen the check->commit
-        window, and the same pair-trial MUST report double allocations."""
+        """Prove the test can fail.
+
+        Remove the lock, widen the check->commit window, and the same
+        pair-trial MUST report double allocations.
+        """
         doubles = 0
         for _ in range(self.TRIALS):
             e = make_engine()

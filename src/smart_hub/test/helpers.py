@@ -12,7 +12,7 @@ EVIDENCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 
 def percentile(values, q):
-    """Nearest-rank percentile (q in 0..100); fine for small samples."""
+    """Return the nearest-rank percentile, q in 0..100 (fine for small samples)."""
     if not values:
         raise ValueError('no samples')
     ordered = sorted(values)
@@ -21,9 +21,11 @@ def percentile(values, q):
 
 
 def feed(engine, states, t0, duration=1.0, dt=0.2):
-    """Feed identical sensor readings for ``duration`` s so the 0.5 s debounce
-    commits.  ``states`` maps slot id -> 'FREE' | 'OCCUPIED' | None (no data).
-    Returns the time of the last reading."""
+    """Feed identical sensor readings for ``duration`` s so the 0.5 s debounce commits.
+
+    ``states`` maps slot id -> 'FREE' | 'OCCUPIED' | None (no data).
+    Returns the time of the last reading.
+    """
     t = t0
     steps = int(round(duration / dt))
     for _ in range(steps + 1):

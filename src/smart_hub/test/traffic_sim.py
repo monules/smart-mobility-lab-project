@@ -1,13 +1,16 @@
-"""Deterministic synthetic /hub/vehicles generator + node-like publisher
-harness for the S5 tests (no ROS).  Seeded, fixed 10 Hz feed, 2 Hz publication,
-10 Hz stale watchdog - the same cadence as traffic_monitor.py."""
+"""Deterministic synthetic /hub/vehicles generator for the S5 tests (no ROS).
+
+A node-like publisher harness: seeded, fixed 10 Hz feed, 2 Hz publication,
+10 Hz stale watchdog - the same cadence as traffic_monitor.py.
+"""
 import math
 import random
 
 from helpers import *  # noqa: F401,F403  (sets sys.path)
-from smart_hub.hub_map import NODES, edge_endpoints, normalize_edge_id
-from smart_hub.traffic_engine import (BLOCKED, CONGESTED, NORMAL, UNKNOWN,
-                                      TrafficConfig, TrafficEngine, VehicleObs)
+from smart_hub.hub_map import edge_endpoints, normalize_edge_id
+# the label constants are re-exported for the T09 / T10 test modules
+from smart_hub.traffic_engine import (BLOCKED, CONGESTED, NORMAL,  # noqa: F401
+                                      TrafficConfig, TrafficEngine, UNKNOWN, VehicleObs)
 
 DT = 0.1                       # 10 Hz vehicle feed
 PUBLISH_PERIOD = 0.5           # 2 Hz /traffic/edges
@@ -19,8 +22,11 @@ def on_edge(edge, frac):
 
 
 class Mover:
-    """Vehicle that drives along one edge at constant speed and re-spawns at the
-    start when it reaches the end (keeps the occupancy constant)."""
+    """Vehicle that drives along one edge at constant speed.
+
+    It re-spawns at the start when it reaches the end, which keeps the
+    occupancy constant.
+    """
 
     def __init__(self, vid, edge, speed, start_frac=0.0, kind='car', claimed_edge=None,
                  active_from=0.0, active_until=math.inf):
@@ -61,10 +67,12 @@ class Obstacle:
 
 def run_feed(movers, duration, seed=1, noise=True, dropout=0.03, freeze=None,
              config=None, extra=None):
-    """Simulate ``duration`` s.  ``freeze=(t0, t1)`` repeats the last good
-    snapshot (same stamp) during [t0, t1) to model a frozen source.
-    Returns (ticks, engine) where ticks is a list of dicts
-    {t, labels:{edge:label}, results:{edge:EdgeResult}, reason}."""
+    """Simulate ``duration`` seconds of traffic.
+
+    ``freeze=(t0, t1)`` repeats the last good snapshot (same stamp) during
+    [t0, t1) to model a frozen source. Returns (ticks, engine) where ticks is
+    a list of dicts {t, labels:{edge:label}, results:{edge:EdgeResult}, reason}.
+    """
     rng = random.Random(seed)
     engine = TrafficEngine(config or TrafficConfig())
     ticks = []

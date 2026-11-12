@@ -8,26 +8,24 @@ Everything runs in the default mutually-exclusive callback group, so service,
 timer, subscription and action-client callbacks never run at the same time.
 Callbacks are short; nothing blocks.
 """
+from functools import partial
 import json
 import time
-from functools import partial
 
-import rclpy
 from action_msgs.msg import GoalStatus
+import rclpy
 from rclpy.action import ActionClient
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
-
+from smart_hub.coordinator_core import (CrossingArbiter, DispatchPolicy,
+                                        footprint_overlaps_crossing)
 from smart_hub_interfaces.action import DockBus, EscortPassenger
 from smart_hub_interfaces.msg import (BusArrival, CrossingState, DemandPrediction,
                                       HubEvent, QueueState, SafetyState,
                                       VehicleStateArray)
 from smart_hub_interfaces.srv import RequestCrossing
-
-from smart_hub.coordinator_core import (CrossingArbiter, DispatchPolicy,
-                                        footprint_overlaps_crossing)
 
 
 def _qos(depth, transient=False):
@@ -47,28 +45,33 @@ RADIUS = {'bus': 0.30, 'car': 0.30, 'robot': 0.20}
 class HubCoordinator(Node):
     def __init__(self):
         super().__init__('hub_coordinator')
-        p = self.declare_parameter
-        p('run_id', 'run-0'); p('scenario_id', 'S8')
-        p('bus_id', 'bus_1'); p('bay_id', 'B'); p('dock_max_duration_sec', 120.0)
-        p('lease_sec', 3.0); p('crossing_clear_sec', 2.0)
-        p('freshness_sec', 1.0); p('future_tolerance_sec', 0.2)
-        # /hub/demand arrives at 1 Hz: with the 1.0 s limit a forecast is about
-        # to go stale exactly when the next one is due, so jitter could reset
-        # the dispatch counters (found by review while writing the T04 check)
-        p('demand_freshness_sec', 2.5)
-        # Dispatch uses the UNSERVED-demand forecast (people who would wait at
-        # t+30 if no bus came): unlike the future-queue forecast on
-        # /hub/demand it does not fall when a bus is already boarding.
-        p('dispatch_demand_topic', '/hub/demand_unserved')
-        p('dispatch_high', 6.0); p('dispatch_low', 4.0)
-        p('dispatch_need_high', 3); p('dispatch_need_low', 5)
-        p('dispatch_cooldown_sec', 30.0)
-        p('require_safety_state', True)
-        # 'predictive': forecast when valid, observed queue as FALLBACK (9.3);
-        # 'reactive': observed queue only (the S8 / T15 comparison baseline)
-        p('dispatch_mode', 'predictive')
-        p('escort_max_duration_sec', 240.0)
-        g = lambda n: self.get_parameter(n).value
+        defaults = {
+            'run_id': 'run-0', 'scenario_id': 'S8',
+            'bus_id': 'bus_1', 'bay_id': 'B', 'dock_max_duration_sec': 120.0,
+            'lease_sec': 3.0, 'crossing_clear_sec': 2.0,
+            'freshness_sec': 1.0, 'future_tolerance_sec': 0.2,
+            # The forecast arrives at 1 Hz: with the 1.0 s limit a forecast is
+            # about to go stale exactly when the next one is due, so jitter
+            # could reset the dispatch counters (found while writing T04).
+            'demand_freshness_sec': 2.5,
+            # Dispatch uses the UNSERVED-demand forecast (people who would
+            # wait at t+30 if no bus came): unlike the future-queue forecast
+            # on /hub/demand it does not fall when a bus is already boarding.
+            'dispatch_demand_topic': '/hub/demand_unserved',
+            'dispatch_high': 6.0, 'dispatch_low': 4.0,
+            'dispatch_need_high': 3, 'dispatch_need_low': 5,
+            'dispatch_cooldown_sec': 30.0,
+            'require_safety_state': True,
+            # 'predictive': forecast when valid, observed queue as FALLBACK
+            # (9.3); 'reactive': observed queue only (the T15 baseline)
+            'dispatch_mode': 'predictive',
+            'escort_max_duration_sec': 240.0,
+        }
+        for name, value in defaults.items():
+            self.declare_parameter(name, value)
+
+        def g(name):
+            return self.get_parameter(name).value
         self._validate(g)
 
         self.run_id, self.scenario_id = g('run_id'), g('scenario_id')
@@ -89,12 +92,16 @@ class HubCoordinator(Node):
         # latest message + local receipt time (monotonic) per input
         self.latest = {k: None for k in ('demand', 'queue', 'vehicles', 'bus', 'safety')}
         self.sub = [
-            self.create_subscription(DemandPrediction, self.get_parameter('dispatch_demand_topic').value,
+            self.create_subscription(DemandPrediction, g('dispatch_demand_topic'),
                                      partial(self._rx, 'demand'), R10),
-            self.create_subscription(QueueState, '/hub/queue', partial(self._rx, 'queue'), R10),
-            self.create_subscription(VehicleStateArray, '/hub/vehicles', partial(self._rx, 'vehicles'), R10),
-            self.create_subscription(BusArrival, '/hub/bus_arrival', partial(self._rx, 'bus'), R10),
-            self.create_subscription(SafetyState, '/hub/safety', partial(self._rx, 'safety'), R1T),
+            self.create_subscription(QueueState, '/hub/queue',
+                                     partial(self._rx, 'queue'), R10),
+            self.create_subscription(VehicleStateArray, '/hub/vehicles',
+                                     partial(self._rx, 'vehicles'), R10),
+            self.create_subscription(BusArrival, '/hub/bus_arrival',
+                                     partial(self._rx, 'bus'), R10),
+            self.create_subscription(SafetyState, '/hub/safety',
+                                     partial(self._rx, 'safety'), R1T),
             # escort trigger (S8): a passenger request arrives as ESCORT_REQUEST
             self.create_subscription(HubEvent, '/hub/events', self._on_hub_event, R100),
         ]
@@ -114,17 +121,21 @@ class HubCoordinator(Node):
     # ------------------------------------------------------------------ setup
     @staticmethod
     def _validate(g):
-        bad = []
-        if not 0.5 <= g('lease_sec') <= 30: bad.append('lease_sec')
-        if not 0.5 <= g('crossing_clear_sec') <= 10: bad.append('crossing_clear_sec')
-        if not 0.1 <= g('freshness_sec') <= 5: bad.append('freshness_sec')
-        if not 1.0 < g('demand_freshness_sec') <= 5: bad.append('demand_freshness_sec')
-        if g('dispatch_low') >= g('dispatch_high'): bad.append('dispatch_low/high')
-        if g('dispatch_need_high') < 1 or g('dispatch_need_low') < 1: bad.append('dispatch_need_*')
-        if g('dispatch_cooldown_sec') < 0: bad.append('dispatch_cooldown_sec')
-        if g('dock_max_duration_sec') <= 0: bad.append('dock_max_duration_sec')
-        if g('dispatch_mode') not in ('predictive', 'reactive'): bad.append('dispatch_mode')
-        if g('escort_max_duration_sec') <= 0: bad.append('escort_max_duration_sec')
+        # (condition that must hold, parameter named in the error)
+        rules = [
+            (0.5 <= g('lease_sec') <= 30, 'lease_sec'),
+            (0.5 <= g('crossing_clear_sec') <= 10, 'crossing_clear_sec'),
+            (0.1 <= g('freshness_sec') <= 5, 'freshness_sec'),
+            (1.0 < g('demand_freshness_sec') <= 5, 'demand_freshness_sec'),
+            (g('dispatch_low') < g('dispatch_high'), 'dispatch_low/high'),
+            (g('dispatch_need_high') >= 1 and g('dispatch_need_low') >= 1, 'dispatch_need_*'),
+            (g('dispatch_cooldown_sec') >= 0, 'dispatch_cooldown_sec'),
+            (g('dock_max_duration_sec') > 0, 'dock_max_duration_sec'),
+            (g('dispatch_mode') in ('predictive', 'reactive'), 'dispatch_mode'),
+            (g('escort_max_duration_sec') > 0, 'escort_max_duration_sec'),
+            (bool(g('dispatch_demand_topic')), 'dispatch_demand_topic'),
+        ]
+        bad = [name for ok, name in rules if not ok]
         if bad:
             raise ValueError('invalid parameter(s): ' + ', '.join(bad))
 
@@ -250,9 +261,10 @@ class HubCoordinator(Node):
         try:
             wrapped = fut.result()
             status, result = wrapped.status, wrapped.result
-            name = {GoalStatus.STATUS_SUCCEEDED: 'BUS_MISSION_SUCCEEDED',
-                    GoalStatus.STATUS_CANCELED: 'BUS_MISSION_CANCELED',
-                    GoalStatus.STATUS_ABORTED: 'BUS_MISSION_ABORTED'}.get(status, 'BUS_MISSION_ENDED')
+            names = {GoalStatus.STATUS_SUCCEEDED: 'BUS_MISSION_SUCCEEDED',
+                     GoalStatus.STATUS_CANCELED: 'BUS_MISSION_CANCELED',
+                     GoalStatus.STATUS_ABORTED: 'BUS_MISSION_ABORTED'}
+            name = names.get(status, 'BUS_MISSION_ENDED')
             self._event(name, self.bus_id, result.reason or result.final_state, corr)
         except Exception as exc:                 # noqa: BLE001
             self._event('BUS_MISSION_ENDED', self.bus_id, 'RESULT_ERROR:%s' % exc, corr)

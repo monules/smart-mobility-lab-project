@@ -20,8 +20,8 @@ header-stamp freshness gating, QoS, services, timers and event publishing.
 import threading
 import time
 
-import rclpy
 from builtin_interfaces.msg import Time
+import rclpy
 from rclpy.callback_groups import (MutuallyExclusiveCallbackGroup,
                                    ReentrantCallbackGroup)
 from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor

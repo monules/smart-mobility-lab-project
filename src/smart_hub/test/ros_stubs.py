@@ -1,5 +1,6 @@
-"""Minimal stand-ins for rclpy and the smart_hub_interfaces messages so the
-node wrappers can be smoke-tested where ROS 2 is not installed.
+"""Minimal stand-ins for rclpy and the smart_hub_interfaces messages.
+
+They let the node wrappers be smoke-tested where ROS 2 is not installed.
 
 NOT a substitute for running the nodes on ROS 2 Jazzy: it checks that the node
 code runs, wires the right topics/services, fills the right fields and rejects
@@ -154,7 +155,9 @@ def install():
             HistoryPolicy=enum(KEEP_LAST='KEEP_LAST'))
     _module('rclpy.callback_groups', MutuallyExclusiveCallbackGroup=object,
             ReentrantCallbackGroup=object)
-    _module('rclpy.executors', MultiThreadedExecutor=object)
+    # ExternalShutdownException: imported by the nodes' main() for a clean Ctrl+C
+    _module('rclpy.executors', MultiThreadedExecutor=object,
+            ExternalShutdownException=type('ExternalShutdownException', (Exception,), {}))
     _module('builtin_interfaces')
     _module('builtin_interfaces.msg', Time=Time)
     _module('std_msgs')

@@ -344,6 +344,26 @@ def test_other_agent_is_predicted_from_its_own_final_command():
     assert 'CLEARANCE:bus_1' in core.tick(T0 + 0.10).holds['robot']
 
 
+def test_reversing_back_into_the_crossing_needs_a_new_grant():
+    # The bus has left C eastwards and released it (no owner). Reversing
+    # would put its footprint back inside C: the supervisor holds it until
+    # the crossing is granted to the bus again. Driving on forwards is free.
+    bus = (5.82, 2.0, 0.0)                         # footprint 0.02 m east of C, facing east
+    core = ready_core()
+    feed(core, T0, bus=bus)
+    core.on_crossing('', True, T0, 0.0)            # released: nobody owns C
+    core.on_command('bus', -0.10, 0.0, T0, 0.0)
+    assert 'CROSSING_NOT_GRANTED' in core.tick(T0).holds['bus']
+    core.on_command('bus', 0.10, 0.0, T0, 0.0)
+    assert core.tick(T0).commands['bus'] == (0.10, 0.0)
+    core.on_crossing('robot_1', True, T0, 0.0)     # somebody else owns it: still held
+    core.on_command('bus', -0.10, 0.0, T0, 0.0)
+    assert 'CROSSING_NOT_GRANTED' in core.tick(T0).holds['bus']
+    core.on_crossing('bus_1', True, T0, 0.0)       # a NEW grant for the bus
+    core.on_command('bus', -0.10, 0.0, T0, 0.0)
+    assert core.tick(T0).commands['bus'] == (-0.10, 0.0)
+
+
 def test_unknown_body_holds_agent():
     core = ready_core()
     feed(core, T0, extra=[('car_7', 'car', 9.0, 2.0, 0.0, 0.0, False)])

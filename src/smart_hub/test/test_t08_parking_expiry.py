@@ -1,5 +1,7 @@
-"""T08 - S4 expiry & reconciliation, plus barrier interlock and the exact
-section 11.3 test sequence.  Pure Python, deterministic (injected clock)."""
+"""T08 - S4 expiry and reconciliation, barrier interlock, exact 11.3 sequence.
+
+Pure Python, deterministic (injected clock).
+"""
 import unittest
 
 from helpers import feed, make_engine, paper_scene
