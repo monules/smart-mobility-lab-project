@@ -25,6 +25,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EdgeStateArray.msg"
   "msg/CrossingState.msg"
   "msg/SafetyState.msg"
+  "msg/SafetyDecision.msg"
   "msg/HubEvent.msg"
   "srv/ReserveParking.srv"
   "srv/ReleaseParking.srv"

@@ -28,7 +28,8 @@ from rclpy.node import Node
 from smart_hub.ros_common import (declare, R1, R10, R100, R1T, reset_ack,
                                   RESET_REQUEST, stamp_age)
 from smart_hub.safety_core import SafetyConfig, SafetyCore
-from smart_hub_interfaces.msg import CrossingState, HubEvent, SafetyState, VehicleStateArray
+from smart_hub_interfaces.msg import (CrossingState, HubEvent, SafetyDecision, SafetyState,
+                                      VehicleStateArray)
 from smart_hub_interfaces.srv import ClearSafetyStop
 from std_msgs.msg import Bool
 
@@ -57,6 +58,10 @@ class SafetySupervisor(Node):
                         for a in ('robot', 'bus')}
         self.safety_pub = self.create_publisher(SafetyState, '/hub/safety', R1T)
         self.event_pub = self.create_publisher(HubEvent, '/hub/events', R100)
+        # One record per decision (latch state + the commands decided with it),
+        # so evaluators need no cross-topic matching. Evidence only.
+        self.decision_pub = self.create_publisher(SafetyDecision, '/hub/safety_decision', R100)
+        self._decision_seq = 0
 
         for agent in ('robot', 'bus'):
             self.create_subscription(TwistStamped, '/%s/cmd_vel_candidate' % agent,
@@ -117,6 +122,7 @@ class SafetySupervisor(Node):
             self._publish_zero()
             t_out = time.monotonic()
             self._publish_safety(True, False, 'LATCHED:ESTOP')
+            self._publish_decision(True, False, 'LATCHED:ESTOP', self._zeros())
             self._flush_events()
             self._event('ESTOP_ZERO_OUTPUT', 'safety_supervisor',
                         'receipt_to_zero_ms=%.3f' % ((t_out - t_rx) * 1000.0))
@@ -130,6 +136,7 @@ class SafetySupervisor(Node):
             self._reset_reason = self.core.reset_inputs()
             self._reset_id = msg.correlation_id
             self._publish_zero()
+            self._publish_decision(self.core.latched, False, 'RESET_INPUTS', self._zeros())
         # Repeated request (a lost ack): acknowledge again, do not reset again.
         self.event_pub.publish(reset_ack(self, msg.correlation_id, self._reset_reason))
 
@@ -152,11 +159,28 @@ class SafetySupervisor(Node):
             msg = Twist()
             msg.linear.x, msg.angular.z = float(vx), float(wz)
             self.cmd_pub[agent].publish(msg)
+        self._publish_decision(d.stop_latched, d.motion_permitted, d.reason, d.commands)
         self._flush_events()
 
     def _publish_zero(self):
         for pub in self.cmd_pub.values():
             pub.publish(Twist())
+
+    def _zeros(self):
+        return {agent: (0.0, 0.0) for agent in self.cmd_pub}
+
+    def _publish_decision(self, latched, permitted, reason, commands):
+        """Publish the decision record for the commands that were just sent."""
+        self._decision_seq += 1
+        msg = SafetyDecision()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = 'map'
+        msg.seq = self._decision_seq
+        msg.stop_latched, msg.motion_permitted, msg.reason = latched, permitted, reason
+        msg.agents = sorted(commands)
+        msg.linear_x = [float(commands[a][0]) for a in msg.agents]
+        msg.angular_z = [float(commands[a][1]) for a in msg.agents]
+        self.decision_pub.publish(msg)
 
     def _publish_safety(self, latched, permitted, reason):
         self._last_latched = latched

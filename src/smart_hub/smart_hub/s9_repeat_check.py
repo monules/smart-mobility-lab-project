@@ -32,7 +32,9 @@ import time
 
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
+from smart_hub.ros_common import R100
 from smart_hub.s9_fault_check import EPS, S9Check, STOPPED
+from smart_hub_interfaces.msg import SafetyDecision
 from smart_hub_interfaces.srv import ResetScenario
 from std_msgs.msg import String
 
@@ -57,11 +59,28 @@ class S9Repeat(S9Check):
         self.trial_rows = []
         self.reasons = []                       # (t, reason) of /hub/safety
         self.last_reset_ms = None
+        # the supervisor's own decision records: latch state and commands in
+        # one numbered message (no cross-topic ordering, no grace window)
+        self.decisions = {'seen': 0, 'last_seq': None, 'seq_gaps': 0,
+                          'latched_with_nonzero_command': 0}
+        self.create_subscription(SafetyDecision, '/hub/safety_decision', self.on_decision,
+                                 R100)
 
     def on_safety(self, msg):
         super().on_safety(msg)
         with self.lock:
             self.reasons.append((time.monotonic(), msg.reason))
+
+    def on_decision(self, msg):
+        with self.lock:
+            dec = self.decisions
+            dec['seen'] += 1
+            if dec['last_seq'] is not None and msg.seq > dec['last_seq'] + 1:
+                dec['seq_gaps'] += msg.seq - dec['last_seq'] - 1
+            dec['last_seq'] = msg.seq
+            if msg.stop_latched and any(abs(v) > EPS for v in
+                                        list(msg.linear_x) + list(msg.angular_z)):
+                dec['latched_with_nonzero_command'] += 1
 
     def call(self, client, req, timeout=5.0):
         fut = client.call_async(req)
@@ -186,7 +205,14 @@ class S9Repeat(S9Check):
                                         row.get('zero_latency_s'), FAULTS[fault][1],
                                         row.get('sim_stop_s'), row.get('reason_named'),
                                         row.get('recovered')), flush=True)
-        return all(r['passed'] for r in self.trial_rows)
+        with self.lock:
+            dec = dict(self.decisions)
+        print('[%s] decision records: %d seen, %d lost, %d latched with a nonzero command'
+              % ('PASS' if dec['seen'] and not dec['latched_with_nonzero_command'] else 'FAIL',
+                 dec['seen'], dec['seq_gaps'], dec['latched_with_nonzero_command']),
+              flush=True)
+        return all(r['passed'] for r in self.trial_rows) and dec['seen'] > 0 \
+            and dec['latched_with_nonzero_command'] == 0
 
     def summary(self):
         out = {}
@@ -214,6 +240,7 @@ class S9Repeat(S9Check):
         with open(os.path.join(self.output_dir, 's9_repeat.json'), 'w') as fh:
             json.dump({'passed': ok, 'summary': self.summary(),
                        'reset_handshake': self.reset_summary(),
+                       'safety_decisions': dict(self.decisions),
                        'trials': self.trial_rows,
                        'commit': os.environ.get('GIT_COMMIT', 'unknown')}, fh, indent=2)
         keys = ['fault', 'phase', 'seed', 'run_id', 'reset_ms', 'speed_at_fault',

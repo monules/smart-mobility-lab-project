@@ -7,8 +7,16 @@ Measured from the logger's point of view (assignment 21.2):
   supervisor's own receipt-to-output latency);
 * physical stop time: e-stop assertion -> simulated speed below
   stopped_speed (reported separately, as 16.3 requires);
-* motion while latched: final commands that were nonzero while
-  /hub/safety said stop_latched (must be zero: "no silent continuation");
+* motion while latched, measured twice (must be zero: "no silent
+  continuation"):
+  - from /hub/safety_decision, the supervisor's own record of each decision
+    (latch state and commands in ONE message, numbered): every latched
+    decision with a nonzero command counts, with no grace window; lost
+    records show up as sequence gaps;
+  - from /hub/safety and /robot|bus/cmd_vel, two topics DDS does not order:
+    a nonzero command within ORDERING_GRACE_SEC of a latch change cannot be
+    attributed, so it is counted and listed as *ambiguous* instead of being
+    dropped; later ones count as violations;
 * safety interventions grouped by reason, and every /hub/events row.
 
 Times are seconds from time.monotonic(), supplied by the caller.
@@ -19,6 +27,7 @@ import os
 
 EPS = 1e-6
 ORDERING_GRACE_SEC = 0.1
+EXAMPLES_KEPT = 50       # listed samples per run (counts beyond that are not kept)
 
 
 class MetricsCore:
@@ -36,6 +45,14 @@ class MetricsCore:
         self.latched = False
         self.latch_changed_t = float('-inf')
         self.motion_while_latched = 0
+        self.ambiguous_count = 0
+        self.ambiguous_near_latch_change = []   # first EXAMPLES_KEPT samples
+        self.decisions_seen = 0
+        self.decision_last_seq = None
+        self.decision_seq_gaps = 0       # records lost between two seen ones
+        self.decision_restarts = 0       # seq went backwards (supervisor restarted)
+        self.latched_nonzero_count = 0
+        self.latched_nonzero_decisions = []     # first EXAMPLES_KEPT samples
         self.interventions = {}          # reason -> count
         self.first_t = None
         self.last_t = None
@@ -71,13 +88,44 @@ class MetricsCore:
         zero = abs(vx) < EPS and abs(wz) < EPS
         # DDS does not order messages across topics, so a command sent just
         # before/after a latch change may arrive on the "wrong" side of it.
-        # A real violation repeats every 50 ms, so a short grace loses nothing.
-        settled = t - self.latch_changed_t > ORDERING_GRACE_SEC
-        if self.latched and not zero and settled:
-            self.motion_while_latched += 1
+        # Such a sample is kept as ambiguous, never silently dropped; the
+        # unambiguous measure is on_decision().
+        since_change = t - self.latch_changed_t
+        if self.latched and not zero:
+            if since_change > ORDERING_GRACE_SEC:
+                self.motion_while_latched += 1
+            else:
+                self.ambiguous_count += 1
+                if len(self.ambiguous_near_latch_change) < EXAMPLES_KEPT:
+                    self.ambiguous_near_latch_change.append(
+                        {'t': round(t, 4), 'agent': agent, 'vx': round(vx, 4),
+                         'wz': round(wz, 4),
+                         'dt_since_latch_change': round(since_change, 4)})
         if zero and agent in self.pending_cmd:
             start = self.pending_cmd.pop(agent)
             self.stop_latency.append({'agent': agent, 'seconds': round(t - start, 4)})
+
+    def on_decision(self, t, seq, stop_latched, commands):
+        """Count one supervisor decision record; commands = {agent: (vx, wz)}."""
+        self._seen(t)
+        self.decisions_seen += 1
+        last = self.decision_last_seq
+        if last is not None:
+            if seq > last + 1:
+                self.decision_seq_gaps += seq - last - 1
+            elif seq <= last:
+                self.decision_restarts += 1
+        self.decision_last_seq = seq
+        if not stop_latched:
+            return
+        for agent, (vx, wz) in sorted(commands.items()):
+            if abs(vx) < EPS and abs(wz) < EPS:
+                continue
+            self.latched_nonzero_count += 1
+            if len(self.latched_nonzero_decisions) < EXAMPLES_KEPT:
+                self.latched_nonzero_decisions.append(
+                    {'seq': seq, 't': round(t, 4), 'agent': agent,
+                     'vx': round(vx, 4), 'wz': round(wz, 4)})
 
     def on_truth(self, t, agent, speed):
         self._seen(t)
@@ -94,6 +142,16 @@ class MetricsCore:
                     stop_latency_max_sec=max(lat) if lat else None,
                     physical_stop=self.physical_stop,
                     motion_while_latched=self.motion_while_latched,
+                    motion_while_latched_ambiguous={
+                        'count': self.ambiguous_count,
+                        'grace_sec': ORDERING_GRACE_SEC,
+                        'samples': self.ambiguous_near_latch_change},
+                    safety_decisions={
+                        'seen': self.decisions_seen,
+                        'seq_gaps': self.decision_seq_gaps,
+                        'supervisor_restarts': self.decision_restarts,
+                        'latched_with_nonzero_command': self.latched_nonzero_count,
+                        'samples': self.latched_nonzero_decisions},
                     interventions=self.interventions)
 
     def write(self, directory):
