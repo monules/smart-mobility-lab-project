@@ -37,6 +37,7 @@ from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from smart_hub import geometry as geo
 from smart_hub.ros_common import declare, R10, R100, R1T
+from smart_hub.s8_stats import cooccupancy_episodes, km_quantile, queue_waits
 from smart_hub_interfaces.msg import (CrossingState, HubEvent, ParkingState,
                                       VehicleStateArray)
 from smart_hub_interfaces.srv import ReserveParking
@@ -44,6 +45,9 @@ from smart_hub_interfaces.srv import ReserveParking
 PED_RADIUS = 0.15
 QUEUE = (2.0, 5.0, 6.0, 7.0)
 MOBILE = ('bus', 'robot', 'car')
+CONTROLLED = ('bus', 'robot')     # kinds the hub commands (cars are scripted traffic)
+REACTION_S = 0.5                  # s a vehicle may still roll after a person enters C
+MOVED_TOLERANCE_S = 0.1           # s of motion after that = one truth sample of noise
 
 
 def in_c(x, y, r):
@@ -180,6 +184,18 @@ class S8Check(Node):
                     if ped_in_c:
                         v['crossing'].append((round(t, 2), 'entered with a pedestrian', i))
             prev_in = {i: i in inside for i in mob}
+        # Physical co-occupancy of C, at any time (not only at entry): a
+        # pedestrian may step in while a vehicle is inside, but the vehicle
+        # must then be standing still after REACTION_S. Every episode is kept
+        # in the metrics; a vehicle that kept moving is a crossing violation.
+        radius = {k: geo.RADIUS_BY_KIND.get(k, 0.3) for k in MOBILE}
+        shared = cooccupancy_episodes(truth, in_c, radius, REACTION_S)
+        controlled = {i for _, bodies in truth for i, b in bodies.items() if b[0] in CONTROLLED}
+        for ep in shared:
+            ep['controlled_by_hub'] = ep['vehicle'] in controlled
+            if ep['controlled_by_hub'] and ep['moved_after_reaction_s'] > MOVED_TOLERANCE_S:
+                v['crossing'].append((ep['onset_s'], 'moved with a pedestrian in C',
+                                      ep['vehicle'], ep['moved_after_reaction_s']))
         last = ''
         for t, owner, _, _ in owners:
             if owner and last and owner != last:
@@ -210,21 +226,27 @@ class S8Check(Node):
 
         # metrics
         m = {}
-        appear, boarded = {}, {}
-        for t, bodies in truth:
-            for i, (k, x, y) in bodies.items():
-                if k == 'pedestrian' and QUEUE[0] <= x <= QUEUE[2] and \
-                        QUEUE[1] <= y <= QUEUE[3]:
-                    appear.setdefault(i, t)
-        for t, ent, name, _ in events:
-            if name == 'PASSENGER_BOARDED':
-                boarded[ent] = t
-        waits = [boarded[i] - appear[i] for i in boarded if i in appear]
-        m['passengers_seen'] = len(appear)
+        boarded = {ent: t for t, ent, name, _ in events if name == 'PASSENGER_BOARDED'}
+        end_t = truth[-1][0] if truth else 0.0
+        q = queue_waits(truth, boarded,
+                        lambda x, y: QUEUE[0] <= x <= QUEUE[2] and QUEUE[1] <= y <= QUEUE[3],
+                        end_t)
+        waits = q['boarded']
+        m['passengers_seen'] = sum(len(x) for x in q.values())
         m['passengers_boarded'] = len(waits)
-        m['queue_wait_p50_s'] = pct(waits, 0.5)
+        m['queue_wait_p50_s'] = pct(waits, 0.5)            # boarded passengers only
         m['queue_wait_p95_s'] = pct(waits, 0.95)
-        m['queue_waits_s'] = sorted(round(w, 2) for w in waits)
+        m['queue_waits_s'] = waits
+        # People who never boarded are not dropped: still waiting at the end
+        # (right-censored: they waited at least this long) or left the zone.
+        m['passengers_still_waiting'] = len(q['censored'])
+        m['queue_waits_censored_s'] = q['censored']
+        m['passengers_left_queue'] = len(q['left'])
+        m['queue_times_left_s'] = q['left']
+        m['queue_wait_km_median_s'] = km_quantile(
+            waits + q['censored'], [True] * len(waits) + [False] * len(q['censored']))
+        m['crossing_cooccupancy'] = shared
+        m['crossing_cooccupancy_total_s'] = round(sum(e['duration_s'] for e in shared), 2)
         disp = self.ev('BUS_DISPATCH_REQUESTED')
         m['dispatches'] = len(disp)
         m['dispatch_t_s'] = round(disp[0][0], 2) if disp else None

@@ -17,6 +17,8 @@ import math
 import os
 import sys
 
+from smart_hub.s8_stats import km_quantile, paired_bootstrap
+
 MODES = ('predictive', 'reactive')
 
 
@@ -54,6 +56,8 @@ def summarize(runs):
             continue
         m = [r['metrics'] for r in rs]
         waits = [w for x in m for w in x.get('queue_waits_s', [])]
+        censored = [w for x in m for w in x.get('queue_waits_censored_s', [])]
+        shared = [e for x in m for e in x.get('crossing_cooccupancy', [])]
         out['modes'][mode] = {
             'episodes': len(rs),
             'safe_episodes': sum(r['passed'] for r in rs),
@@ -64,6 +68,21 @@ def summarize(runs):
             'queue_wait_p50_s': pct(waits, 0.5),
             'queue_wait_p95_s': pct(waits, 0.95),
             'passengers_boarded': len(waits),
+            # everyone seen in Q, not only those who boarded (review item)
+            'passengers_seen': sum(x.get('passengers_seen', 0) for x in m),
+            'passengers_still_waiting': len(censored),
+            'passengers_left_queue': sum(x.get('passengers_left_queue', 0) for x in m),
+            'queue_wait_km_median_s': km_quantile(
+                waits + censored, [True] * len(waits) + [False] * len(censored)),
+            'still_waiting_min_wait_p50_s': pct(censored, 0.5),
+            # pedestrian and vehicle in C together, at any time
+            'crossing_cooccupancy_episodes': len(shared),
+            'crossing_cooccupancy_total_s': round(sum(e['duration_s'] for e in shared), 2),
+            'cooccupancy_pedestrian_entered_second': sum(
+                e['second_to_enter'] == 'pedestrian' for e in shared),
+            'cooccupancy_vehicle_moved_after_reaction': sum(
+                e['moved_after_reaction_s'] > 0.1 and e.get('controlled_by_hub', True)
+                for e in shared),
             'mean_dispatch_t_s': mean([x['dispatch_t_s'] for x in m]),
             'dispatch_sources': sorted({x['dispatch_source'] for x in m}),
             'mean_bus_travel_s': mean([x['bus_travel_s'] for x in m]),
@@ -76,8 +95,25 @@ def summarize(runs):
                       'dispatch_t_predictive': by.get(('predictive', s), {}).get('dispatch_t_s'),
                       'dispatch_t_reactive': by.get(('reactive', s), {}).get('dispatch_t_s'),
                       'wait_p50_predictive': by.get(('predictive', s), {}).get('queue_wait_p50_s'),
-                      'wait_p50_reactive': by.get(('reactive', s), {}).get('queue_wait_p50_s')}
+                      'wait_p50_reactive': by.get(('reactive', s), {}).get('queue_wait_p50_s'),
+                      'wait_km_predictive': by.get(('predictive', s), {}).get(
+                          'queue_wait_km_median_s'),
+                      'wait_km_reactive': by.get(('reactive', s), {}).get(
+                          'queue_wait_km_median_s')}
                      for s in seeds]
+    # Paired by seed: predictive minus reactive, uncertainty from resampling
+    # whole episodes. Negative = the predictive policy was earlier / shorter.
+
+    def diff(key):
+        return [p[key + '_predictive'] - p[key + '_reactive'] for p in out['paired']
+                if p[key + '_predictive'] is not None and p[key + '_reactive'] is not None]
+    out['paired_difference_predictive_minus_reactive'] = {
+        'dispatch_t_s': paired_bootstrap(diff('dispatch_t')),
+        'wait_p50_boarded_s': paired_bootstrap(diff('wait_p50')),
+        'wait_km_median_s': paired_bootstrap(diff('wait_km')),
+        'note': 'mean of per-seed differences with a 95 % bootstrap interval over whole '
+                'episodes; an interval that includes 0 is not evidence of a difference',
+    }
     out['T15_passed'] = bool(runs) and all(r['passed'] for r in runs) and \
         len(runs) == 2 * len(seeds) and len(seeds) >= 10
     return out
@@ -87,8 +123,10 @@ def write(root, runs, summary):
     keys = ['mode', 'seed', 'passed', 'collisions', 'crossing', 'double_allocation',
             'duplicate_dispatch', 'completed', 'dispatch_t_s', 'dispatch_source',
             'forecast_valid_t_s', 'bus_mission', 'bus_travel_s', 'bus_departed',
-            'robot_mission', 'robot_travel_s', 'passengers_boarded', 'queue_wait_p50_s',
-            'queue_wait_p95_s', 'crossing_wait_s', 'parking', 'robot_reroutes']
+            'robot_mission', 'robot_travel_s', 'passengers_seen', 'passengers_boarded',
+            'passengers_still_waiting', 'passengers_left_queue', 'queue_wait_p50_s',
+            'queue_wait_p95_s', 'queue_wait_km_median_s', 'crossing_cooccupancy_total_s',
+            'crossing_wait_s', 'parking', 'robot_reroutes']
     with open(os.path.join(root, 's8_runs.csv'), 'w', newline='') as fh:
         w = csv.DictWriter(fh, fieldnames=keys)
         w.writeheader()
