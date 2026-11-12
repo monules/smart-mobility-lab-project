@@ -263,7 +263,11 @@ class ScenarioRunner(Node):
         msg.header.stamp = stamp
         msg.header.frame_id = 'robot/odom'          # map->odom is identity here
         msg.child_frame_id = 'robot/base_link'
-        msg.pose.pose.position.x, msg.pose.pose.position.y = body.x, body.y
+        # Odometry is an observation like any other: it carries the scenario's
+        # position noise (seeded), so repeated trials are not identical copies.
+        # /sim/truth stays exact and is what the checkers measure against.
+        x, y = self.sim.observe(body)
+        msg.pose.pose.position.x, msg.pose.pose.position.y = float(x), float(y)
         msg.pose.pose.orientation.z = math.sin(body.theta / 2.0)
         msg.pose.pose.orientation.w = math.cos(body.theta / 2.0)
         msg.twist.twist.linear.x, msg.twist.twist.angular.z = body.v, body.w

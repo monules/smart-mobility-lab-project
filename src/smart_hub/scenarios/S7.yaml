@@ -5,7 +5,10 @@
 # moment. The scenario is reset before every trial (seed = trial number).
 scenario_id: S7
 duration_sec: 0
-observation_noise_m: 0.0
+# 1 cm position noise on the observed poses (same as S3 and S8), drawn from the
+# trial's seed: the nominal escorts are repeated measurements, not ten copies
+# of one noise-free run (midterm review).
+observation_noise_m: 0.01
 estop: false
 agents:
   robot_1: {kind: robot, x: 3.0, y: 6.0, theta: 0.0}
