@@ -8,16 +8,25 @@
       "bus_mission_success": 10,
       "robot_mission_success": 10,
       "parking_answered": 10,
-      "queue_wait_p50_s": 77.5,
-      "queue_wait_p95_s": 98.41,
+      "queue_wait_p50_s": 78.25,
+      "queue_wait_p95_s": 97.65,
       "passengers_boarded": 40,
-      "mean_dispatch_t_s": 62.68,
+      "passengers_seen": 70,
+      "passengers_still_waiting": 0,
+      "passengers_left_queue": 30,
+      "queue_wait_km_median_s": 78.25,
+      "still_waiting_min_wait_p50_s": null,
+      "crossing_cooccupancy_episodes": 0,
+      "crossing_cooccupancy_total_s": 0,
+      "cooccupancy_pedestrian_entered_second": 0,
+      "cooccupancy_vehicle_moved_after_reaction": 0,
+      "mean_dispatch_t_s": 62.0,
       "dispatch_sources": [
         "PREDICTED"
       ],
-      "mean_bus_travel_s": 37.81,
-      "mean_robot_travel_s": 82.33,
-      "mean_crossing_wait_s": 9.84
+      "mean_bus_travel_s": 38.08,
+      "mean_robot_travel_s": 81.87,
+      "mean_crossing_wait_s": 9.93
     },
     "reactive": {
       "episodes": 10,
@@ -26,16 +35,25 @@
       "bus_mission_success": 10,
       "robot_mission_success": 10,
       "parking_answered": 10,
-      "queue_wait_p50_s": 79.2,
-      "queue_wait_p95_s": 99.2,
+      "queue_wait_p50_s": 79.35,
+      "queue_wait_p95_s": 99.25,
       "passengers_boarded": 40,
-      "mean_dispatch_t_s": 64.1,
+      "passengers_seen": 70,
+      "passengers_still_waiting": 0,
+      "passengers_left_queue": 30,
+      "queue_wait_km_median_s": 79.35,
+      "still_waiting_min_wait_p50_s": null,
+      "crossing_cooccupancy_episodes": 0,
+      "crossing_cooccupancy_total_s": 0,
+      "cooccupancy_pedestrian_entered_second": 0,
+      "cooccupancy_vehicle_moved_after_reaction": 0,
+      "mean_dispatch_t_s": 64.09,
       "dispatch_sources": [
         "FALLBACK"
       ],
-      "mean_bus_travel_s": 37.4,
-      "mean_robot_travel_s": 83.3,
-      "mean_crossing_wait_s": 9.54
+      "mean_bus_travel_s": 37.47,
+      "mean_robot_travel_s": 83.27,
+      "mean_crossing_wait_s": 9.67
     }
   },
   "safety_violations_total": {
@@ -47,74 +65,127 @@
   "paired": [
     {
       "seed": 1,
-      "dispatch_t_predictive": 65.61,
-      "dispatch_t_reactive": 64.84,
-      "wait_p50_predictive": 74.95020482500001,
-      "wait_p50_reactive": 74.80150190999848
+      "dispatch_t_predictive": 62.78,
+      "dispatch_t_reactive": 64.8,
+      "wait_p50_predictive": 73.65,
+      "wait_p50_reactive": 74.75,
+      "wait_km_predictive": 73.65,
+      "wait_km_reactive": 74.75
     },
     {
       "seed": 2,
-      "dispatch_t_predictive": 61.86,
-      "dispatch_t_reactive": 64.73,
-      "wait_p50_predictive": 77.1016560349999,
-      "wait_p50_reactive": 79.19946966200041
+      "dispatch_t_predictive": 62.75,
+      "dispatch_t_reactive": 64.77,
+      "wait_p50_predictive": 78.25,
+      "wait_p50_reactive": 79.35,
+      "wait_km_predictive": 78.25,
+      "wait_km_reactive": 79.35
     },
     {
       "seed": 3,
       "dispatch_t_predictive": 61.83,
-      "dispatch_t_reactive": 62.82,
-      "wait_p50_predictive": 75.3040627420005,
-      "wait_p50_reactive": 76.30168424200019
+      "dispatch_t_reactive": 62.85,
+      "wait_p50_predictive": 75.18,
+      "wait_p50_reactive": 75.9,
+      "wait_km_predictive": 75.18,
+      "wait_km_reactive": 75.9
     },
     {
       "seed": 4,
-      "dispatch_t_predictive": 61.81,
-      "dispatch_t_reactive": 64.76,
-      "wait_p50_predictive": 74.05286324200006,
-      "wait_p50_reactive": 76.70332757600045
+      "dispatch_t_predictive": 61.79,
+      "dispatch_t_reactive": 64.77,
+      "wait_p50_predictive": 75.15,
+      "wait_p50_reactive": 77.05,
+      "wait_km_predictive": 75.15,
+      "wait_km_reactive": 77.05
     },
     {
       "seed": 5,
-      "dispatch_t_predictive": 62.79,
-      "dispatch_t_reactive": 62.8,
-      "wait_p50_predictive": 73.5519284510001,
-      "wait_p50_reactive": 73.6028134090011
+      "dispatch_t_predictive": 61.81,
+      "dispatch_t_reactive": 62.78,
+      "wait_p50_predictive": 72.5,
+      "wait_p50_reactive": 73.8,
+      "wait_km_predictive": 72.5,
+      "wait_km_reactive": 73.8
     },
     {
       "seed": 6,
-      "dispatch_t_predictive": 61.82,
-      "dispatch_t_reactive": 63.86,
-      "wait_p50_predictive": 74.45233232600003,
-      "wait_p50_reactive": 76.45129640999949
+      "dispatch_t_predictive": 61.83,
+      "dispatch_t_reactive": 63.73,
+      "wait_p50_predictive": 74.5,
+      "wait_p50_reactive": 76.5,
+      "wait_km_predictive": 74.5,
+      "wait_km_reactive": 76.5
     },
     {
       "seed": 7,
-      "dispatch_t_predictive": 63.74,
-      "dispatch_t_reactive": 62.77,
-      "wait_p50_predictive": 75.50067957600004,
-      "wait_p50_reactive": 74.30080849200021
+      "dispatch_t_predictive": 61.83,
+      "dispatch_t_reactive": 62.75,
+      "wait_p50_predictive": 73.61,
+      "wait_p50_reactive": 74.65,
+      "wait_km_predictive": 73.61,
+      "wait_km_reactive": 74.65
     },
     {
       "seed": 8,
-      "dispatch_t_predictive": 62.79,
-      "dispatch_t_reactive": 64.78,
-      "wait_p50_predictive": 77.50177907699981,
-      "wait_p50_reactive": 78.45065549399988
+      "dispatch_t_predictive": 61.79,
+      "dispatch_t_reactive": 64.83,
+      "wait_p50_predictive": 76.5,
+      "wait_p50_reactive": 78.35,
+      "wait_km_predictive": 76.5,
+      "wait_km_reactive": 78.35
     },
     {
       "seed": 9,
-      "dispatch_t_predictive": 61.83,
+      "dispatch_t_predictive": 61.79,
       "dispatch_t_reactive": 64.82,
-      "wait_p50_predictive": 76.70155678499941,
-      "wait_p50_reactive": 78.49759374400128
+      "wait_p50_predictive": 76.7,
+      "wait_p50_reactive": 78.6,
+      "wait_km_predictive": 76.7,
+      "wait_km_reactive": 78.6
     },
     {
       "seed": 10,
-      "dispatch_t_predictive": 62.75,
-      "dispatch_t_reactive": 64.81,
-      "wait_p50_predictive": 74.8343554510011,
-      "wait_p50_reactive": 75.85199203500088
+      "dispatch_t_predictive": 61.76,
+      "dispatch_t_reactive": 64.8,
+      "wait_p50_predictive": 73.9,
+      "wait_p50_reactive": 75.85,
+      "wait_km_predictive": 73.9,
+      "wait_km_reactive": 75.85
     }
   ],
+  "paired_difference_predictive_minus_reactive": {
+    "dispatch_t_s": {
+      "n": 10,
+      "mean": -2.094,
+      "ci95": [
+        -2.61,
+        -1.567
+      ],
+      "negative": 10,
+      "positive": 0
+    },
+    "wait_p50_boarded_s": {
+      "n": 10,
+      "mean": -1.486,
+      "ci95": [
+        -1.765,
+        -1.197
+      ],
+      "negative": 10,
+      "positive": 0
+    },
+    "wait_km_median_s": {
+      "n": 10,
+      "mean": -1.486,
+      "ci95": [
+        -1.765,
+        -1.197
+      ],
+      "negative": 10,
+      "positive": 0
+    },
+    "note": "mean of per-seed differences with a 95 % bootstrap interval over whole episodes; an interval that includes 0 is not evidence of a difference"
+  },
   "T15_passed": true
 }

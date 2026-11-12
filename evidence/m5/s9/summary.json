@@ -2,9 +2,9 @@
   "run_id": "S9-s9-r1",
   "scenario_id": "S9",
   "seed": 9,
-  "commit": "af37efa",
-  "duration_sec": 13.502,
-  "event_count": 28,
+  "commit": "b8ea743",
+  "duration_sec": 13.752,
+  "event_count": 56,
   "stop_latency": [
     {
       "agent": "robot",
@@ -16,23 +16,7 @@
     },
     {
       "agent": "robot",
-      "seconds": 0.0005
-    },
-    {
-      "agent": "bus",
-      "seconds": 0.0006
-    },
-    {
-      "agent": "robot",
-      "seconds": 0.0002
-    },
-    {
-      "agent": "bus",
-      "seconds": 0.0003
-    },
-    {
-      "agent": "robot",
-      "seconds": 0.0003
+      "seconds": 0.0004
     },
     {
       "agent": "bus",
@@ -40,60 +24,92 @@
     },
     {
       "agent": "robot",
-      "seconds": 0.0005
+      "seconds": 0.0009
     },
     {
       "agent": "bus",
-      "seconds": 0.0005
+      "seconds": 0.0011
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0014
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0023
+    },
+    {
+      "agent": "robot",
+      "seconds": 0.0002
+    },
+    {
+      "agent": "bus",
+      "seconds": 0.0004
     }
   ],
-  "stop_latency_max_sec": 0.0006,
+  "stop_latency_max_sec": 0.0023,
   "physical_stop": [
     {
       "agent": "robot",
-      "seconds": 0.0223
+      "seconds": 0.0887
     },
     {
       "agent": "bus",
-      "seconds": 0.0223
+      "seconds": 0.0887
     },
     {
       "agent": "robot",
-      "seconds": 0.0881
+      "seconds": 0.0943
     },
     {
       "agent": "bus",
-      "seconds": 0.0881
+      "seconds": 0.0943
     },
     {
       "agent": "robot",
-      "seconds": 0.0942
+      "seconds": 0.098
     },
     {
       "agent": "bus",
-      "seconds": 0.0942
+      "seconds": 0.098
     },
     {
       "agent": "robot",
-      "seconds": 0.0889
+      "seconds": 0.0938
     },
     {
       "agent": "bus",
-      "seconds": 0.0889
+      "seconds": 0.0938
     },
     {
       "agent": "robot",
-      "seconds": 0.0955
+      "seconds": 0.095
     },
     {
       "agent": "bus",
-      "seconds": 0.0955
+      "seconds": 0.095
     }
   ],
   "motion_while_latched": 0,
+  "motion_while_latched_ambiguous": {
+    "count": 0,
+    "grace_sec": 0.1,
+    "samples": []
+  },
+  "safety_decisions": {
+    "seen": 281,
+    "seq_gaps": 0,
+    "supervisor_restarts": 0,
+    "latched_with_nonzero_command": 0,
+    "samples": []
+  },
   "interventions": {
-    "STOP_LATCHED:ESTOP": 5,
-    "SAFETY_HOLD:ODOM_STALE": 1,
-    "SAFETY_HOLD:COMMAND_STALE": 1
+    "SAFETY_HOLD:ESTOP_SIGNAL_STALE": 1,
+    "SAFETY_HOLD:VEHICLES_STALE": 1,
+    "SAFETY_HOLD:COMMAND_STALE": 3,
+    "SAFETY_HOLD:ODOM_STALE": 2,
+    "SAFETY_HOLD:POSE_STALE": 1,
+    "SAFETY_HOLD:DOOR_UNKNOWN": 1,
+    "STOP_LATCHED:ESTOP": 5
   }
 }

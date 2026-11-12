@@ -1,29 +1,57 @@
 t,entity,event,reason,correlation_id
-1053.6032,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
-1053.6044,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
-1053.9481,safety_supervisor,STOP_LATCHED,ESTOP,stop-1
-1053.9483,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.075,stop-1
-1053.9766,safety_supervisor,CLEAR_REJECTED,ESTOP_ASSERTED;robot:COMMAND_NONZERO by s9_fault_check,stop-1
-1055.9855,safety_supervisor,CLEAR_REJECTED,robot:COMMAND_NONZERO by s9_fault_check,stop-1
-1055.99,scenario_runner,FAULT_INJECTED,"{""duration"": 4.0, ""topic"": ""odom"", ""type"": ""freeze""}",S9-s9-r1
-1056.7191,scenario_runner,SCENARIO_EVENT,"{""t"": 3.0, ""text"": ""S9 start"", ""type"": ""note""}",S9-s9-r1
-1056.996,robot,SAFETY_HOLD,ODOM_STALE,robot:ODOM_STALE
-1057.5929,safety_supervisor,CLEAR_REJECTED,robot:ODOM_STALE by s9_fault_check,stop-1
-1059.7194,scenario_runner,SCENARIO_EVENT,"{""active"": true, ""id"": ""O"", ""t"": 6.0, ""type"": ""obstacle""}",S9-s9-r1
-1059.9964,robot,SAFETY_RELEASE,ODOM_STALE,robot:ODOM_STALE
-1061.0019,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-1
-1061.7194,scenario_runner,SCENARIO_EVENT,"{""slot"": ""P3"", ""state"": ""offline"", ""t"": 8.0, ""type"": ""parking""}",S9-s9-r1
-1063.1476,robot,SAFETY_HOLD,COMMAND_STALE,robot:COMMAND_STALE
-1063.1993,robot,SAFETY_RELEASE,COMMAND_STALE,robot:COMMAND_STALE
-1063.8839,safety_supervisor,STOP_LATCHED,ESTOP,stop-2
-1063.8843,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.143,stop-2
-1064.578,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-2
-1064.6761,safety_supervisor,STOP_LATCHED,ESTOP,stop-3
-1064.6764,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.105,stop-3
-1065.3793,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-3
-1065.4824,safety_supervisor,STOP_LATCHED,ESTOP,stop-4
-1065.4826,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.117,stop-4
-1066.1757,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-4
-1066.2741,safety_supervisor,STOP_LATCHED,ESTOP,stop-5
-1066.2743,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.101,stop-5
-1066.9763,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-5
+2264.9099,system,SAFETY_HOLD,ESTOP_SIGNAL_STALE,system:ESTOP_SIGNAL_STALE
+2264.9102,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
+2264.9103,robot,SAFETY_HOLD,COMMAND_STALE,robot:COMMAND_STALE
+2264.9105,robot,SAFETY_HOLD,ODOM_STALE,robot:ODOM_STALE
+2264.9106,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
+2264.9107,bus,SAFETY_HOLD,COMMAND_STALE,bus:COMMAND_STALE
+2264.9109,bus,SAFETY_HOLD,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
+2264.9362,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
+2264.9373,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
+2264.96,system,SAFETY_RELEASE,ESTOP_SIGNAL_STALE,system:ESTOP_SIGNAL_STALE
+2264.9604,robot,SAFETY_RELEASE,ODOM_STALE,robot:ODOM_STALE
+2264.9606,bus,SAFETY_RELEASE,COMMAND_STALE,bus:COMMAND_STALE
+2264.9607,bus,SAFETY_RELEASE,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
+2265.0097,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
+2265.0111,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
+2265.0606,robot,SAFETY_RELEASE,COMMAND_STALE,robot:COMMAND_STALE
+2265.3146,safety_supervisor,STOP_LATCHED,ESTOP,stop-1
+2265.3147,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.097,stop-1
+2265.3467,A-Cs,NORMAL,UNKNOWN->NORMAL rho=0.25 v=0.00 n=1,A-Cs:1
+2265.3469,Cs-J,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,Cs-J:2
+2265.3472,E-J,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,E-J:3
+2265.3474,A-N,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,A-N:4
+2265.3475,Cn-N,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,Cn-N:5
+2265.3477,B-Cn,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,B-Cn:6
+2265.3479,B-U,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,B-U:7
+2265.3481,E-U,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,E-U:8
+2265.4065,safety_supervisor,CLEAR_REJECTED,ESTOP_ASSERTED;robot:COMMAND_NONZERO by s9_fault_check,stop-1
+2265.8104,P1,SLOT_STATE,UNKNOWN->OCCUPIED,
+2265.8114,P2,SLOT_STATE,UNKNOWN->FREE,
+2265.8117,P3,SLOT_STATE,UNKNOWN->FREE,
+2266.3523,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:9
+2267.4131,safety_supervisor,CLEAR_REJECTED,robot:COMMAND_NONZERO by s9_fault_check,stop-1
+2267.4168,scenario_runner,FAULT_INJECTED,"{""duration"": 4.0, ""topic"": ""odom"", ""type"": ""freeze""}",S9-s9-r1
+2268.0513,scenario_runner,SCENARIO_EVENT,"{""t"": 3.0, ""text"": ""S9 start"", ""type"": ""note""}",S9-s9-r1
+2268.4116,robot,SAFETY_HOLD,ODOM_STALE,robot:ODOM_STALE
+2269.0176,safety_supervisor,CLEAR_REJECTED,robot:ODOM_STALE by s9_fault_check,stop-1
+2271.0512,scenario_runner,SCENARIO_EVENT,"{""active"": true, ""id"": ""O"", ""t"": 6.0, ""type"": ""obstacle""}",S9-s9-r1
+2271.4104,robot,SAFETY_RELEASE,ODOM_STALE,robot:ODOM_STALE
+2271.4147,Cs-J,BLOCKED,NORMAL->BLOCKED rho=0.00 v=0.40 n=0,Cs-J:10
+2272.4268,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-1
+2273.0506,scenario_runner,SCENARIO_EVENT,"{""slot"": ""P3"", ""state"": ""offline"", ""t"": 8.0, ""type"": ""parking""}",S9-s9-r1
+2273.2052,P3,SLOT_STATE,FREE->UNKNOWN,
+2274.6103,robot,SAFETY_HOLD,COMMAND_STALE,robot:COMMAND_STALE
+2274.6612,robot,SAFETY_RELEASE,COMMAND_STALE,robot:COMMAND_STALE
+2275.4068,safety_supervisor,STOP_LATCHED,ESTOP,stop-2
+2275.407,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.106,stop-2
+2276.1029,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-2
+2276.2052,safety_supervisor,STOP_LATCHED,ESTOP,stop-3
+2276.2055,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.186,stop-3
+2276.9051,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-3
+2277.0088,safety_supervisor,STOP_LATCHED,ESTOP,stop-4
+2277.0098,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.958,stop-4
+2277.7058,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-4
+2277.8065,safety_supervisor,STOP_LATCHED,ESTOP,stop-5
+2277.8067,safety_supervisor,ESTOP_ZERO_OUTPUT,receipt_to_zero_ms=0.134,stop-5
+2278.5072,safety_supervisor,STOP_CLEARED,ESTOP by s9_fault_check,stop-5

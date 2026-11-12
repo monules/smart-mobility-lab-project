@@ -24,12 +24,12 @@
     {
       "check": "T12 robot stops on no route",
       "passed": true,
-      "detail": "robot_1 NavigateTo E: result NO_ROUTE after 0.08 s, 0 nonzero candidates, moved 0.000 m"
+      "detail": "robot_1 NavigateTo E: result NO_ROUTE after 0.06 s, 0 nonzero candidates, moved 0.000 m"
     },
     {
       "check": "S6 restore needs a new route",
       "passed": true,
-      "detail": "car route back to A-Cs-J-E; robot NavigateTo W: route R-W validated, then ARRIVED (final error 0.028 m)"
+      "detail": "car route back to A-Cs-J-E; robot NavigateTo W: route R-W validated, then ARRIVED (final error 0.026 m)"
     },
     {
       "check": "T11 live oracle",
@@ -39,8 +39,8 @@
     {
       "check": "S6 planning latency",
       "passed": true,
-      "detail": "p95 28.9 ms over 78 calls (limit 250 ms), max 29.3 ms"
+      "detail": "p95 24.3 ms over 77 calls (limit 250 ms), max 27.5 ms"
     }
   ],
-  "commit": "4a82c57-dirty"
+  "commit": "b8ea743"
 }
