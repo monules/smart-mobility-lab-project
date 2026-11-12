@@ -62,6 +62,7 @@ class SafetyConfig:
     enforce_crossing: bool = True
 
     def validate(self):
+        """Raise ValueError naming every parameter that is outside its allowed range."""
         bad = []
         positive = ('robot_speed_limit', 'bus_speed_limit', 'robot_turn_limit',
                     'bus_turn_limit', 'command_timeout', 'sensor_timeout',
@@ -129,6 +130,7 @@ class Decision:
 
 class SafetyCore:
     def __init__(self, cfg=None):
+        """Create the supervisor state: both agents held until fresh inputs arrive."""
         self.cfg = cfg or SafetyConfig()
         self.cfg.validate()
         c = self.cfg
@@ -164,6 +166,11 @@ class SafetyCore:
         return now - max(0.0, src_age)
 
     def on_command(self, agent, vx, wz, now, src_age=None):
+        """Store a manager's candidate velocity; return False if it is not usable.
+
+        NaN or infinite values are ignored, so the previous command simply goes
+        stale and the agent is held.
+        """
         if not (math.isfinite(vx) and math.isfinite(wz)):
             return False                      # NaN/inf: ignore -> goes stale
         t = self.observed_at(now, src_age)
@@ -173,6 +180,7 @@ class SafetyCore:
         return True
 
     def on_robot_odom(self, x, y, theta, speed, now, src_age=None):
+        """Store the robot's pose and measured speed; return False for unusable data."""
         t = self.observed_at(now, src_age)
         if t is None or not all(map(math.isfinite, (x, y, theta, speed))):
             return False
@@ -212,6 +220,7 @@ class SafetyCore:
 
     # ------------------------------------------------------------ helpers
     def _latch(self, reason):
+        """Latch a stop for the given reason (kept until request_clear succeeds)."""
         if reason not in self.latch_reasons:
             self.latch_reasons.append(reason)
             self.events.append(('STOP_LATCHED', 'safety_supervisor', reason))
@@ -305,6 +314,11 @@ class SafetyCore:
         return ox, oy
 
     def _crossing_reason(self, agent, x, y, px, py, now):
+        """Return why the agent may not be in or enter crossing C, or None if it may.
+
+        Uses the current footprint and the predicted stop pose: the grant must
+        be fresh, valid and owned by this agent before the footprint overlaps C.
+        """
         inside = geo.circle_overlaps_rect(x, y, agent.radius, geo.CROSSING)
         entering = geo.circle_overlaps_rect(px, py, agent.radius, geo.CROSSING)
         if not (inside or entering):
@@ -318,6 +332,12 @@ class SafetyCore:
 
     # ------------------------------------------------------------ 20 Hz tick
     def tick(self, now):
+        """Decide the final command of every agent for this instant.
+
+        Order: latching hazards, system-wide holds (lost e-stop signal, stale
+        vehicle data), then each agent's own holds. Any of them means zero.
+        Returns a Decision with the commands, the latch state and the reasons.
+        """
         c = self.cfg
         if self.estop is not None and self.estop.value:
             self._latch('ESTOP')

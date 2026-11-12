@@ -75,6 +75,7 @@ class RobotConfig:
     snap_dist: float = 0.30         # m: robot counts as "at" a node
 
     def validate(self):
+        """Raise ValueError naming every parameter that is outside its allowed range."""
         bad = [n for n in ('radius', 'cruise_speed', 'min_speed', 'turn_rate', 'goal_tol',
                            'odom_timeout', 'ready_timeout', 'planner_timeout',
                            'renew_period', 'replan_period') if not getattr(self, n) > 0]
@@ -107,6 +108,7 @@ def nearest_node(x, y, limit):
 
 class RobotCore:
     def __init__(self, cfg=None, view=None):
+        """Create an idle robot; view is the shared edge-cost view used for route checks."""
         self.cfg = cfg or RobotConfig()
         self.cfg.validate()
         self.view = view or route_core.EdgeView()
@@ -128,6 +130,11 @@ class RobotCore:
         self.safety_latched = bool(latched)
 
     def on_crossing_response(self, operation, granted, token, reason, now):
+        """Record the arbiter's answer to an ACQUIRE, RENEW or RELEASE request.
+
+        A granted ACQUIRE stores the token; a refused RENEW drops it, so the robot
+        stops before C instead of trusting an expired permission.
+        """
         self.cross_inflight = False
         if operation in ('ACQUIRE', 'RENEW'):
             if granted:
@@ -162,6 +169,7 @@ class RobotCore:
 
     # ------------------------------------------------------------- goals
     def _clear(self):
+        """Forget the mission and return to IDLE (keeps the pose and any crossing token)."""
         self.mission = None         # dict: kind, legs, deadline
         self.phase, self.reason = IDLE, ''
         self.path = None
@@ -201,6 +209,7 @@ class RobotCore:
         self._begin_leg(now)
 
     def _begin_leg(self, now):
+        """Start the current leg: request a route from the nearest node to its goal."""
         m = self.mission
         goal = m['legs'][m['leg']]
         here = nearest_node(self.pose[0], self.pose[1], self.cfg.snap_dist)
@@ -216,6 +225,7 @@ class RobotCore:
         self._ask(here or self.last_node, goal, now, 'leg')
 
     def _leg_done(self, now):
+        """Handle the end of a leg: wait for the passenger after the pickup leg, else finish."""
         m = self.mission
         if m['kind'] == 'escort' and m['leg'] == 0:
             m['leg'] = 1
@@ -256,6 +266,11 @@ class RobotCore:
         self.phase, self.reason = phase, reason
 
     def _set_route(self, nodes, now, why):
+        """Install a new route as the path to follow and publish ROUTE / REROUTE events.
+
+        The path starts at the robot's actual position when that is not exactly
+        on the first node, so a replan in the middle of an edge has no jump.
+        """
         x, y = self.pose[0], self.pose[1]
         pts = [geo.NODES[n] for n in nodes]
         names = list(nodes)
@@ -278,6 +293,7 @@ class RobotCore:
         return [n for n in self.path_nodes[self.seg + 1:] if n]
 
     def _maybe_switch(self, nodes, cost, now):
+        """Switch to a cheaper route only if it saves at least replan_gain (assignment 13.2)."""
         if not nodes or self.path is None:
             return
         rest = self._remaining_nodes()
@@ -298,6 +314,7 @@ class RobotCore:
             out.crossing_op = ('RELEASE', self.token)
 
     def _end(self, out, success, final, reason):
+        """Finish the mission: release C when clear and fill the outcome for the action result."""
         self._release_if_clear(out)
         x, y = self.pose[:2] if self.pose else (math.nan, math.nan)
         goal = self.mission['legs'][-1]
@@ -310,6 +327,7 @@ class RobotCore:
         return out
 
     def _track(self, x, y):
+        """Return the robot's arc length along the path, advancing past reached corners."""
         p = self.path
         while self.seg < len(p.seg_len) - 1:
             corner = self.seg + 1
@@ -340,6 +358,7 @@ class RobotCore:
         return None, '', ''
 
     def _obstacle_ahead(self, s):
+        """Return True if an obstacle is within the clearance of the next metre of path."""
         p, c = self.path, self.cfg
         for k in range(21):
             px, py = p.point(s + 0.05 * k)
@@ -349,6 +368,11 @@ class RobotCore:
         return False
 
     def _crossing(self, now, s, x, y, out):
+        """Manage permission for crossing C on this path; return False while the robot must wait.
+
+        Requests the grant before the footprint would enter C, renews it while
+        inside, and releases it only after the footprint has left.
+        """
         p, c = self.path, self.cfg
         if p.c_in is None:
             return True
@@ -392,6 +416,12 @@ class RobotCore:
 
     # ------------------------------------------------------------- 20 Hz
     def step(self, now):
+        """Advance the escort state machine by one tick and return the Output.
+
+        Output carries the candidate command (zero whenever the robot must not
+        move), the phase and reason for feedback, and any route or crossing
+        request the node should send.
+        """
         c, out = self.cfg, Output()
         if not self.active:
             out.phase = self.phase
@@ -429,6 +459,7 @@ class RobotCore:
         return self._drive(now, out)
 
     def _drive(self, now, out):
+        """Follow the path: pure-pursuit steering, slow down near the goal, stop for holds."""
         c, p = self.cfg, self.path
         x, y, theta, speed, _ = self.pose
         s = self._track(x, y)

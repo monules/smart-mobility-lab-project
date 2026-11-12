@@ -56,6 +56,10 @@ CONFIG_KEYS = ('cruise_speed', 'pos_tol', 'yaw_tol', 'dock_hold', 'board_sec',
 
 class BusManager(Node):
     def __init__(self, **kwargs):
+        """Declare parameters, build the docking core and wire the ROS interfaces.
+
+        Topics, the two service clients and the DockBus action server.
+        """
         super().__init__('bus_manager', **kwargs)
         cfg = bus_core.BusConfig()
         p = declare(self, dict({'bus_id': 'bus_1', 'bay_id': 'B', 'run_id': '',
@@ -114,6 +118,11 @@ class BusManager(Node):
 
     # ------------------------------------------------------------- inputs
     def on_vehicles(self, msg):
+        """Take the bus's own pose from /hub/vehicles and pass the other bodies to the core.
+
+        An unstamped, stale or future-stamped message is not a pose: the core then
+        sees the pose age grow and stops (SAFE_STOP), instead of steering on old data.
+        """
         age = stamp_age(self, msg.header.stamp)
         if age is None or age > self.core.cfg.pose_timeout or age < -self.future_tol:
             return                                      # old or future data: not a pose
@@ -152,6 +161,11 @@ class BusManager(Node):
 
     # ------------------------------------------------------------- action
     def on_goal(self, goal):
+        """Decide on a /bus/dock goal.
+
+        Rejected with a named reason: wrong bus or bay, non-positive duration,
+        a mission already running, no fresh bus pose, or a latched safety stop.
+        """
         reason = ''
         if goal.bus_id != self.bus_id:
             reason = 'UNKNOWN_BUS'
@@ -169,12 +183,20 @@ class BusManager(Node):
         return GoalResponse.REJECT if reason else GoalResponse.ACCEPT
 
     def on_cancel(self, goal_handle):
+        """Accept a cancel request: stop the core and publish a zero candidate at once."""
         self.core.cancel()
         self.publish_cmd(0.0, 0.0)                      # zero at once, not on the next tick
         self.event('DOCK_CANCEL_ACCEPTED', 'client request')
         return CancelResponse.ACCEPT
 
     async def execute(self, goal_handle):
+        """Run one docking mission.
+
+        Ask the planner for the route from A to the bay, then wait for the result.
+
+        The callback only awaits a Future that the 20 Hz timer completes in
+        finish(), so cancellation and subscriptions keep running meanwhile.
+        """
         self.goal, self.goal_done = goal_handle, Future()
         self.planning = {'tries': 0, 'start': 'A', 'goal': self.bay_id, 'mode': 'dock',
                          'duration': goal_handle.request.max_duration_sec}
@@ -182,6 +204,7 @@ class BusManager(Node):
         return await self.goal_done
 
     def _ask_route(self, now):
+        """Send one /route/compute request for the current plan and remember when it was sent."""
         plan = self.planning
         plan['tries'] += 1
         plan['sent'] = now
@@ -190,6 +213,7 @@ class BusManager(Node):
             if self.route_cli.service_is_ready() else None
 
     def finish(self, done):
+        """Fill the DockBus result and set the goal's final status (success, cancel or abort)."""
         success, final_state, reason = done
         handle, self.goal, self.planning = self.goal, None, None
         result = DockBus.Result(success=success, final_state=final_state, reason=reason)
@@ -212,6 +236,10 @@ class BusManager(Node):
             self._ask_route(time.monotonic())
 
     def _plan_failed(self, reason):
+        """Handle a route that could not be obtained.
+
+        A docking mission is aborted (SAFE_STOP); a failed departure is only logged.
+        """
         if self.planning['mode'] == 'dock':
             self.finish((False, bus_core.SAFE_STOP, reason))
         else:
@@ -219,6 +247,11 @@ class BusManager(Node):
             self.event('BUS_DEPART_FAILED', reason)
 
     def _start_route(self, now):
+        """Check the planner's answer for the pending plan and start driving, retry, or give up.
+
+        Assignment 7.1 / T18: one second per attempt, at most two retries, then an
+        explicit failure; an answer that arrives after its attempt timed out is ignored.
+        """
         plan = self.planning
         future = plan['future']
         res = future.result() if future is not None and future.done() else None
@@ -255,6 +288,13 @@ class BusManager(Node):
 
     # ------------------------------------------------------------- 20 Hz
     def tick(self):
+        """Run one 20 Hz control step.
+
+        Handle cancel and the pending route, step the core, publish its candidate
+        velocity (the safety supervisor decides the final command), the door
+        request, crossing requests, arrival/ETA, feedback and events, and finish
+        the goal when the core reports the mission over.
+        """
         now = time.monotonic()
         if self.goal is not None:
             if self.goal.is_cancel_requested:
@@ -294,6 +334,10 @@ class BusManager(Node):
 
     # ------------------------------------------------------------- outputs
     def send_crossing(self, operation, token):
+        """Call /crossing/request (ACQUIRE, RENEW or RELEASE) without blocking.
+
+        No arbiter or no answer counts as 'not granted': the bus waits outside C.
+        """
         self.core.cross_inflight = True
         if not self.crossing_cli.service_is_ready():
             self.core.on_crossing_response(operation, False, '', 'NO_ARBITER', time.monotonic())
@@ -302,6 +346,7 @@ class BusManager(Node):
             requester_id=self.bus_id, operation=operation, token=token))
 
         def done(fut):
+            """Hand the crossing answer to the core (runs later, when the response arrives)."""
             res = fut.result()
             if res is None:
                 self.core.on_crossing_response(operation, False, '', 'NO_RESPONSE',
@@ -314,6 +359,7 @@ class BusManager(Node):
         future.add_done_callback(done)
 
     def publish_cmd(self, v, w):
+        """Publish the candidate velocity for the safety supervisor (stamped, bus frame)."""
         msg = TwistStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = '%s/base_link' % self.bus_id
@@ -321,6 +367,11 @@ class BusManager(Node):
         self.cmd_pub.publish(msg)
 
     def publish_arrival(self, out):
+        """Publish /hub/bus_arrival: mission state, ETA and door state.
+
+        Without a fresh pose the state is UNAVAILABLE, so the coordinator never
+        dispatches a bus whose position is unknown.
+        """
         msg = BusArrival()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'map'
@@ -338,6 +389,7 @@ class BusManager(Node):
         self.arrival_pub.publish(msg)
 
     def publish_route(self, points):
+        """Publish the planned route as nav_msgs/Path in the map frame (for the dashboards)."""
         path = Path()
         path.header.frame_id = 'map'
         path.header.stamp = self.get_clock().now().to_msg()
@@ -349,6 +401,7 @@ class BusManager(Node):
         self.route_pub.publish(path)
 
     def event(self, event, reason):
+        """Publish one HubEvent for this bus on /hub/events."""
         msg = HubEvent()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'map'
@@ -359,6 +412,7 @@ class BusManager(Node):
 
 
 def main(args=None):
+    """Start the node and shut down cleanly on Ctrl+C."""
     rclpy.init(args=args)
     node = BusManager()
     try:

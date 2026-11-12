@@ -38,6 +38,7 @@ from .parking_engine import (BarrierController, ParkingConfig, ParkingEngine,
 
 
 def _qos(depth, durable=False):
+    """Return a reliable QoS profile; durable=True keeps the last sample for late joiners."""
     return QoSProfile(
         reliability=ReliabilityPolicy.RELIABLE,
         durability=(DurabilityPolicy.TRANSIENT_LOCAL if durable
@@ -50,6 +51,7 @@ R1, R10, R100, R1T = _qos(1), _qos(10), _qos(100), _qos(1, durable=True)
 
 class ParkingManager(Node):
     def __init__(self, **node_kwargs):
+        """Declare parameters, build the engine and barrier logic, wire the interfaces."""
         super().__init__('parking_manager', **node_kwargs)
         p = self._param
         self.run_id = p('run_id', 'run0')
@@ -120,12 +122,14 @@ class ParkingManager(Node):
         return self.get_clock().now().nanoseconds
 
     def _to_time(self, mono_deadline, mono_now):
+        """Convert a monotonic deadline into a ROS time stamp (for the expires_at field)."""
         ns = self._ros_now_ns() + int((mono_deadline - mono_now) * 1e9)
         t = Time()
         t.sec, t.nanosec = ns // 1_000_000_000, ns % 1_000_000_000
         return t
 
     def _flush_events(self):
+        """Publish the events the engine collected since the last call."""
         for ev in self.engine.drain_events():
             msg = HubEvent()
             msg.header.stamp = self.get_clock().now().to_msg()
@@ -141,6 +145,7 @@ class ParkingManager(Node):
         self.barrier_pub.publish(msg)
 
     def _publish_state(self, force=False):
+        """Publish /parking/state from one consistent snapshot, when changed or forced."""
         now = time.monotonic()
         with self._pub_lock:
             views, available = self.engine.snapshot(now)
@@ -166,6 +171,7 @@ class ParkingManager(Node):
 
     # ---------------- services ----------------
     def on_reserve(self, request, response):
+        """Serve /parking/reserve; the engine makes the decision atomically."""
         now = time.monotonic()
         r = self.engine.reserve(request.request_id, request.vehicle_id,
                                 request.preferred_slot, float(request.ttl_sec), now)
@@ -180,6 +186,7 @@ class ParkingManager(Node):
         return response
 
     def on_release(self, request, response):
+        """Serve /parking/release; the token and the vehicle id must both match."""
         r = self.engine.release(request.request_id, request.reservation_id,
                                 request.vehicle_id, time.monotonic())
         response.success = r.success
@@ -190,6 +197,7 @@ class ParkingManager(Node):
 
     # ---------------- subscriptions ----------------
     def on_observed(self, msg):
+        """Feed slot sensor readings to the engine; old or future-stamped messages are dropped."""
         now = time.monotonic()
         stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         age = self._ros_now_ns() * 1e-9 - stamp
@@ -206,6 +214,7 @@ class ParkingManager(Node):
         self._publish_state()
 
     def on_claim(self, msg):
+        """Handle an arrival claim 'vehicle|token' at the entrance and drive the barrier logic."""
         vehicle_id, _, token = msg.data.partition('|')
         ok, reason = self.barrier.on_claim(vehicle_id.strip(), token.strip(),
                                            time.monotonic())
@@ -222,6 +231,7 @@ class ParkingManager(Node):
 
     # ---------------- 10 Hz housekeeping ----------------
     def on_tick(self):
+        """Run the periodic work: reservation expiry, barrier state, state publication."""
         now = time.monotonic()
         self.engine.tick(now)                       # TTL expiry, transitions
         cmd = self.barrier.tick(now)
@@ -236,6 +246,7 @@ class ParkingManager(Node):
 
 
 def main(args=None):
+    """Start the node on a multi-threaded executor and shut down cleanly on Ctrl+C."""
     rclpy.init(args=args)
     node = ParkingManager()
     executor = MultiThreadedExecutor(num_threads=4)

@@ -84,6 +84,7 @@ class ParkingConfig:
     cache_size: int = 4096           # bounded request-id caches
 
     def validate(self) -> None:
+        """Raise ValueError for an inconsistent configuration (slots, TTL range, timings)."""
         if not self.slot_ids or len(set(self.slot_ids)) != len(self.slot_ids):
             raise ValueError('slot_ids must be a non-empty list of unique ids')
         if not 0.0 < self.freshness_sec <= 10.0:
@@ -114,6 +115,7 @@ class ParkingEngine:
     """Thread-safe slot table with atomic, idempotent reservations."""
 
     def __init__(self, config: Optional[ParkingConfig] = None) -> None:
+        """Create the engine with every slot UNKNOWN until its sensor has been seen."""
         self.cfg = config or ParkingConfig()
         self.cfg.validate()
         defaults = access_distances()
@@ -163,6 +165,7 @@ class ParkingEngine:
             self._track_locked(now)
 
     def _eff(self, s: _Slot, now: float) -> str:
+        """Return the effective state of a slot: sensed state combined with the reservation."""
         if s.committed == UNKNOWN or now - s.last_seen > self.cfg.freshness_sec:
             return UNKNOWN                   # never observed, dropped out, or stale
         if s.cand not in (UNKNOWN, s.committed):
@@ -180,6 +183,11 @@ class ParkingEngine:
     # ---------------- reservation ----------------
     def reserve(self, request_id: str, vehicle_id: str, preferred_slot: str,
                 ttl_sec: float, now: float) -> ReserveResult:
+        """Reserve a free slot for a vehicle, atomically and idempotently.
+
+        A repeated request id returns the first answer; the preferred slot is
+        used when free, otherwise the nearest free slot, otherwise FULL.
+        """
         with self._lock:
             self._expire_locked(now)
             if not request_id or not vehicle_id:
@@ -231,6 +239,7 @@ class ParkingEngine:
             return self._finish_reserve(request_id, payload, result, vehicle_id, now)
 
     def _finish_reserve(self, request_id, payload, result, vehicle_id, now):
+        """Remember the answer for this request id and emit the matching event."""
         self._remember(self._reserve_cache, request_id, (payload, result))
         self._emit('RESERVED' if result.success else 'RESERVE_REJECTED',
                    result.slot_id or vehicle_id, result.reason,
@@ -282,6 +291,7 @@ class ParkingEngine:
             self._track_locked(now)
 
     def _expire_locked(self, now: float) -> None:
+        """Drop reservations whose TTL has elapsed (caller holds the lock)."""
         for sid, s in self._slots.items():
             if s.token and s.expiry <= now:
                 self._emit('RESERVATION_EXPIRED', sid,
@@ -317,6 +327,7 @@ class ParkingEngine:
             self._emit(event, entity_id, reason, correlation_id)
 
     def drain_events(self) -> List[ParkingEvent]:
+        """Return and clear the events collected so far."""
         with self._lock:
             out = list(self._events)
             self._events.clear()
@@ -326,6 +337,7 @@ class ParkingEngine:
         self._events.append(ParkingEvent(event, entity, reason, correlation))
 
     def _track_locked(self, now: float) -> None:
+        """Emit an event for every slot whose effective state changed (caller holds the lock)."""
         for sid, s in self._slots.items():
             eff = self._eff(s, now)
             prev = self._last_eff[sid]
@@ -357,6 +369,7 @@ class BarrierController:
     def __init__(self, engine: ParkingEngine, entrance_fresh_sec: float = 1.0,
                  hold_sec: float = 8.0, close_clear_sec: float = 1.0,
                  ack_timeout_sec: float = 2.0) -> None:
+        """Create the barrier logic for the given engine with its timing limits."""
         self.engine = engine
         self.entrance_fresh_sec = entrance_fresh_sec
         self.hold_sec = hold_sec
@@ -374,6 +387,7 @@ class BarrierController:
         self._defer_warned = False
 
     def on_entrance(self, clear: bool, now: float) -> None:
+        """Record whether the entrance sensor sees the entrance clear."""
         with self._lock:
             self._entrance_seen = now
             if clear:
@@ -387,6 +401,7 @@ class BarrierController:
         return self._entrance_clear and now - self._entrance_seen <= self.entrance_fresh_sec
 
     def on_claim(self, vehicle_id: str, token: str, now: float) -> Tuple[bool, str]:
+        """Check an arrival claim against the reservation; decide on opening the barrier."""
         with self._lock:
             found = self.engine.lookup_reservation(token, now)
             if found is None:

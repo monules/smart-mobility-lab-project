@@ -40,6 +40,7 @@ def yaw_from_quaternion(q):
 
 class SafetySupervisor(Node):
     def __init__(self, **kwargs):
+        """Declare the safety parameters, build the decision core and wire inputs and outputs."""
         super().__init__('safety_supervisor', **kwargs)
         cfg_fields = dict(vars(SafetyConfig()))
         p = declare(self, dict(cfg_fields, rate_hz=20.0, run_id='run-0', scenario_id=''))
@@ -78,18 +79,27 @@ class SafetySupervisor(Node):
 
     # ------------------------------------------------------------- inputs
     def _age_or_reject(self, header):
+        """Return the age of a message's stamp, or None if it has no stamp.
+
+        A message without a stamp is counted as rejected: it is never fresh.
+        """
         age = stamp_age(self, header.stamp)
         if age is None:
             self.rejected += 1                  # unstamped data is never fresh
         return age
 
     def on_candidate(self, agent, msg):
+        """Accept a manager's candidate velocity if it is stamped, fresh and finite.
+
+        Anything else is counted as rejected and never becomes a command.
+        """
         age = self._age_or_reject(msg.header)
         if age is None or not self.core.on_command(
                 agent, msg.twist.linear.x, msg.twist.angular.z, time.monotonic(), age):
             self.rejected += 1
 
     def on_odom(self, msg):
+        """Feed the robot's pose and measured speed to the core (stamped messages only)."""
         age = self._age_or_reject(msg.header)
         if age is None:
             return
@@ -100,6 +110,7 @@ class SafetySupervisor(Node):
                                 time.monotonic(), age)
 
     def on_vehicles(self, msg):
+        """Feed the bus pose and every other body to the core (stamped messages only)."""
         age = self._age_or_reject(msg.header)
         if age is None:
             return
@@ -116,6 +127,15 @@ class SafetySupervisor(Node):
         self.core.on_door(msg.data, time.monotonic())
 
     def on_estop(self, msg):
+        """Handle the e-stop input.
+
+        On assertion the zero commands are published immediately, not at the next
+        tick.
+
+        The receipt-to-zero time is measured here and published as an event
+        (T16). A 'false' message never clears the latch; it only keeps the
+        heartbeat alive.
+        """
         t_rx = time.monotonic()
         if self.core.on_estop(msg.data, t_rx):
             # Do not wait for the next tick (up to 50 ms): stop right now.
@@ -128,6 +148,7 @@ class SafetySupervisor(Node):
                         'receipt_to_zero_ms=%.3f' % ((t_out - t_rx) * 1000.0))
 
     def on_hub_event(self, msg):
+        """Take part in the scenario reset: forget old inputs, keep the latch, acknowledge."""
         if msg.event != RESET_REQUEST:
             return
         if msg.correlation_id != self._reset_id:
@@ -141,6 +162,10 @@ class SafetySupervisor(Node):
         self.event_pub.publish(reset_ack(self, msg.correlation_id, self._reset_reason))
 
     def on_clear(self, req, res):
+        """Serve /safety/clear_stop, the only way to release a latched stop.
+
+        The core rejects it while any reset rule is violated (16.3).
+        """
         ok, reason = self.core.request_clear(time.monotonic())
         res.success, res.reason = ok, reason
         self.get_logger().info('clear_stop by %r: %s %s' % (req.operator_id, ok, reason))
@@ -149,6 +174,11 @@ class SafetySupervisor(Node):
 
     # ------------------------------------------------------------- output
     def tick(self):
+        """Decide and publish once (20 Hz).
+
+        Safety state first, then the final command of every agent, then the
+        numbered decision record that repeats both in one message.
+        """
         d = self.core.tick(time.monotonic())
         self._tick_count += 1
         # Safety state first: listeners learn about a latch change before
@@ -183,6 +213,7 @@ class SafetySupervisor(Node):
         self.decision_pub.publish(msg)
 
     def _publish_safety(self, latched, permitted, reason):
+        """Publish /hub/safety (latched, motion permitted, reason)."""
         self._last_latched = latched
         msg = SafetyState()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -191,6 +222,7 @@ class SafetySupervisor(Node):
         self.safety_pub.publish(msg)
 
     def _event(self, event, entity, reason, corr=None):
+        """Publish one HubEvent; events of one stop episode share the correlation id stop-N."""
         msg = HubEvent()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.run_id, msg.scenario_id = self.run_id, self.scenario_id
@@ -200,6 +232,7 @@ class SafetySupervisor(Node):
 
     def _flush_events(self, extra=''):
         # One correlation id ("stop-N") per stop episode: latch .. clear.
+        """Publish the events the core collected since the last call."""
         if self.core.latched and not self._episode_open:
             self.stop_seq += 1
             self._episode_open = True
@@ -214,6 +247,7 @@ class SafetySupervisor(Node):
 
 
 def main(args=None):
+    """Start the node and shut down cleanly on Ctrl+C."""
     rclpy.init(args=args)
     node = SafetySupervisor()
     try:
