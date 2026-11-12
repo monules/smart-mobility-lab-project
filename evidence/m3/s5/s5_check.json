@@ -9,7 +9,7 @@
     {
       "check": "T09 congestion detected",
       "passed": true,
-      "detail": "CONGESTED 0.293 s after 3 slow cars joined (limit 3.0); cars counted [4]"
+      "detail": "CONGESTED 0.292 s after 3 slow cars joined (limit 3.0); cars counted [4]"
     },
     {
       "check": "T09 congestion held",
@@ -19,12 +19,12 @@
     {
       "check": "T09 congestion clears",
       "passed": true,
-      "detail": "NORMAL 1.793 s after the slow cars left (limit 3.0)"
+      "detail": "NORMAL 1.79 s after the slow cars left (limit 3.0)"
     },
     {
       "check": "T10 stale -> UNKNOWN",
       "passed": true,
-      "detail": "all edges UNKNOWN 0.995 s after the vehicle feed froze (limit 1.2)"
+      "detail": "all edges UNKNOWN 0.991 s after the vehicle feed froze (limit 1.2)"
     },
     {
       "check": "T10 invalid values",
@@ -34,18 +34,18 @@
     {
       "check": "T10 recovery",
       "passed": true,
-      "detail": "Cs-J valid again 0.296 s after the feed resumed (limit 3.0)"
+      "detail": "Cs-J valid again 0.292 s after the feed resumed (limit 3.0)"
     },
     {
       "check": "S5 obstacle -> BLOCKED",
       "passed": true,
-      "detail": "BLOCKED 0.325 s after obstacle O appeared (limit 0.7 = one 2 Hz publication + one vehicle frame + slack)"
+      "detail": "BLOCKED 0.313 s after obstacle O appeared (limit 0.7 = one 2 Hz publication + one vehicle frame + slack)"
     },
     {
       "check": "S5 obstacle cleared",
       "passed": true,
-      "detail": "NORMAL 2.293 s after obstacle O was removed (limit 3.5)"
+      "detail": "NORMAL 2.288 s after obstacle O was removed (limit 3.5)"
     }
   ],
-  "commit": "72e2fde-dirty"
+  "commit": "b8ea743"
 }

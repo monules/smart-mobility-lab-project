@@ -17,23 +17,34 @@
   "metrics": {
     "passengers_seen": 7,
     "passengers_boarded": 4,
-    "queue_wait_p50_s": 75.3040627420005,
-    "queue_wait_p95_s": 97.60802096000043,
+    "queue_wait_p50_s": 75.18,
+    "queue_wait_p95_s": 97.48,
     "queue_waits_s": [
-      53.6,
-      75.3,
-      87.7,
-      97.61
+      53.48,
+      75.18,
+      87.58,
+      97.48
     ],
+    "passengers_still_waiting": 0,
+    "queue_waits_censored_s": [],
+    "passengers_left_queue": 3,
+    "queue_times_left_s": [
+      107.78,
+      116.18,
+      127.18
+    ],
+    "queue_wait_km_median_s": 75.18,
+    "crossing_cooccupancy": [],
+    "crossing_cooccupancy_total_s": 0,
     "dispatches": 1,
     "dispatch_t_s": 61.83,
     "dispatch_source": "PREDICTED",
-    "forecast_valid_t_s": 59.77,
+    "forecast_valid_t_s": 59.79,
     "bus_mission": "SUCCEEDED",
-    "bus_travel_s": 38.15,
+    "bus_travel_s": 37.99,
     "bus_departed": true,
     "robot_mission": "SUCCEEDED",
-    "robot_travel_s": 81.45,
+    "robot_travel_s": 81.83,
     "robot_reroutes": [
       "BLOCKED:Cs-J: R-W-Cn-Cs-J-D -> Cn-B-U-E-J-D"
     ],
@@ -43,37 +54,37 @@
         true,
         "P2",
         "OK",
-        0.0055
+        0.0062
       ],
       [
         "C2",
         true,
         "P3",
         "OK",
-        0.0053
+        0.0058
       ]
     ],
     "parking_answered": true,
-    "crossing_wait_s": 9.55,
+    "crossing_wait_s": 9.28,
     "crossing_grants": [
       [
         71.6,
         "bus_1"
       ],
       [
-        80.7,
+        80.5,
         "bus_1"
       ],
       [
-        87.5,
+        87.3,
         "bus_1"
       ],
       [
-        93.0,
+        93.1,
         "robot_1"
       ]
     ],
     "completed": true
   },
-  "commit": "420f739-dirty"
+  "commit": "b8ea743"
 }

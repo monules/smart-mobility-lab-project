@@ -1,14 +1,4 @@
-average rate: 1.000
-	min: 0.998s max: 1.003s std dev: 0.00240s window: 3
-average rate: 0.999
-	min: 0.998s max: 1.005s std dev: 0.00268s window: 5
-average rate: 0.999
-	min: 0.998s max: 1.005s std dev: 0.00245s window: 6
-average rate: 1.000
-	min: 0.997s max: 1.005s std dev: 0.00257s window: 8
-average rate: 1.000
-	min: 0.997s max: 1.005s std dev: 0.00256s window: 10
-average rate: 1.000
-	min: 0.997s max: 1.005s std dev: 0.00235s window: 12
-average rate: 1.000
-	min: 0.997s max: 1.005s std dev: 0.00229s window: 13
+Rates from the recorded bag (s2_bag_info.txt), 122.8 s:
+/hub/demand           123 messages  1.00 Hz  (future-queue forecast, assignment target)
+/hub/demand_unserved  123 messages  1.00 Hz  (unserved-demand forecast, team extension)
+/hub/queue            572 messages  4.66 Hz  (fake_queue_publisher, 5 Hz with scripted outages)

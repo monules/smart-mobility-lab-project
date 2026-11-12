@@ -1,5 +1,6 @@
 /safety_supervisor:
   ros__parameters:
+    brake_decel: 0.5
     bus_id: bus_1
     bus_speed_limit: 0.4
     bus_turn_limit: 0.5
@@ -8,8 +9,8 @@
     enforce_crossing: true
     estop_timeout: 1.0
     future_tolerance: 0.2
-    lookahead: 0.5
     rate_hz: 20.0
+    reaction_time: 0.25
     require_estop_heartbeat: true
     robot_id: robot_1
     robot_speed_limit: 0.25

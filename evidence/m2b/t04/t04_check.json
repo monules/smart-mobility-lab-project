@@ -14,7 +14,7 @@
     {
       "check": "T04 three consecutive forecasts",
       "passed": true,
-      "detail": "dispatch 2.0 s after the first forecast >= 6 (3 samples at 1 Hz)"
+      "detail": "dispatch 2.1 s after the first forecast >= 6 (3 samples at 1 Hz)"
     },
     {
       "check": "T04 no dispatch from invalid forecast",
@@ -24,7 +24,7 @@
     {
       "check": "T04 feed gap",
       "passed": true,
-      "detail": "0 dispatches in 15 s without any /hub/demand, observed queue 2"
+      "detail": "0 dispatches in 15 s without any forecast, observed queue 2"
     },
     {
       "check": "T04 explicit fallback",
@@ -32,5 +32,5 @@
       "detail": "no forecast, observed queue 7: 1 dispatch(es) with reason FALLBACK, result ['BUS_MISSION_SUCCEEDED']"
     }
   ],
-  "commit": "b6bf18e-dirty"
+  "commit": "b8ea743"
 }

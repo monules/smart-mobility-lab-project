@@ -19,7 +19,7 @@
     {
       "check": "2 T16 stop latency",
       "passed": true,
-      "detail": "e-stop -> first zero cmd_vel 0.0004 s (limit 0.20); sim speed < 0.02 after 0.023 s"
+      "detail": "e-stop -> first zero cmd_vel 0.0008 s (limit 0.20); sim speed < 0.02 after 0.089 s"
     },
     {
       "check": "3 reset rejected: e-stop asserted",
@@ -59,29 +59,29 @@
     {
       "check": "10 T17 controller loss -> zero",
       "passed": true,
-      "detail": "candidate stream stopped -> zero after 0.474 s (timeout 0.50 + tick/transport margin)"
+      "detail": "candidate stream stopped -> zero after 0.507 s (timeout 0.50 + tick/transport margin)"
     },
     {
       "check": "11 T16 repeated",
       "passed": true,
-      "detail": "n=5 max=0.0010 s mean=0.0008 s; supervisor receipt->zero max 0.143 ms"
+      "detail": "n=5 max=0.0022 s mean=0.0014 s; supervisor receipt->zero max 0.958 ms"
     }
   ],
   "t16": {
     "external_latency_s": [
-      0.00041749999991225195,
-      0.000972332999936043,
-      0.0008667499998864514,
-      0.000666041000158657,
-      0.0008860000000368018
+      0.0008305000001200824,
+      0.0007970000001478184,
+      0.0022144169997773133,
+      0.0012964580000698334,
+      0.0017622089999349555
     ],
     "supervisor_receipt_to_zero_ms": [
-      0.075,
-      0.143,
-      0.105,
-      0.117,
-      0.101
+      0.097,
+      0.106,
+      0.186,
+      0.958,
+      0.134
     ]
   },
-  "commit": "af37efa"
+  "commit": "b8ea743"
 }

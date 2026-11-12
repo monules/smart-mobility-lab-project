@@ -4,8 +4,8 @@
     input_timeout: 0.5
     publish_camera: true
     publish_estop: false
-    reset_ack_timeout: 2.0
-    reset_participants: safety_supervisor,actuator_bridge,metrics_logger,dashboard_marker_publisher
+    reset_ack_timeout: 0.8
+    reset_participants: safety_supervisor,actuator_bridge,metrics_logger,dashboard_marker_publisher,bus_manager
     robot_id: robot_1
     scenario: S9
     scenario_dir: ''

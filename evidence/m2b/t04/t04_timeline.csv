@@ -1,268 +1,276 @@
 t,phase,source,event,detail,correlation_id
-0.000,0,bus,SAFETY_RELEASE,COMMAND_STALE,bus:COMMAND_STALE
-0.000,0,bus,SAFETY_RELEASE,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
-0.049,0,system,SAFETY_RELEASE,ESTOP_SIGNAL_STALE,system:ESTOP_SIGNAL_STALE
-0.051,0,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
-0.051,0,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
-0.905,0,A-Cs,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,A-Cs:1
-0.906,0,Cs-J,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,Cs-J:2
-0.906,0,E-J,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,E-J:3
-0.906,0,A-N,NORMAL,UNKNOWN->NORMAL rho=0.50 v=0.00 n=1,A-N:4
-0.906,0,Cn-N,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,Cn-N:5
-0.906,0,B-Cn,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,B-Cn:6
-0.906,0,B-U,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,B-U:7
-0.906,0,E-U,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,E-U:8
-1.370,0,P1,SLOT_STATE,UNKNOWN->OCCUPIED,
-1.370,0,P2,SLOT_STATE,UNKNOWN->FREE,
-1.370,0,P3,SLOT_STATE,UNKNOWN->FREE,
-2.876,0,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:9
-3.138,0,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
-3.139,0,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
-3.143,0,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=5,S3-s1-r2
-3.149,0,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
-3.149,0,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
-3.169,0,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
-3.169,0,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
-3.199,0,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
-3.199,0,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
-3.882,0,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-4.882,0,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-5.378,1,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:10
-5.882,1,t04_check,DEMAND_SENT,predicted=6.2 valid=True queue=2,
-6.376,1,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:11
-6.882,1,t04_check,DEMAND_SENT,predicted=5.8 valid=True queue=2,
-7.882,1,t04_check,DEMAND_SENT,predicted=6.1 valid=True queue=2,
-8.882,1,t04_check,DEMAND_SENT,predicted=5.9 valid=True queue=2,
-9.882,1,t04_check,DEMAND_SENT,predicted=6.3 valid=True queue=2,
-10.378,1,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:12
-10.880,1,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:13
-10.882,1,t04_check,DEMAND_SENT,predicted=5.7 valid=True queue=2,
-11.882,1,t04_check,DEMAND_SENT,predicted=6.2 valid=True queue=2,
-12.877,1,A-N,NORMAL,CONGESTED->NORMAL rho=0.50 v=0.00 n=1,A-N:14
-12.882,1,t04_check,DEMAND_SENT,predicted=5.8 valid=True queue=2,
-13.882,1,t04_check,DEMAND_SENT,predicted=6.1 valid=True queue=2,
-14.376,1,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:15
-14.882,1,t04_check,DEMAND_SENT,predicted=5.9 valid=True queue=2,
-15.877,1,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:16
-15.882,1,t04_check,DEMAND_SENT,predicted=6.3 valid=True queue=2,
-16.882,1,t04_check,DEMAND_SENT,predicted=5.7 valid=True queue=2,
-17.882,1,t04_check,DEMAND_SENT,predicted=6.2 valid=True queue=2,
-18.882,1,t04_check,DEMAND_SENT,predicted=5.8 valid=True queue=2,
-19.879,1,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:17
-19.882,1,t04_check,DEMAND_SENT,predicted=6.1 valid=True queue=2,
-20.877,1,A-N,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-N:18
-20.882,1,t04_check,DEMAND_SENT,predicted=5.9 valid=True queue=2,
-21.882,1,t04_check,DEMAND_SENT,predicted=6.3 valid=True queue=2,
-22.882,1,t04_check,DEMAND_SENT,predicted=5.7 valid=True queue=2,
-23.883,1,t04_check,DEMAND_SENT,predicted=6.2 valid=True queue=2,
-24.882,1,t04_check,DEMAND_SENT,predicted=5.8 valid=True queue=2,
-25.205,1,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
-25.206,1,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
-25.209,1,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=5,S3-s2-r3
-25.215,1,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
-25.215,1,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
-25.249,1,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
-25.249,1,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
-25.298,1,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
-25.298,1,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
-25.881,1,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-26.375,1,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:19
-26.881,1,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-27.375,2,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:20
-27.880,2,t04_check,DEMAND_SENT,predicted=4.0 valid=True queue=2,
-28.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-29.375,2,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:21
-29.881,2,t04_check,DEMAND_SENT,predicted=6.5 valid=True queue=2,
-30.375,2,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:22
-30.880,2,t04_check,DEMAND_SENT,predicted=7.0 valid=True queue=2,
-31.375,2,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:23
-31.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-31.915,2,bus_1,BUS_DISPATCH_REQUESTED,PREDICTED,dock-001-91d618
-31.916,2,bus_1,DOCK_GOAL_ACCEPTED,OK,S3-s2-r3
-31.918,2,bus_1,BUS_DISPATCH_ACCEPTED,OK,dock-001-91d618
-31.927,2,bus_1,ROUTE_FALLBACK,baseline A-N-Cn-B (no route from /route/compute),S3-s2-r3
-31.929,2,bus_1,BUS_PHASE,IDLE->APPROACH GOAL_ACCEPTED,S3-s2-r3
-32.875,2,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:24
-32.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-33.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-34.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-35.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-36.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-37.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-38.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-39.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-40.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-41.827,2,bus_1,CROSSING_GRANTED,OK,3f12f94dd18b4169a3fd742532941d5b
-41.876,2,bus_1,CROSSING_GRANTED,OK,S3-s2-r3
-41.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-42.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-43.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-44.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-45.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-46.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-47.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-48.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-49.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-50.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-51.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-52.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-53.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-54.428,2,bus_1,CROSSING_RELEASED,OK,3f12f94dd18b4169a3fd742532941d5b
-54.476,2,bus_1,CROSSING_RELEASED,OK,S3-s2-r3
-54.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-55.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-56.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-57.728,2,bus_1,BUS_PHASE,APPROACH->DOCK FINAL_APPROACH,S3-s2-r3
-57.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-58.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-59.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-60.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-61.881,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-62.880,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
-63.028,2,bus_1,BUS_DOCKED,pos_err=0.049 yaw_err=0.007,S3-s2-r3
-63.029,2,bus_1,BUS_PHASE,DOCK->BOARD DOCKED,S3-s2-r3
-63.077,2,bus_1,DOOR_REQUEST,open,S3-s2-r3
-63.518,2,bus,DOOR_OPENED,BUS_STOPPED,bridge:bus
-63.577,2,bus_1,DOOR_OPENED,boarding 8 s,S3-s2-r3
-63.598,2,bus,SAFETY_HOLD,DOOR_OPEN,bus:DOOR_OPEN
-63.875,2,B-Cn,CONGESTED,NORMAL->CONGESTED rho=0.33 v=0.06 n=1,B-Cn:25
-63.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-64.593,2,q1,PASSENGER_BOARDED,t=39.35,S3-s2-r3
-64.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-65.880,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-66.093,2,q2,PASSENGER_BOARDED,t=40.85,S3-s2-r3
-66.880,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-67.593,2,q3,PASSENGER_BOARDED,t=42.35,S3-s2-r3
-67.880,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-68.880,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-69.093,2,q4,PASSENGER_BOARDED,t=43.85,S3-s2-r3
-69.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-70.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-71.577,2,bus_1,DOOR_REQUEST,close,S3-s2-r3
-71.618,2,bus,DOOR_CLOSED,REQUESTED,bridge:bus
-71.678,2,bus_1,DOOR_CLOSED,boarding done,S3-s2-r3
-71.678,2,bus_1,BUS_PHASE,BOARD->COMPLETE DOCKED_AND_BOARDED,S3-s2-r3
-71.679,2,bus_1,DOCK_RESULT,success COMPLETE DOCKED_AND_BOARDED,S3-s2-r3
-71.679,2,bus_1,BUS_MISSION_SUCCEEDED,DOCKED_AND_BOARDED,dock-001-91d618
-71.699,2,bus,SAFETY_RELEASE,DOOR_OPEN,bus:DOOR_OPEN
-71.880,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-72.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-73.880,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-74.880,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-75.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-76.880,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-77.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-78.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-79.881,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-80.880,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
-81.881,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-82.880,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-83.881,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-84.881,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-85.882,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-86.881,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-87.692,2,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
-87.693,2,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
-87.696,2,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=5,S3-s3-r4
-87.699,2,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
-87.699,2,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
-87.699,2,bus,SAFETY_HOLD,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
-87.717,2,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
-87.718,2,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
-87.749,2,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
-87.749,2,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
-87.750,2,bus,SAFETY_RELEASE,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
-87.882,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-88.401,2,B-Cn,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,B-Cn:26
-88.882,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-89.882,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-90.881,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-90.906,3,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:27
-91.878,3,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:28
-91.882,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-92.878,3,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:29
-92.882,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-93.881,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-94.882,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-95.876,3,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:30
-95.881,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-96.882,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-97.421,3,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:31
-97.881,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-98.882,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-99.393,3,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:32
-99.882,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-100.882,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-101.881,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-102.882,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-102.884,3,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:33
-103.881,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
-104.741,3,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
-104.741,3,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
-104.746,3,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=5,S3-s4-r5
-104.749,3,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
-104.749,3,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
-104.749,3,bus,SAFETY_HOLD,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
-104.765,3,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
-104.766,3,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
-104.799,3,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
-104.800,3,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
-104.800,3,bus,SAFETY_RELEASE,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
-104.876,3,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:34
-104.882,3,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-105.882,3,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-108.377,4,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:35
-109.376,4,A-N,NORMAL,CONGESTED->NORMAL rho=0.50 v=0.00 n=1,A-N:36
-113.876,4,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:37
-115.495,4,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:38
-116.877,4,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:39
-117.877,4,A-N,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-N:40
-118.378,4,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:41
-119.379,4,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:42
-121.794,4,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
-121.796,4,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
-121.797,4,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=5,S3-s5-r6
-121.800,4,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
-121.800,4,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
-121.800,4,bus,SAFETY_HOLD,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
-121.819,4,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
-121.820,4,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
-121.850,4,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
-121.850,4,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
-121.851,4,bus,SAFETY_RELEASE,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
-121.883,4,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-122.505,4,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:43
-122.883,4,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
-125.030,5,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:44
-126.968,5,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:45
-127.920,5,bus_1,BUS_DISPATCH_REQUESTED,FALLBACK,dock-002-16be43
-127.922,5,bus_1,DOCK_GOAL_ACCEPTED,OK,S3-s5-r6
-127.923,5,bus_1,BUS_DISPATCH_ACCEPTED,OK,dock-002-16be43
-127.928,5,bus_1,ROUTE_FALLBACK,baseline A-N-Cn-B (no route from /route/compute),S3-s5-r6
-127.930,5,bus_1,BUS_PHASE,IDLE->APPROACH GOAL_ACCEPTED,S3-s5-r6
-128.378,5,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:46
-128.882,5,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:47
-129.878,5,A-N,NORMAL,CONGESTED->NORMAL rho=0.50 v=0.35 n=1,A-N:48
-137.779,5,bus_1,CROSSING_GRANTED,OK,0ea58be403a2411fbef62655aa08a468
-137.829,5,bus_1,CROSSING_GRANTED,OK,S3-s5-r6
-150.380,5,bus_1,CROSSING_RELEASED,OK,0ea58be403a2411fbef62655aa08a468
-150.431,5,bus_1,CROSSING_RELEASED,OK,S3-s5-r6
-153.680,5,bus_1,BUS_PHASE,APPROACH->DOCK FINAL_APPROACH,S3-s5-r6
-159.230,5,bus_1,BUS_DOCKED,pos_err=0.031 yaw_err=0.002,S3-s5-r6
-159.230,5,bus_1,BUS_PHASE,DOCK->BOARD DOCKED,S3-s5-r6
-159.280,5,bus_1,DOOR_REQUEST,open,S3-s5-r6
-159.719,5,bus,DOOR_OPENED,BUS_STOPPED,bridge:bus
-159.730,5,bus_1,DOOR_OPENED,boarding 8 s,S3-s5-r6
-159.750,5,bus,SAFETY_HOLD,DOOR_OPEN,bus:DOOR_OPEN
-159.878,5,B-Cn,CONGESTED,NORMAL->CONGESTED rho=0.33 v=0.06 n=1,B-Cn:49
-160.746,5,q1,PASSENGER_BOARDED,t=38.95,S3-s5-r6
-162.245,5,q2,PASSENGER_BOARDED,t=40.45,S3-s5-r6
-163.746,5,q3,PASSENGER_BOARDED,t=41.95,S3-s5-r6
-165.246,5,q4,PASSENGER_BOARDED,t=43.45,S3-s5-r6
-167.779,5,bus_1,DOOR_REQUEST,close,S3-s5-r6
-167.820,5,bus,DOOR_CLOSED,REQUESTED,bridge:bus
-167.830,5,bus_1,DOOR_CLOSED,boarding done,S3-s5-r6
-167.830,5,bus_1,BUS_PHASE,BOARD->COMPLETE DOCKED_AND_BOARDED,S3-s5-r6
-167.830,5,bus_1,DOCK_RESULT,success COMPLETE DOCKED_AND_BOARDED,S3-s5-r6
-167.831,5,bus_1,BUS_MISSION_SUCCEEDED,DOCKED_AND_BOARDED,dock-002-16be43
-167.850,5,bus,SAFETY_RELEASE,DOOR_OPEN,bus:DOOR_OPEN
+0.000,0,scenario_runner,SCENARIO_STARTED,seed=1,S3-s1-r1
+0.030,0,system,SAFETY_HOLD,ESTOP_SIGNAL_STALE,system:ESTOP_SIGNAL_STALE
+0.031,0,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
+0.031,0,robot,SAFETY_HOLD,ODOM_STALE,robot:ODOM_STALE
+0.031,0,robot,SAFETY_HOLD,COMMAND_STALE,robot:COMMAND_STALE
+0.031,0,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
+0.031,0,bus,SAFETY_HOLD,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
+0.031,0,bus,SAFETY_HOLD,COMMAND_STALE,bus:COMMAND_STALE
+0.081,0,bus,SAFETY_RELEASE,COMMAND_STALE,bus:COMMAND_STALE
+0.116,0,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
+0.117,0,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
+0.130,0,system,SAFETY_RELEASE,ESTOP_SIGNAL_STALE,system:ESTOP_SIGNAL_STALE
+0.131,0,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
+0.131,0,robot,SAFETY_RELEASE,COMMAND_STALE,robot:COMMAND_STALE
+0.132,0,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
+0.133,0,bus,SAFETY_RELEASE,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
+0.461,0,A-Cs,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,A-Cs:1
+0.461,0,Cs-J,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,Cs-J:2
+0.461,0,E-J,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,E-J:3
+0.462,0,A-N,NORMAL,UNKNOWN->NORMAL rho=0.50 v=0.00 n=1,A-N:4
+0.462,0,Cn-N,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,Cn-N:5
+0.462,0,B-Cn,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,B-Cn:6
+0.463,0,B-U,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,B-U:7
+0.463,0,E-U,NORMAL,UNKNOWN->NORMAL rho=0.00 v=0.40 n=0,E-U:8
+0.968,0,P1,SLOT_STATE,UNKNOWN->OCCUPIED,
+0.968,0,P2,SLOT_STATE,UNKNOWN->FREE,
+0.968,0,P3,SLOT_STATE,UNKNOWN->FREE,
+1.463,0,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:9
+2.960,0,A-N,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-N:10
+3.208,0,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
+3.209,0,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
+3.212,0,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=6 handshake_ms=7,S3-s1-r2
+3.215,0,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
+3.216,0,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
+3.232,0,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
+3.233,0,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
+3.330,0,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
+3.330,0,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
+3.461,0,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:11
+3.951,0,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+4.955,0,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+5.463,1,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:12
+5.952,1,t04_check,DEMAND_SENT,predicted=6.2 valid=True queue=2,
+6.461,1,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:13
+6.950,1,t04_check,DEMAND_SENT,predicted=5.8 valid=True queue=2,
+7.950,1,t04_check,DEMAND_SENT,predicted=6.1 valid=True queue=2,
+8.950,1,t04_check,DEMAND_SENT,predicted=5.9 valid=True queue=2,
+9.950,1,t04_check,DEMAND_SENT,predicted=6.3 valid=True queue=2,
+10.560,1,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:14
+10.956,1,t04_check,DEMAND_SENT,predicted=5.7 valid=True queue=2,
+11.004,1,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:15
+11.950,1,t04_check,DEMAND_SENT,predicted=6.2 valid=True queue=2,
+12.950,1,t04_check,DEMAND_SENT,predicted=5.8 valid=True queue=2,
+12.959,1,A-N,NORMAL,CONGESTED->NORMAL rho=0.50 v=0.00 n=1,A-N:16
+13.950,1,t04_check,DEMAND_SENT,predicted=6.1 valid=True queue=2,
+14.464,1,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:17
+14.951,1,t04_check,DEMAND_SENT,predicted=5.9 valid=True queue=2,
+15.952,1,t04_check,DEMAND_SENT,predicted=6.3 valid=True queue=2,
+15.960,1,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:18
+16.951,1,t04_check,DEMAND_SENT,predicted=5.7 valid=True queue=2,
+17.950,1,t04_check,DEMAND_SENT,predicted=6.2 valid=True queue=2,
+18.950,1,t04_check,DEMAND_SENT,predicted=5.8 valid=True queue=2,
+19.950,1,t04_check,DEMAND_SENT,predicted=6.1 valid=True queue=2,
+19.959,1,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:19
+20.951,1,t04_check,DEMAND_SENT,predicted=5.9 valid=True queue=2,
+21.015,1,A-N,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-N:20
+21.951,1,t04_check,DEMAND_SENT,predicted=6.3 valid=True queue=2,
+22.954,1,t04_check,DEMAND_SENT,predicted=5.7 valid=True queue=2,
+23.955,1,t04_check,DEMAND_SENT,predicted=6.2 valid=True queue=2,
+24.953,1,t04_check,DEMAND_SENT,predicted=5.8 valid=True queue=2,
+25.272,1,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
+25.273,1,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
+25.277,1,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=6 handshake_ms=5,S3-s2-r3
+25.283,1,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
+25.283,1,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
+25.283,1,bus,SAFETY_HOLD,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
+25.317,1,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
+25.319,1,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
+25.336,1,bus,SAFETY_RELEASE,DOOR_UNKNOWN,bus:DOOR_UNKNOWN
+25.390,1,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
+25.390,1,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
+25.951,1,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+26.951,1,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+27.951,2,t04_check,DEMAND_SENT,predicted=4.0 valid=True queue=2,
+28.951,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+29.952,2,t04_check,DEMAND_SENT,predicted=6.5 valid=True queue=2,
+29.961,2,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:21
+30.951,2,t04_check,DEMAND_SENT,predicted=7.0 valid=True queue=2,
+30.960,2,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:22
+31.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+32.008,2,bus_1,BUS_DISPATCH_REQUESTED,PREDICTED,dock-001-35112e
+32.009,2,bus_1,DOCK_GOAL_ACCEPTED,OK,S3-s2-r3
+32.010,2,bus_1,BUS_DISPATCH_ACCEPTED,OK,dock-001-35112e
+32.010,2,bus,ROUTE_COMPUTED,"{""agent"": ""bus"", ""cost"": 22.5, ""costs"": {""A-Cs"": 10.0, ""A-N"": 5.0, ""B-Cn"": 7.5, ""B-U"": 7.5, ""Cn-Cs"": null, ""Cn-N"": 10.0, ""Cn-W"": null, ""Cs-J"": 10.0, ""D-J"": null, ""E-J"": 5.0, ""E-U"": 5.0, ""P1-P2"": null, ""P2-P3"": null, ""P3-U"": null, ""R-W"": null}, ""excluded"": [], ""goal"": ""B"", ""latency_ms"": 0.086, ""nodes"": [""A"", ""N"", ""Cn"", ""B""], ""reason"": ""OK"", ""removed"": {}, ""start"": ""A"", ""success"": true}",
+32.054,2,bus_1,ROUTE_PLANNED,A-N-Cn-B cost 22.5 s,S3-s2-r3
+32.056,2,bus_1,BUS_PHASE,IDLE->APPROACH GOAL_ACCEPTED,S3-s2-r3
+32.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+33.008,2,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:23
+33.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+33.967,2,A-N,NORMAL,CONGESTED->NORMAL rho=0.50 v=0.35 n=1,A-N:24
+34.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+35.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+36.953,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+37.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+38.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+39.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+40.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+41.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+41.955,2,bus_1,CROSSING_GRANTED,OK,29ac543eb98c440f8a570d215cdffb9d
+42.013,2,bus_1,CROSSING_GRANTED,OK,S3-s2-r3
+42.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+43.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+44.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+45.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+46.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+47.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+48.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+49.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+50.954,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+51.951,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+52.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+53.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+54.557,2,bus_1,CROSSING_RELEASED,OK,29ac543eb98c440f8a570d215cdffb9d
+54.611,2,bus_1,CROSSING_RELEASED,OK,S3-s2-r3
+54.953,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+55.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+56.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+57.856,2,bus_1,BUS_PHASE,APPROACH->DOCK FINAL_APPROACH,S3-s2-r3
+57.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+58.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+59.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+60.953,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+61.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+62.952,2,t04_check,DEMAND_SENT,predicted=7.5 valid=True queue=2,
+63.456,2,bus_1,BUS_DOCKED,pos_err=0.030 yaw_err=0.003,S3-s2-r3
+63.456,2,bus_1,BUS_PHASE,DOCK->BOARD DOCKED,S3-s2-r3
+63.509,2,bus_1,DOOR_REQUEST,open,S3-s2-r3
+63.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+63.968,2,bus,DOOR_OPENED,BUS_STOPPED,bridge:bus
+64.033,2,bus,SAFETY_HOLD,DOOR_OPEN,bus:DOOR_OPEN
+64.058,2,bus_1,DOOR_OPENED,boarding 8 s,S3-s2-r3
+64.464,2,B-Cn,CONGESTED,NORMAL->CONGESTED rho=0.33 v=0.06 n=1,B-Cn:25
+64.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+65.049,2,q1,PASSENGER_BOARDED,t=39.75,S3-s2-r3
+65.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+66.549,2,q2,PASSENGER_BOARDED,t=41.25,S3-s2-r3
+66.953,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+67.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+68.048,2,q3,PASSENGER_BOARDED,t=42.75,S3-s2-r3
+68.953,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+69.548,2,q4,PASSENGER_BOARDED,t=44.25,S3-s2-r3
+69.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+70.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+71.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+72.116,2,bus_1,DOOR_REQUEST,close,S3-s2-r3
+72.118,2,bus,DOOR_CLOSED,REQUESTED,bridge:bus
+72.137,2,bus,SAFETY_RELEASE,DOOR_OPEN,bus:DOOR_OPEN
+72.156,2,bus_1,DOOR_CLOSED,boarding done,S3-s2-r3
+72.156,2,bus_1,BUS_PHASE,BOARD->COMPLETE DOCKED_AND_BOARDED,S3-s2-r3
+72.156,2,bus_1,DOCK_RESULT,success COMPLETE DOCKED_AND_BOARDED,S3-s2-r3
+72.159,2,bus_1,BUS_MISSION_SUCCEEDED,DOCKED_AND_BOARDED,dock-001-35112e
+72.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+73.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+74.953,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+75.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+76.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+77.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+78.953,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+79.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+80.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+81.952,2,t04_check,DEMAND_SENT,predicted=5.0 valid=True queue=2,
+82.954,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+83.953,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+84.953,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+85.953,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+86.954,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+87.476,2,B-Cn,NORMAL,CONGESTED->NORMAL rho=0.33 v=0.00 n=1,B-Cn:26
+87.953,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+88.217,2,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
+88.221,2,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
+88.223,2,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=6 handshake_ms=7,S3-s3-r4
+88.233,2,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
+88.234,2,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
+88.269,2,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
+88.270,2,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
+88.334,2,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
+88.334,2,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
+88.953,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+89.953,2,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+90.956,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+91.463,3,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:27
+91.955,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+92.485,3,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:28
+92.961,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+93.462,3,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:29
+93.953,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+94.954,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+95.953,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+96.466,3,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:30
+96.959,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+97.954,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+97.964,3,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:31
+98.954,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+99.466,3,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:32
+99.953,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+100.953,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+101.954,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+102.953,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+103.466,3,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:33
+103.953,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+104.953,3,t04_check,DEMAND_SENT,predicted=9.0 valid=False queue=2,
+105.269,3,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
+105.270,3,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
+105.271,3,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=6 handshake_ms=5,S3-s4-r5
+105.285,3,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
+105.285,3,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
+105.320,3,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
+105.320,3,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
+105.387,3,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
+105.387,3,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
+105.490,3,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:34
+105.954,3,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+105.962,3,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:35
+106.953,3,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+106.988,3,A-N,NORMAL,CONGESTED->NORMAL rho=0.50 v=0.00 n=1,A-N:36
+108.963,4,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:37
+110.009,4,A-N,NORMAL,CONGESTED->NORMAL rho=0.50 v=0.00 n=1,A-N:38
+113.742,4,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:39
+115.620,4,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:40
+122.319,4,robot,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:robot
+122.325,4,bus,BRIDGE_WATCHDOG_STOP,FINAL_COMMAND_STALE,bridge:bus
+122.326,4,scenario_runner,SCENARIO_RESET,RESET preserve_logs=True acks=6 handshake_ms=7,S3-s5-r6
+122.334,4,system,SAFETY_HOLD,VEHICLES_STALE,system:VEHICLES_STALE
+122.334,4,bus,SAFETY_HOLD,POSE_STALE,bus:POSE_STALE
+122.372,4,robot,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:robot
+122.373,4,bus,BRIDGE_WATCHDOG_RELEASE,FRESH,bridge:bus
+122.443,4,system,SAFETY_RELEASE,VEHICLES_STALE,system:VEHICLES_STALE
+122.443,4,bus,SAFETY_RELEASE,POSE_STALE,bus:POSE_STALE
+122.956,4,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+122.965,4,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:41
+123.954,4,t04_check,DEMAND_SENT,predicted=2.0 valid=True queue=2,
+125.465,5,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.25 v=0.00 n=1,A-Cs:42
+127.463,5,A-Cs,CONGESTED,NORMAL->CONGESTED rho=0.25 v=0.00 n=1,A-Cs:43
+128.963,5,A-Cs,NORMAL,CONGESTED->NORMAL rho=0.00 v=0.40 n=0,A-Cs:44
+129.011,5,bus_1,BUS_DISPATCH_REQUESTED,FALLBACK,dock-002-90e4c9
+129.013,5,bus_1,DOCK_GOAL_ACCEPTED,OK,S3-s5-r6
+129.015,5,bus,ROUTE_COMPUTED,"{""agent"": ""bus"", ""cost"": 22.5, ""costs"": {""A-Cs"": 10.0, ""A-N"": 5.0, ""B-Cn"": 7.5, ""B-U"": 7.5, ""Cn-Cs"": null, ""Cn-N"": 10.0, ""Cn-W"": null, ""Cs-J"": 10.0, ""D-J"": null, ""E-J"": 5.0, ""E-U"": 5.0, ""P1-P2"": null, ""P2-P3"": null, ""P3-U"": null, ""R-W"": null}, ""excluded"": [], ""goal"": ""B"", ""latency_ms"": 0.191, ""nodes"": [""A"", ""N"", ""Cn"", ""B""], ""reason"": ""OK"", ""removed"": {}, ""start"": ""A"", ""success"": true}",
+129.015,5,bus_1,BUS_DISPATCH_ACCEPTED,OK,dock-002-90e4c9
+129.064,5,bus_1,ROUTE_PLANNED,A-N-Cn-B cost 22.5 s,S3-s5-r6
+129.065,5,bus_1,BUS_PHASE,IDLE->APPROACH GOAL_ACCEPTED,S3-s5-r6
+129.465,5,A-N,CONGESTED,NORMAL->CONGESTED rho=0.50 v=0.00 n=1,A-N:45
+131.466,5,A-N,NORMAL,CONGESTED->NORMAL rho=0.50 v=0.35 n=1,A-N:46
+139.110,5,bus_1,CROSSING_GRANTED,OK,ef36d91255d24f71b30b0acb492bf140
+139.158,5,bus_1,CROSSING_GRANTED,OK,S3-s5-r6
+151.710,5,bus_1,CROSSING_RELEASED,OK,ef36d91255d24f71b30b0acb492bf140
+151.763,5,bus_1,CROSSING_RELEASED,OK,S3-s5-r6
+155.011,5,bus_1,BUS_PHASE,APPROACH->DOCK FINAL_APPROACH,S3-s5-r6
+160.309,5,bus_1,BUS_DOCKED,pos_err=0.042 yaw_err=0.002,S3-s5-r6
+160.310,5,bus_1,BUS_PHASE,DOCK->BOARD DOCKED,S3-s5-r6
+160.363,5,bus_1,DOOR_REQUEST,open,S3-s5-r6
+160.821,5,bus,DOOR_OPENED,BUS_STOPPED,bridge:bus
+160.887,5,bus,SAFETY_HOLD,DOOR_OPEN,bus:DOOR_OPEN
+160.909,5,bus_1,DOOR_OPENED,boarding 8 s,S3-s5-r6
+161.464,5,B-Cn,CONGESTED,NORMAL->CONGESTED rho=0.33 v=0.06 n=1,B-Cn:47
+161.903,5,q1,PASSENGER_BOARDED,t=39.55,S3-s5-r6
+163.403,5,q2,PASSENGER_BOARDED,t=41.05,S3-s5-r6
+164.901,5,q3,PASSENGER_BOARDED,t=42.55,S3-s5-r6
+166.402,5,q4,PASSENGER_BOARDED,t=44.05,S3-s5-r6
+168.910,5,bus_1,DOOR_REQUEST,close,S3-s5-r6
+168.921,5,bus,DOOR_CLOSED,REQUESTED,bridge:bus
+168.988,5,bus,SAFETY_RELEASE,DOOR_OPEN,bus:DOOR_OPEN
+169.011,5,bus_1,DOOR_CLOSED,boarding done,S3-s5-r6
+169.011,5,bus_1,BUS_PHASE,BOARD->COMPLETE DOCKED_AND_BOARDED,S3-s5-r6
+169.012,5,bus_1,DOCK_RESULT,success COMPLETE DOCKED_AND_BOARDED,S3-s5-r6
+169.012,5,bus_1,BUS_MISSION_SUCCEEDED,DOCKED_AND_BOARDED,dock-002-90e4c9
