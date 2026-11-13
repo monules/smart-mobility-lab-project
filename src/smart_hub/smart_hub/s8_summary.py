@@ -63,6 +63,7 @@ def summarize(runs):
             'safe_episodes': sum(r['passed'] for r in rs),
             'completion_rate': round(sum(x['completed'] for x in m) / len(m), 2),
             'bus_mission_success': sum(x['bus_mission'] == 'SUCCEEDED' for x in m),
+            'bus_departed': sum(bool(x.get('bus_departed')) for x in m),
             'robot_mission_success': sum(x['robot_mission'] == 'SUCCEEDED' for x in m),
             'parking_answered': sum(x['parking_answered'] for x in m),
             'queue_wait_p50_s': pct(waits, 0.5),
@@ -114,7 +115,10 @@ def summarize(runs):
         'note': 'mean of per-seed differences with a 95 % bootstrap interval over whole '
                 'episodes; an interval that includes 0 is not evidence of a difference',
     }
+    # Passed = every episode safe AND complete (bus docked and departed, escort
+    # arrived, parking answered), over at least 10 seeds in both modes.
     out['T15_passed'] = bool(runs) and all(r['passed'] for r in runs) and \
+        all(r['metrics']['completed'] for r in runs) and \
         len(runs) == 2 * len(seeds) and len(seeds) >= 10
     return out
 

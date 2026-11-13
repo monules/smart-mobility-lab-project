@@ -270,7 +270,9 @@ class S8Check(Node):
                                                                for r in self.reserve)
         m['crossing_wait_s'] = round(self.waiting(events), 2)
         m['crossing_grants'] = [(round(t, 1), o) for t, o, _, _ in owners if o]
-        m['completed'] = m['bus_mission'] == 'SUCCEEDED' and \
+        # The bus trip to the exit counts too: an episode where the bus docked
+        # but its departure failed is not a completed episode.
+        m['completed'] = m['bus_mission'] == 'SUCCEEDED' and m['bus_departed'] and \
             m['robot_mission'] == 'SUCCEEDED' and m['parking_answered']
         return v, m
 
