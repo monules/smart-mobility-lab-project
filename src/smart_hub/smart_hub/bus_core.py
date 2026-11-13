@@ -56,6 +56,7 @@ class BusConfig:
     lookahead: float = 0.40         # m, pursuit point ahead on the path
     corner_tol: float = 0.10        # m, corner reached
     pos_tol: float = 0.20           # m, docking (10.3)
+    exit_tol: float = 0.25          # m to exit E that counts as departed (see step())
     yaw_tol: float = 0.17           # rad, docking
     stopped_speed: float = 0.02     # m/s
     dock_hold: float = 1.0          # s, tolerance held before "docked"
@@ -78,8 +79,8 @@ class BusConfig:
     def validate(self):
         """Raise ValueError naming every parameter that is outside its allowed range."""
         bad = [n for n in ('radius', 'cruise_speed', 'min_speed', 'slow_gain', 'turn_rate',
-                           'pos_tol', 'yaw_tol', 'dock_hold', 'board_sec', 'pose_timeout',
-                           'renew_period', 'eta_tau') if not getattr(self, n) > 0]
+                           'pos_tol', 'exit_tol', 'yaw_tol', 'dock_hold', 'board_sec',
+                           'pose_timeout', 'renew_period', 'eta_tau') if not getattr(self, n) > 0]
         if self.cruise_speed > 0.40:
             bad.append('cruise_speed (> 0.40 m/s bus limit)')
         if self.min_speed >= self.cruise_speed:
@@ -434,8 +435,13 @@ class BusCore:
         at_line = line is not None and line - s < 0.05 and speed < c.stopped_speed
         if self.mode == 'depart':
             self._set(WAIT if in_c_ped else DEPART, 'PEDESTRIAN_IN_C' if in_c_ped else 'TO_EXIT')
-            if remaining < 0.05:             # at the exit; the simulator removes the
-                out.cmd = (0.0, 0.0)         # bus once it stands there, so do not wait
+            # At the exit. The simulator takes a bus off the map as soon as it
+            # stands within 0.30 m of E, so the trip must end before that can
+            # happen: waiting for the last few centimetres let a noisy position
+            # stop the bus early, the bus vanished and the trip ended as
+            # POSE_STALE (5 of 20 S8 episodes). exit_tol is inside that radius.
+            if remaining < c.exit_tol:
+                out.cmd = (0.0, 0.0)
                 return self._end(out, True, DEPARTED, 'AT_EXIT')
             out.phase, out.reason = self.phase, self.reason
             return out

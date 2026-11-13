@@ -219,8 +219,42 @@ def test_departure_is_a_separate_trip_to_the_exit():
     out = h.run(150.0)
     assert out is not None and out.done == (True, 'DEPARTED', 'AT_EXIT')
     x, y = h.trace[-1][1:3]
-    assert math.dist((x, y), geo.NODES['E']) < 0.2
+    assert math.dist((x, y), geo.NODES['E']) < 0.3
     assert 'bus_1' not in h.sim.bodies and h.sim.exits == ['bus_1']   # left at E
+
+
+@pytest.mark.parametrize('seed', range(1, 21))
+def test_departure_ends_before_the_simulator_removes_a_noisy_bus(seed):
+    # The simulator removes a bus standing within 0.30 m of E. With 1 cm of
+    # position noise the bus sometimes stopped a little early, vanished and
+    # the trip ended as POSE_STALE instead of DEPARTED (seeds 2, 3 and 14).
+    h = Harness()
+    start(h)
+    h.run(90.0)
+    h.sim.noise = 0.01
+    h.sim.rng.seed(seed)
+
+    def noisy_feed():
+        b, t = h.bus, h.sim.t
+        x, y = h.sim.observe(b)
+        h.core.on_pose(x, y, b.theta, abs(b.v), t)
+        h.core.on_others([])
+        h.core.on_door(h.door, t)
+    h.feed = noisy_feed
+    h.core.start([geo.NODES[n] for n in ('B', 'U', 'E')], h.sim.t, 120.0, mode='depart')
+    done = None
+    while h.sim.t < 150.0 and done is None:
+        if 'bus_1' not in h.sim.bodies:
+            break                                    # removed before the core finished
+        h.feed()
+        out = h.core.step(h.sim.t)
+        done = out.done
+        h.sim.set_command('bus_1', *out.cmd)
+        h.sim.step()
+    assert done == (True, 'DEPARTED', 'AT_EXIT')
+    for _ in range(20):                              # the stopped bus then leaves at E
+        h.sim.step()
+    assert h.sim.exits == ['bus_1']
 
 
 def test_pedestrian_in_c_pauses_the_bus_even_with_permission():
