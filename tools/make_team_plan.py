@@ -65,11 +65,11 @@ TASKS = [
      '9 tests run; they had been broken since the clean-shutdown change (fixed); 0 skipped'),
     ('F10', 'Review: safety', 'Reset handshake answers inside the 1 s client timeout '
      '(assignment 7.1); response time measured', 'Saidumar', 'Aidil', '2026-11-12',
-     '2026-11-12', DONE, YES, '25 resets: mean 30.5 ms, max 357 ms; evidence/m5/s9_repeat'),
+     '2026-11-12', DONE, YES, '25 resets answered within the 1 s client timeout (mean about 20 ms); evidence/m5/s9_repeat'),
     ('F11', 'Review: safety', 'Numbered safety decision records replace the logger grace window; '
      'ambiguous cross-topic samples are kept, not dropped', 'Saidumar', 'Fazliddin',
      '2026-11-12', '2026-11-12', DONE, YES,
-     '/hub/safety_decision; S9 repeat: 1799 records, 0 lost, 0 latched with a nonzero command'),
+     '/hub/safety_decision; S9 repeat: about 1800 records, 0 lost, 0 latched with a nonzero command'),
     ('F12', 'Review: safety', 'Speed-dependent stopping distance (v*tau + v^2/2a + margin) replaces '
      'the fixed 0.5 s look-ahead; other bodies predicted over the same time',
      'Saidumar', 'Fazliddin', '2026-11-12', '2026-11-12', DONE, YES,
@@ -77,15 +77,23 @@ TASKS = [
     ('F13', 'Review: evidence', 'A crashed checker can no longer report PASSED '
      '(found while adding F06)', 'Saidumar', 'Aidil', '2026-11-13', '2026-11-13', DONE, YES,
      's3/s4/s6/s7/t04/t18 checkers'),
+    ('F13b', 'Review: evidence', 'Bus departure lost a race with the simulator at exit E in 5 of 20 '
+     'S8 episodes; S8 completion and T15 now require the departure (found by the first '
+     'final evidence run)', 'Fazliddin', 'Saidumar', '2026-11-14', '2026-11-14', DONE, PENDING,
+     'bus_core.py exit_tol; 20 seeded tests; s8_check.py / s8_summary.py'),
+    ('F13c', 'Review: evidence', 'Fault repetition counted the legitimate restart after a 2 s '
+     'freeze as motion during the fault (1 of 25 trials); window now ends when the frozen data '
+     'returns (found by the second final evidence run)', 'Saidumar', 'Aidil', '2026-11-14',
+     '2026-11-14', DONE, YES, 's9_repeat_check.py fault_window_end; 5 tests; live 25/25'),
     ('F14', 'Release', 'License notices, third-party notices, exact dependency versions, '
      'SHA-256 manifest of evidence, models and datasets', 'Saidumar', 'Carla', '2026-11-12',
      '2026-11-12', DONE, YES, 'LICENSE, THIRD_PARTY_NOTICES.md, evidence/release'),
     ('F15', 'Release', 'Re-run every scenario and test on one commit and file the results '
-     '(same-revision reproduction)', 'Saidumar', 'all', '2026-11-13', '2026-11-14', DOING, NA,
+     '(same-revision reproduction)', 'Saidumar', 'all', '2026-11-13', '2026-11-15', DONE, NA,
      'tools/run_release.sh; evidence/ stamped with one commit'),
     ('F16', 'Documentation', 'Function-level explanations in the nodes and core logic '
      '(about 150 functions)', 'Saidumar', 'all', '2026-11-13', '2026-11-13', DONE, YES,
-     'docstrings; 394 tests, 0 failures, 0 skipped'),
+     'docstrings; 419 tests, 0 failures, 0 skipped'),
     ('F17', 'Documentation', 'Each member reads the changes made in their subsystem and confirms '
      'or corrects them', 'all', 'Saidumar', '2026-11-14', '2026-11-16', TODO, PENDING,
      'README of each role; "Owner confirmed" column of this sheet'),
@@ -119,7 +127,8 @@ REVIEW = [
      'All three conditions kept and reported; stabilisation stays the pre-registered main '
      'condition, not claimed as an improvement', 'F04', DONE),
     ('Boarded-only waits; add right-censored passengers and abandonment',
-     'Still-waiting and left-queue passengers reported; Kaplan-Meier median', 'F05', DONE),
+     'Still-waiting passengers censored in a Kaplan-Meier median; walked-away passengers reported '
+     'separately with their time in Q', 'F05', DONE),
     ('Paired episode effect with uncertainty', 'Per-seed differences with a whole-episode '
      'bootstrap interval', 'F05', DONE),
     ('S8 checker does not record every pedestrian/agent co-occupancy of C',

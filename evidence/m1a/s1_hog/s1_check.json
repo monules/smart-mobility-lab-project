@@ -9,7 +9,7 @@
     {
       "check": "T01 stable counts",
       "passed": true,
-      "detail": "131 settled samples, MAE 0.992, mismatches [(6.2, 2, 3), (6.4, 2, 3), (6.6, 2, 3), (6.8, 2, 3), (7.0, 2, 3)]"
+      "detail": "128 settled samples, MAE 0.984, mismatches [(6.3, 2, 3), (6.5, 2, 3), (6.7, 2, 3), (6.9, 2, 3), (7.1, 2, 3)]"
     },
     {
       "check": "T02 no double count",
@@ -24,13 +24,13 @@
     {
       "check": "T02 freeze -> invalid",
       "passed": true,
-      "detail": "invalid 1.059 s after the freeze (limit 1.2)"
+      "detail": "invalid 1.043 s after the freeze (limit 1.2)"
     },
     {
       "check": "S1 crossing hold",
       "passed": true,
-      "detail": "occupied 0.67 s after entry; clear 2.37 s after leaving (needs 2.0-3.5)"
+      "detail": "occupied 0.6 s after entry; clear 2.5 s after leaving (needs 2.0-3.5)"
     }
   ],
-  "commit": "b8ea743"
+  "commit": "4c89df9"
 }

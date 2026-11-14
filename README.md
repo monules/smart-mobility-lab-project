@@ -12,10 +12,12 @@ observable, reproducible evidence (assignment §1).
 > package, built, tested and started together by `hub.launch.py`. M3's S4
 > and S5 pass live (checkers written by M5); M2-A's bus (S3) passes 12/12
 > live; M2-B's T04 dispatch passes 6/6 live; M4's routing (S6 8/8), escort
-> (S7 9/9) and T18 (5/5) pass live; the integrated rush hour **S8/T15 passes
+> (S7 10/10) and T18 (5/5) pass live; the integrated rush hour **S8/T15 passes
 > 20/20** episodes with zero safety violations, and Husan's real lab video
-> scores MAE 0.149 over 141 hand-labelled frames. See
-> [§10 Status](#10-current-status-and-next-steps).
+> scores MAE 0.149 over 141 hand-labelled frames. For the final term the
+> **Hub Control Center** (`docker/hub.sh ui`) lets you pick, run and watch
+> any task from one page. See
+> [§10 Status](#10-current-status-final-term).
 
 Platform: **ROS 2 Jazzy, Ubuntu 24.04, Python `rclpy`**, run in Docker
 (verified on Apple Silicon `aarch64`). Requirements and section numbers (§)
@@ -23,7 +25,7 @@ refer to `Smart_Mobility_Hub_Assignment.pdf`; roles come from the
 7-person role document. Both PDFs are kept out of git.
 
 **Contents:** [0 Like you are 5](#0-explained-like-you-are-5) ·
-[11 Finish line](#11-the-finish-line--whats-left-ez-mode-) ·
+[11 Finish line](#11-the-finish-line-for-the-final-submission-) ·
 [1 Overview](#1-project-overview) ·
 [2 Repository map](#2-repository-map) ·
 [3 Architecture](#3-architecture-and-data-flow) ·
@@ -33,7 +35,7 @@ refer to `Smart_Mobility_Hub_Assignment.pdf`; roles come from the
 [7 Standards](#7-team-integration-standards) ·
 [8 Tests](#8-tests-and-acceptance-criteria) ·
 [9 Git workflow](#9-git-workflow-for-teammates) ·
-[10 Status](#10-current-status-and-next-steps)
+[10 Status](#10-current-status-final-term)
 
 ---
 
@@ -609,146 +611,60 @@ Never: `git push --force`, committing `build/ install/ log/ output/`, or
 `git add .` / `git add -A` (it would pick up the assignment PDFs, which
 are deliberately untracked). Merge into `main` only as a team decision.
 
-## 10. Current status and next steps
+## 10. Current status (final term)
 
-**Assignment requirements → implementation** (§21.1 test matrix):
+Everything below was run again by one script (`tools/run_release.sh`) on one
+commit; each `evidence/**/*_check.json` names that commit, and
+`evidence/release/` holds the versions and a hash of every evidence file.
 
 | Item | Owner | State |
 |---|---|---|
-| Interfaces §6–7 (all) | M5 | ✅ |
-| S1 / T01–T02 detection, occlusion | M1-A | ✅ simulation (blob exact; HOG MAE 1.0); ✅ real lab video: YOLOv4-tiny MAE 0.149 over 141 hand-labelled frames (HOG 2.66), occluded frames 0.83 |
-| S2 / T03 prediction (+ T04 reference policy) | M1-B | ✅ merged, tests pass |
-| T04 dispatch hysteresis, S8 / T15 | M2-B | ✅ T04 6/6 live: noise around 6 → 0 dispatches; rising demand → exactly 1 (PREDICTED, 2.0 s after the first forecast ≥ 6), 0 BUSY rejections, none after the mission while the forecast sat at 5; invalid forecast → 0; feed gap → 0; no forecast + queue 7 → 1 with reason FALLBACK (`docker/hub.sh t04`); ✅ S8/T15: 20/20 rush-hour episodes, 0 collisions / crossing conflicts / double allocations / duplicate dispatches, 100 % completion, predictive dispatch 62.7 s vs reactive 64.1 s (`docker/hub.sh s8`) |
-| S3 / T05–T06 docking, cancel | M2-A | ✅ S3 12/12 live (`docker/hub.sh s3`, `evidence/m2a/`); code written by M5 for Fazliddin, ⚠️ he must review it |
-| S4–S5 / T07–T10 parking, congestion | M3 | ✅ nodes in the package, 59 tests pass; ✅ S4 11/11 and S5 9/9 live (`docker/hub.sh s4`, `s5`; `evidence/m3/`) |
-| S6–S7 / T11–T14 routing, escort | M4 | ✅ S6 8/8 (T11 live 5/5 + 20 seeds, T12, p95 29 ms), S7 9/9 (T13 10/10 ≤ 0.027 m, T14) — code by M5 for Aidil, ⚠️ he must review |
-| S9 / T16, T17 | M5 | ✅ verified in simulation |
-| T18 planner loss | M4 + M5 | ✅ 5/5 live (absent, late, slow-but-in-time; robot and bus) |
-| Simulator §3.2 (20 Hz, seeded, reset with acknowledgements, fault injection, camera, pedestrians) | M5 | ✅ |
-| Dashboard §4 (agents, routes, zone ownership, obstacles, parking, prediction text — §3.2) | M5 | ✅ routes appear once M2-A/M4 publish them |
-| Physical extension §22 | team | not started (optional) |
+| Interfaces §6–7 (15 messages, 6 services, 3 actions) | M5 | ✅ |
+| S1 / T01–T02 detection, occlusion | M1-A | ✅ simulation 6/6; ✅ real lab video: YOLOv4-tiny MAE 0.149 over 141 hand-labelled frames, crossing flag 0 false clears / 4 false busy (HOG: 13 false clears) |
+| S2 / T03 prediction | M1-B | ✅ two topics: `/hub/demand` = future queue (1.625 vs 1.668 persistence, gain uncertain), `/hub/demand_unserved` = unserved demand (1.215 vs 1.506) |
+| T04 dispatch hysteresis, S8 / T15 | M2-B | ✅ T04 6/6; ✅ T15: 20 episodes, 0 safety violations, every mission complete including the bus departure |
+| S3 / T05–T06 docking, cancel | M2-A | ✅ S3 12/12, 10/10 dockings with position noise |
+| S4–S5 / T07–T10 parking, congestion | M3 | ✅ S4 11/11, S5 9/9 |
+| S6–S7 / T11–T14 routing, escort | M4 | ✅ S6 8/8, S7 10/10 including a live cost-only replan |
+| S9 / T16, T17, fault repetition | M5 | ✅ 13/13, 25/25 faults, 25/25 resets within 1 s |
+| T18 planner loss | M4 + M5 | ✅ 5/5 |
+| **Hub Control Center** (mandatory final-term UI) | M5 | ✅ `docker/hub.sh ui` |
+| Automated tests | all | ✅ 419 tests, 0 failures, 0 skipped, 0 expected failures |
+| Physical extension §22 | team | not done (optional) |
 
-**Next steps**
-- **M2-B:** T04 runs live and passes (`t04_check.py`, written by M5; branch
-  `feature/m2b-t04-dispatch`). Two small changes to `hub_coordinator.py`:
-  `demand_freshness_sec` (2.5 s, the forecast comes at 1 Hz) and a clean
-  Ctrl+C exit. S8/T15 passes (branch `feature/s8-integration`: escort
-  trigger `ESCORT_REQUEST` and `dispatch_mode` added to your node). Left:
-  answer resets (§6.1); restyle for `ament_flake8`.
-- **M3:** your files were moved too; one integration fix in
-  `test_node_smoke.py` (stub install could replace the real rclpy) and test
-  outputs now go to `output/m3/`. S4 and S5 now run live and pass
-  (`scenarios/S4.yaml`, `S5.yaml`, `s4_check.py`, `s5_check.py`, written by
-  M5; results in `evidence/m3/`). Branch `feature/m3-report`: clean Ctrl+C
-  exit for both nodes (no more `RCLError`) and a **draft of your report
-  section** (docs/report/REPORT.md §8) written from your code and the runs —
-  confirm or correct it, and fill your contribution row. Left: answer
-  resets; restyle. Note: a parked bus at A is labelled `A-Cs: CONGESTED`
-  (speed 0 counts as slow).
-- **M1-B:** done on branch `feature/m1b-style-reset`: all 834 `ament_flake8`
-  findings fixed (806 quote swaps done by a tokenizer script and checked to
-  give the identical Python syntax tree, 28 import-order / dict-literal /
-  docstring fixes by hand), files removed from `PENDING_OWNER_RESTYLE`;
-  `demand_predictor` answers the reset handshake (clears its 60 s history →
-  `valid=false` warm-up again) and is a reset participant with
-  `perception:=true` (live: `acks=7`). Left: report section, review.
-- **M1-A (Husan):** study [README_M1A.md](README_M1A.md) and the code before
-  the defence. Real video done: 141 frames labelled by Husan, YOLOv4-tiny
-  MAE 0.149 (README_M1A, `evidence/m1a/real_video/`).
-- **M2-A (Fazliddin):** `bus_manager` exists (branch
-  `feature/m2a-bus-manager`, merged) and S3 passes — study
-  [README_M2A.md](README_M2A.md), review the code, write the report section.
-- **M4 (Aidil):** `route_planner` + `robot_manager` exist (branch
-  `feature/m4-routing-robot`, merged); S6, S7, T18 pass — study
-  [README_M4.md](README_M4.md), review the code, confirm the report section.
-  The bus now takes its route from the planner (fallback off by default).
-- **M5:** done for simulation (incl. §16.3 repetition, dashboard viewing,
-  evidence, report draft, T18, S8/T15, real-video processing).
-  Everyone else: follow
-  [§6.1](#61-plugging-your-node-into-the-hub-for-the-next-members) and
-  [§11](#11-the-finish-line--whats-left-ez-mode-).
-- **Team:** answer [contract §9](docs/INTEGRATION_CONTRACT.md#9-open-decisions-who-must-answer)
-  and decide when to push `integration/current-team-work`.
+What changed since the midterm, one part per member, in simple words:
+[docs/FINAL_CHANGES.md](docs/FINAL_CHANGES.md). The same list with the
+professor's review points is section 2 of the report
+(`docs/report/REPORT.md`) and the team plan workbook in `docs/plan/`.
 
-## 11. The finish line — what's left, ez mode 🏁
+## 11. The finish line for the final submission 🏁
 
-Where we are: the M5 (simulator + safety) and M1-A (people counter) parts are
-done and proven in simulation, M1-B (forecast) is done, M2-B and M3 have code
-that still needs to move into the package, M2-A and M4 haven't started.
-Here's the path to a clean submission, step by step.
+**Step 1 — get the code and check your part** 📥
+Pull `integration/current-team-work`, read your part of
+[docs/FINAL_CHANGES.md](docs/FINAL_CHANGES.md), then
+`docker/hub.sh image` → `docker/hub.sh build` → `docker/hub.sh ui`, open the
+page it prints, and run your own task once. Tell the team leader "confirmed"
+or what is wrong.
 
-**Step 1 — everyone gets the same code** 📥
-Saidumar pushes `integration/current-team-work` (GitHub Desktop → Push).
-Everyone: `git fetch origin`, then make your own branch from it (§9).
+**Step 2 — presentation, Monday 2026-11-17, 18:00** 🧑‍🏫
+Be ready to explain, for your part: one data stream (who publishes, who
+reads, how stale data is handled), one action or service from start to end,
+and one bug that was fixed. Note the professor's oral feedback.
 
-**Step 2 — everyone gets Docker working** 🐳
-Install Docker Desktop, open it, then in the repo folder:
-`docker/hub.sh image` → `docker/hub.sh build` → `docker/hub.sh test`.
-If the test line ends with `0 failures`, you're good.
+**Step 3 — record the final video** 🎬
+Your lines and what to show are in
+[docs/demo/FINAL_VIDEO_SCRIPT.md](docs/demo/FINAL_VIDEO_SCRIPT.md)
+(20–30 minutes in total, every member on screen).
 
-**Step 3 — the missing parts get built** 👷
-Follow [§6.1](#61-plugging-your-node-into-the-hub-for-the-next-members) —
-it has copy-paste code and a table of what each person connects.
-- **Fazliddin (M2-A):** `bus_manager` is written and S3 passes ✅ — read
-  [README_M2A.md](README_M2A.md), own it, write your report part.
-- **Aidil (M4):** `route_planner` + `robot_manager` written and passing ✅ —
-  read [README_M4.md](README_M4.md), own it, confirm your report part.
-- **Arkar (M2-B):** T04 ✅ and S8/T15 ✅ (`docker/hub.sh t04`, `docker/hub.sh s8`,
-  proof in `evidence/m2b/` and `evidence/s8/`). Read `t04_check.py`,
-  `s8_check.py` and the changes in your node (README_M2B.md updates 2 + 3).
-- **Carla (M3):** files are in the package already ✅ and S4/S5 now pass
-  live ✅ (`docker/hub.sh s4`, `docker/hub.sh s5`, proof in `evidence/m3/`).
-  Your report section is drafted (§8 of `docs/report/REPORT.md`) — read it
-  next to the checkers and say "yes" or fix it.
+**Step 4 — re-create the evidence after any code change** 📊
+`tools/run_release.sh` (about 2.5 hours). It stops at the first failure and
+never skips a step.
 
-> 🧐 **"Run your scenario live and save the proof" — what does that mean?**
-> Unit tests check the *logic* with fake inputs. The teacher also wants to
-> see your node **doing its job in the running hub** and a file proving it,
-> like `evidence/m5/` and `evidence/m1a/`. For each scenario:
-> 1. a scenario file `scenarios/S4.yaml` (the event script from the
->    assignment, e.g. §11.3 for S4) — Saidumar can write these, the
->    simulator is his;
-> 2. a check node like `s9_fault_check.py` that watches the topics and
->    writes `sX_check.json` with PASS/FAIL per rule (§11.3 / §12.3 / §15.3);
-> 3. run it, keep the JSON + a rosbag, put them in `evidence/<you>/`;
-> 4. write your report section with those numbers.
-- **Tuymurod (M1-B):** code style ✅ + resets ✅ (done for him) — read the
-  diff on `feature/m1b-style-reset`, write your report part.
-Each person: own branch → `docker/hub.sh test` green → pull request into
-`integration/current-team-work`.
-
-**Step 4 — Husan films the real video** 🎥 ✅ done
-Filmed, 141 frames labelled by Husan, scored: YOLOv4-tiny MAE 0.149
-(`evidence/m1a/real_video/`).
-
-**Step 5 — the big team test** 🔗 ✅ done
-`scenarios/S8.yaml` + `docker/hub.sh s8`: 10 rush hours × predictive and
-reactive dispatch, all 20 with zero safety violations (T15). Re-run it after
-any change to your node (~90 min).
-
-**Step 6 — collect the proof** 📊
-Run `docker/hub.sh s9`, `s9x`, `s1`, `test` (and the new S2–S8 checks).
-Copy the results into `evidence/<member>/` like `evidence/m5/`.
-
-**Step 7 — finish the report** 📝
-Open `docs/report/REPORT.md`, replace every **TODO** with your real
-results (never invent numbers, keep failed tests in with the reason), fill
-your row of the contribution table **including what tools/AI you used**,
-then `docker/hub.sh report` → `docs/report/Smart_Mobility_Hub_Report.pdf`.
-
-**Step 8 — make the 8-minute demo video** 🎬
-Live view: `docker/hub.sh view` + Foxglove; or use the recorded
-`output/dashboard/dashboard.mp4`. Order (§24.1): 1 min map → 2 min
-detection/dispatch/docking/parking → 2 min robot + rerouting → 2 min
-faults/cancel/reset → 1 min numbers.
-
-**Step 9 — study for your own defence** 🧑‍🏫
-You'll be asked to explain one topic path, one service/action, and one bug
-you fixed. Read your README and code until you can explain every line.
-
-**Step 10 — submit** 📦
-As a team: merge `integration/current-team-work` into `main` (pull request),
-tag it (e.g. `v1.0-submission`), then hand in: the repo link + commit hash,
-the report PDF, the `evidence/` folder, and the demo video — however the
-instructor asks for it. Don't upload the assignment PDFs or `build/`,
-`install/`, `log/`, `output/`.
+**Step 5 — build the upload set** 📦
+`docker/hub.sh report`, then `tools/make_submission.sh`. It writes
+`submission/final/` with the report `VIP_TeamShenanigans_PROJECT_Finalterm.pdf`,
+the source ZIP (code, datasets, evidence, raw lab video, model files), the
+video, the team plan workbook, the demo clips and the midterm files, and it
+checks the rules: at most 10 files, each under 1 GB, no external links.
+The team leader uploads before **Saturday 2026-11-21, 18:00 KST**; every
+member logs in and verifies the upload.

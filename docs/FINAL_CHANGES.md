@@ -113,9 +113,19 @@ crossing again must need a new permission.
    until it gets a **new** grant.
 3. S3 was re-run with these rules: still passes (numbers in `evidence/m2a/s3/`).
 
+4. **A real bug in your area got fixed (know this one for the defence 🔥):**
+   in 5 of 20 rush-hour runs the bus docked fine but its *drive to the exit*
+   ended as "pose stale". Why: the simulator removes a bus standing within
+   0.30 m of exit E, but the bus only said "departed" at 0.05 m. With tiny
+   position noise the simulator sometimes won that race and the bus vanished
+   before it could say "done". Fix: the bus now says "departed" at 0.25 m
+   (`exit_tol` in `bus_core.py`). 20 new tests replay it with different noise.
+   The rush-hour checker now also counts the departure, so it can't hide again.
+
 **Files:** `safety_core.py`, `test/test_safety_core.py`
-(`test_reversing_back_into_the_crossing_needs_a_new_grant`). Your `bus_core.py`
-logic is unchanged; it only got explanation lines. **Try:** UI → "Bus docking".
+(`test_reversing_back_into_the_crossing_needs_a_new_grant`), `bus_core.py`
+(`exit_tol`, plus explanation lines),
+`test/test_bus_core.py` (`test_departure_ends_before_the_simulator_removes_a_noisy_bus`). **Try:** UI → "Bus docking".
 
 ## Arkar (M2-B) — coordinator and S8
 
@@ -126,7 +136,9 @@ already inside".
 **What changed:**
 1. S8 now reports **everyone it saw**: boarded, **still waiting at the end**
    (they waited *at least* that long) and **left the queue**. A Kaplan–Meier
-   median uses all of them.
+   median uses the boarded + still-waiting people; the ones who walked away
+   are reported separately with how long they stood there (100–132 s; they
+   leave because the bus is full).
 2. Predictive vs reactive is compared **per seed** (same seed, both modes) with
    a bootstrap interval over whole episodes.
 3. The checker records **every moment a person and a vehicle share the
@@ -182,17 +194,24 @@ runs are identical copies".
 ## Saidumar (M5) — safety, simulator, integration
 
 1. **Reset in 1 s:** the reset service now answers within 0.8 s (the assignment's
-   client timeout is 1 s; we had 2 s). Measured over 25 resets: usually
-   12–26 ms, worst 357 ms.
+   client timeout is 1 s; we had 2 s). Measured over 25 resets: mean about
+   20 ms, worst about 0.2 s.
 2. **Decision records:** the supervisor publishes `/hub/safety_decision` — one
    numbered message with the latch state AND the commands of that decision.
    The logger counts "moving while latched" from it with **no grace window**;
-   lost messages show up as gaps. Fault repetition: 1,799 records, 0 lost,
-   0 violations.
+   lost messages show up as gaps. Fault repetition: about 1,800 records,
+   0 lost, 0 violations.
 3. **Stopping distance:** see Fazliddin's part.
 4. **Release:** LICENSE, third-party notices, exact versions, SHA-256 manifest;
    one script (`tools/run_release.sh`) re-runs everything on one commit.
-5. **Tests:** 394, 0 failures, 0 skipped, 0 expected failures.
+5. **A checker bug (good defence story):** one of 25 fault trials failed
+   although the stop was on time. The freeze lasts 2 s of *simulator* time,
+   which can end ~20 ms before 2 s of real time. The robot correctly moved
+   again, but the checker was still in its "nothing may move" window and
+   counted it. Now that window ends when the frozen data really comes back
+   (`fault_window_end` in `s9_repeat_check.py`, 5 tests). Moving while the
+   data is really missing still fails.
+6. **Tests:** 419, 0 failures, 0 skipped, 0 expected failures.
 
 ---
 

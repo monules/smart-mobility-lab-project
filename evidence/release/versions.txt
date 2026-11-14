@@ -1,5 +1,5 @@
 # written by tools/release_info.py; do not edit by hand
-commit b8ea743
+commit 4c89df9
 base_image ros:jazzy-ros-base@sha256:103b6c417973394659af6804d4917cd489b91e5ed22eb7bef263025a3bed2410
 os Ubuntu 24.04.5 LTS
 machine aarch64

@@ -24,7 +24,7 @@
     {
       "check": "T12 robot stops on no route",
       "passed": true,
-      "detail": "robot_1 NavigateTo E: result NO_ROUTE after 0.06 s, 0 nonzero candidates, moved 0.000 m"
+      "detail": "robot_1 NavigateTo E: result NO_ROUTE after 0.10 s, 0 nonzero candidates, moved 0.000 m"
     },
     {
       "check": "S6 restore needs a new route",
@@ -39,8 +39,8 @@
     {
       "check": "S6 planning latency",
       "passed": true,
-      "detail": "p95 24.3 ms over 77 calls (limit 250 ms), max 27.5 ms"
+      "detail": "p95 26.6 ms over 77 calls (limit 250 ms), max 27.6 ms"
     }
   ],
-  "commit": "b8ea743"
+  "commit": "4c89df9"
 }

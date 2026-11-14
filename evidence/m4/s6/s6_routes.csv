@@ -1,78 +1,78 @@
 step,agent,start,goal,success,reason,nodes,cost_s,latency_ms,removed
-1,car,A,E,False,NO_ROUTE,,0.0,20.4,"{""A-Cs"": ""TRAFFIC_UNKNOWN"", ""A-N"": ""TRAFFIC_UNKNOWN"", ""B-Cn"": ""TRAFFIC_UNKNOWN"", ""B-U"": ""TRAFFIC_UNKNOWN"", ""Cn-N"": ""TRAFFIC_UNKNOWN"", ""Cs-J"": ""TRAFFIC_UNKNOWN"", ""E-J"": ""TRAFFIC_UNKNOWN"", ""E-U"": ""TRAFFIC_UNKNOWN""}"
-1,car,A,E,False,NO_ROUTE,,0.0,22.0,"{""A-Cs"": ""TRAFFIC_UNKNOWN"", ""A-N"": ""TRAFFIC_UNKNOWN"", ""B-Cn"": ""TRAFFIC_UNKNOWN"", ""B-U"": ""TRAFFIC_UNKNOWN"", ""Cn-N"": ""TRAFFIC_UNKNOWN"", ""Cs-J"": ""TRAFFIC_UNKNOWN"", ""E-J"": ""TRAFFIC_UNKNOWN"", ""E-U"": ""TRAFFIC_UNKNOWN""}"
-1,car,A,E,False,NO_ROUTE,,0.0,21.06,"{""A-Cs"": ""TRAFFIC_UNKNOWN"", ""A-N"": ""TRAFFIC_UNKNOWN"", ""B-Cn"": ""TRAFFIC_UNKNOWN"", ""B-U"": ""TRAFFIC_UNKNOWN"", ""Cn-N"": ""TRAFFIC_UNKNOWN"", ""Cs-J"": ""TRAFFIC_UNKNOWN"", ""E-J"": ""TRAFFIC_UNKNOWN"", ""E-U"": ""TRAFFIC_UNKNOWN""}"
-1,car,A,E,True,OK,A-Cs-J-E,25.0,24.18,{}
-2,car,A,E,True,OK,A-Cs-J-E,25.0,20.89,{}
-2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.16,"{""Cs-J"": ""OBSTACLE""}"
-2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.19,"{""Cs-J"": ""OBSTACLE""}"
-2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.09,"{""Cs-J"": ""BLOCKED""}"
+1,car,A,E,False,NO_ROUTE,,0.0,23.91,"{""A-Cs"": ""STALE_OBSTACLES"", ""A-N"": ""STALE_OBSTACLES"", ""B-Cn"": ""STALE_OBSTACLES"", ""B-U"": ""STALE_OBSTACLES"", ""Cn-N"": ""STALE_OBSTACLES"", ""Cs-J"": ""STALE_OBSTACLES"", ""E-J"": ""STALE_OBSTACLES"", ""E-U"": ""STALE_OBSTACLES"", ""P1-P2"": ""STALE_OBSTACLES"", ""P2-P3"": ""STALE_OBSTACLES"", ""P3-U"": ""STALE_OBSTACLES""}"
+1,car,A,E,False,NO_ROUTE,,0.0,20.7,"{""A-Cs"": ""TRAFFIC_UNKNOWN"", ""A-N"": ""TRAFFIC_UNKNOWN"", ""B-Cn"": ""TRAFFIC_UNKNOWN"", ""B-U"": ""TRAFFIC_UNKNOWN"", ""Cn-N"": ""TRAFFIC_UNKNOWN"", ""Cs-J"": ""TRAFFIC_UNKNOWN"", ""E-J"": ""TRAFFIC_UNKNOWN"", ""E-U"": ""TRAFFIC_UNKNOWN""}"
+1,car,A,E,False,NO_ROUTE,,0.0,20.33,"{""A-Cs"": ""TRAFFIC_UNKNOWN"", ""A-N"": ""TRAFFIC_UNKNOWN"", ""B-Cn"": ""TRAFFIC_UNKNOWN"", ""B-U"": ""TRAFFIC_UNKNOWN"", ""Cn-N"": ""TRAFFIC_UNKNOWN"", ""Cs-J"": ""TRAFFIC_UNKNOWN"", ""E-J"": ""TRAFFIC_UNKNOWN"", ""E-U"": ""TRAFFIC_UNKNOWN""}"
+1,car,A,E,True,OK,A-Cs-J-E,25.0,20.31,{}
+2,car,A,E,True,OK,A-Cs-J-E,25.0,22.15,{}
+2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.24,"{""Cs-J"": ""OBSTACLE""}"
+2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,27.62,"{""Cs-J"": ""OBSTACLE""}"
+2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.77,"{""Cs-J"": ""BLOCKED""}"
+2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,25.7,"{""Cs-J"": ""BLOCKED""}"
 2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.41,"{""Cs-J"": ""BLOCKED""}"
-2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.21,"{""Cs-J"": ""BLOCKED""}"
-2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.92,"{""Cs-J"": ""BLOCKED""}"
-2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.75,"{""Cs-J"": ""BLOCKED""}"
-2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,21.12,"{""Cs-J"": ""BLOCKED""}"
-2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.16,"{""Cs-J"": ""BLOCKED""}"
-2,car,A,E,True,OK,A-Cs-J-E,25.0,22.23,{}
-3,car,A,E,True,OK,A-Cs-J-E,25.0,21.52,{}
-3,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.14,{}
-4,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.19,{}
-4,car,A,E,False,NO_ROUTE,,0.0,20.54,"{""B-Cn"": ""OBSTACLE"", ""Cs-J"": ""OBSTACLE""}"
-5,car,A,E,False,NO_ROUTE,,0.0,20.12,"{""B-Cn"": ""OBSTACLE"", ""Cs-J"": ""OBSTACLE""}"
-5,car,A,E,False,NO_ROUTE,,0.0,20.6,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
-5,car,A,E,False,NO_ROUTE,,0.0,20.15,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
-5,car,A,E,False,NO_ROUTE,,0.0,20.13,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
-5,car,A,E,False,NO_ROUTE,,0.0,20.36,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
-5,car,A,E,False,NO_ROUTE,,0.0,20.85,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
-5,car,A,E,False,NO_ROUTE,,0.0,21.87,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
-5,car,A,E,True,OK,A-Cs-J-E,25.0,22.14,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.19,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.13,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.26,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.12,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,21.09,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.3,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.21,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.21,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.28,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.71,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.15,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,21.44,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.09,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.14,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,22.56,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.31,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.77,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,23.38,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.41,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.61,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.56,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.23,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,22.72,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,22.67,{}
+2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,26.55,"{""Cs-J"": ""BLOCKED""}"
+2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.14,"{""Cs-J"": ""BLOCKED""}"
+2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,24.63,"{""Cs-J"": ""BLOCKED""}"
+2,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,23.07,"{""Cs-J"": ""BLOCKED""}"
+2,car,A,E,True,OK,A-Cs-J-E,25.0,21.34,{}
+3,car,A,E,True,OK,A-Cs-J-E,25.0,20.13,{}
+3,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.84,{}
+4,car,A,E,True,OK,A-N-Cn-B-U-E,35.0,20.14,{}
+4,car,A,E,False,NO_ROUTE,,0.0,21.24,"{""B-Cn"": ""OBSTACLE"", ""Cs-J"": ""OBSTACLE""}"
+5,car,A,E,False,NO_ROUTE,,0.0,20.14,"{""B-Cn"": ""OBSTACLE"", ""Cs-J"": ""OBSTACLE""}"
+5,car,A,E,False,NO_ROUTE,,0.0,20.25,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
+5,car,A,E,False,NO_ROUTE,,0.0,20.82,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
+5,car,A,E,False,NO_ROUTE,,0.0,24.18,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
+5,car,A,E,False,NO_ROUTE,,0.0,21.29,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
+5,car,A,E,False,NO_ROUTE,,0.0,21.35,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
+5,car,A,E,False,NO_ROUTE,,0.0,22.71,"{""B-Cn"": ""BLOCKED"", ""Cs-J"": ""BLOCKED""}"
+5,car,A,E,True,OK,A-Cs-J-E,25.0,20.68,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,21.82,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.88,{}
 latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.23,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.52,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,24.06,{}
 latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.18,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.3,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.26,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,21.03,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.36,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.21,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.2,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,21.6,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,21.87,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,24.08,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,24.65,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.41,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,21.94,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,21.88,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.41,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.49,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,22.13,{}
 latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.13,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,24.28,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,24.7,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.12,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.11,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.14,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,25.38,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.13,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.69,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,21.86,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,22.49,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.24,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,21.87,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,24.26,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.28,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,23.04,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,27.52,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,23.87,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.66,{}
-latency,car,A,E,True,OK,A-Cs-J-E,25.0,21.63,{}
-latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.32,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,22.24,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,22.41,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,21.91,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,21.62,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,21.53,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.15,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,27.43,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,26.45,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.34,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.41,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,24.09,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,24.88,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.76,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.26,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.81,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.5,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,25.95,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,23.07,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,27.01,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.6,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,23.66,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.18,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.79,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.1,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.19,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,21.83,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.8,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,23.16,{}
+latency,car,A,E,True,OK,A-Cs-J-E,25.0,20.8,{}
+latency,robot,R,D,True,OK,R-W-Cn-Cs-J-D,44.0,20.14,{}
