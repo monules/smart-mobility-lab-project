@@ -17,7 +17,9 @@ reset handshake). For each trial it measures:
   zero_latency_s  fault onset -> first zero /robot/cmd_vel
   sim_stop_s      fault onset -> simulated speed < 0.02 m/s
   reason          the named reason on /hub/safety
-  no_motion       no nonzero output while the fault lasts
+  no_motion       no nonzero output while the fault lasts; for a freeze the
+                  fault ends when the frozen topic is heard again (see
+                  fault_window_end), not after 2 s of wall-clock time
   recovered       latched: reset accepted and robot still until a new
                   command; holds: motion resumes by itself after the fault
 Writes <output_dir>/s9_repeat.json and s9_repeat.csv; exit 0 only if every
@@ -30,11 +32,12 @@ import sys
 import threading
 import time
 
+from nav_msgs.msg import Odometry
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
-from smart_hub.ros_common import R100
+from smart_hub.ros_common import R10, R100
 from smart_hub.s9_fault_check import EPS, S9Check, STOPPED
-from smart_hub_interfaces.msg import SafetyDecision
+from smart_hub_interfaces.msg import SafetyDecision, VehicleStateArray
 from smart_hub_interfaces.srv import ResetScenario
 from std_msgs.msg import String
 
@@ -49,6 +52,7 @@ FAULTS = {'estop': ('LATCHED:ESTOP', 0.20, True),
           'vehicles_freeze': ('VEHICLES_STALE', 1.0 + 0.25, False),
           'estop_signal': ('ESTOP_SIGNAL_STALE', 1.0 + 0.25, False)}
 FAULT_SEC = 2.0
+FREEZE_GAP_SEC = 0.5           # a silence this long on a topic means it was frozen
 RESET_CLIENT_TIMEOUT = 1.0     # s, assignment 7.1 client timeout for short transactions
 
 
@@ -65,6 +69,38 @@ class S9Repeat(S9Check):
                           'latched_with_nonzero_command': 0}
         self.create_subscription(SafetyDecision, '/hub/safety_decision', self.on_decision,
                                  R100)
+        # receipt times of the two topics a freeze silences, to see when the
+        # frozen data really comes back
+        self.arrivals = {'odom': [], 'vehicles': []}
+        self.create_subscription(Odometry, '/robot/odom',
+                                 lambda _m: self.on_arrival('odom'), R10)
+        self.create_subscription(VehicleStateArray, '/hub/vehicles',
+                                 lambda _m: self.on_arrival('vehicles'), R10)
+
+    def on_arrival(self, topic):
+        with self.lock:
+            self.arrivals[topic].append(time.monotonic())
+
+    def fault_window_end(self, fault, t0, t_end):
+        """Return when the fault really ended, never later than t_end.
+
+        A freeze lasts FAULT_SEC of *simulator* time, which can end a few
+        tens of milliseconds before FAULT_SEC of wall-clock time. The robot
+        then rightly moves again while a wall-clock window is still open,
+        and that restart was once counted as "motion during the fault"
+        (vehicles_freeze, reverse, seed 120). So for a freeze the window ends
+        at the first message after the silence. Motion before that moment,
+        while the data is really missing, still fails the trial.
+        """
+        topic = {'odom_freeze': 'odom', 'vehicles_freeze': 'vehicles'}.get(fault)
+        if topic is None:
+            return t_end                 # other faults are ended by this checker at t_end
+        with self.lock:
+            times = list(self.arrivals[topic])
+        for prev, cur in zip(times, times[1:]):
+            if cur > t0 and cur - prev >= FREEZE_GAP_SEC:
+                return min(cur, t_end)
+        return t_end
 
     def on_safety(self, msg):
         super().on_safety(msg)
@@ -162,8 +198,9 @@ class S9Repeat(S9Check):
         # hold the fault, then check nothing moved while it lasted
         time.sleep(max(0.0, t0 + FAULT_SEC - time.monotonic()))
         t_end = time.monotonic()
+        window_end = self.fault_window_end(fault, t0, t_end)
         moved = [c for c in self.cmds_since(zero_t or t0)
-                 if c[0] <= t_end and (abs(c[1]) > EPS or abs(c[2]) > EPS)]
+                 if c[0] < window_end and (abs(c[1]) > EPS or abs(c[2]) > EPS)]
         self.end_fault(fault, cmd)
         if latched:
             self.set_estop(False)
