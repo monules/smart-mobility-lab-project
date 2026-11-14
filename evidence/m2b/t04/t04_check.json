@@ -14,7 +14,7 @@
     {
       "check": "T04 three consecutive forecasts",
       "passed": true,
-      "detail": "dispatch 2.1 s after the first forecast >= 6 (3 samples at 1 Hz)"
+      "detail": "dispatch 2.0 s after the first forecast >= 6 (3 samples at 1 Hz)"
     },
     {
       "check": "T04 no dispatch from invalid forecast",
@@ -32,5 +32,5 @@
       "detail": "no forecast, observed queue 7: 1 dispatch(es) with reason FALLBACK, result ['BUS_MISSION_SUCCEEDED']"
     }
   ],
-  "commit": "b8ea743"
+  "commit": "4c89df9"
 }

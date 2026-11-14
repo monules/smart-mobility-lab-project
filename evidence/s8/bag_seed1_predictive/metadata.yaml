@@ -2,36 +2,14 @@ rosbag2_bagfile_information:
   version: 9
   storage_identifier: mcap
   duration:
-    nanoseconds: 241553519834
+    nanoseconds: 241470985918
   starting_time:
-    nanoseconds_since_epoch: 1794519683323880334
-  message_count: 22625
+    nanoseconds_since_epoch: 1794652376888088545
+  message_count: 22551
   topics_with_message_count:
     - topic_metadata:
-        name: /bus/route
-        type: nav_msgs/msg/Path
-        serialization_format: cdr
-        offered_qos_profiles:
-          - history: unknown
-            depth: 0
-            reliability: reliable
-            durability: transient_local
-            deadline:
-              sec: 9223372036
-              nsec: 854775807
-            lifespan:
-              sec: 9223372036
-              nsec: 854775807
-            liveliness: automatic
-            liveliness_lease_duration:
-              sec: 9223372036
-              nsec: 854775807
-            avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227efce4c20f8458b36e73066ca334b
-      message_count: 5
-    - topic_metadata:
-        name: /hub/events
-        type: smart_hub_interfaces/msg/HubEvent
+        name: /traffic/edges
+        type: smart_hub_interfaces/msg/EdgeStateArray
         serialization_format: cdr
         offered_qos_profiles:
           - history: unknown
@@ -49,52 +27,8 @@ rosbag2_bagfile_information:
               sec: 9223372036
               nsec: 854775807
             avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_7d9cf5862409e5853f1b803e31be754eb486a31e874fd2f70002c9e8ef633f57
-      message_count: 220
-    - topic_metadata:
-        name: /parking/state
-        type: smart_hub_interfaces/msg/ParkingState
-        serialization_format: cdr
-        offered_qos_profiles:
-          - history: unknown
-            depth: 0
-            reliability: reliable
-            durability: transient_local
-            deadline:
-              sec: 9223372036
-              nsec: 854775807
-            lifespan:
-              sec: 9223372036
-              nsec: 854775807
-            liveliness: automatic
-            liveliness_lease_duration:
-              sec: 9223372036
-              nsec: 854775807
-            avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_af108c44a5be5b17eecd98e6ef17ce139329d24509b6f6dae232da289f095e87
-      message_count: 430
-    - topic_metadata:
-        name: /bus/cmd_vel
-        type: geometry_msgs/msg/Twist
-        serialization_format: cdr
-        offered_qos_profiles:
-          - history: unknown
-            depth: 0
-            reliability: reliable
-            durability: volatile
-            deadline:
-              sec: 9223372036
-              nsec: 854775807
-            lifespan:
-              sec: 9223372036
-              nsec: 854775807
-            liveliness: automatic
-            liveliness_lease_duration:
-              sec: 9223372036
-              nsec: 854775807
-            avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_9c45bf16fe0983d80e3cfe750d6835843d265a9a6c46bd2e609fcddde6fb8d2a
-      message_count: 4830
+        type_description_hash: RIHS01_1b5213aa621501b30b5540c592ee9465875692130c726ae04419fde6c699d46b
+      message_count: 479
     - topic_metadata:
         name: /robot/cmd_vel
         type: geometry_msgs/msg/Twist
@@ -118,8 +52,8 @@ rosbag2_bagfile_information:
         type_description_hash: RIHS01_9c45bf16fe0983d80e3cfe750d6835843d265a9a6c46bd2e609fcddde6fb8d2a
       message_count: 4830
     - topic_metadata:
-        name: /traffic/edges
-        type: smart_hub_interfaces/msg/EdgeStateArray
+        name: /bus/cmd_vel
+        type: geometry_msgs/msg/Twist
         serialization_format: cdr
         offered_qos_profiles:
           - history: unknown
@@ -137,74 +71,8 @@ rosbag2_bagfile_information:
               sec: 9223372036
               nsec: 854775807
             avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_1b5213aa621501b30b5540c592ee9465875692130c726ae04419fde6c699d46b
-      message_count: 484
-    - topic_metadata:
-        name: /hub/demand_unserved
-        type: smart_hub_interfaces/msg/DemandPrediction
-        serialization_format: cdr
-        offered_qos_profiles:
-          - history: unknown
-            depth: 0
-            reliability: reliable
-            durability: volatile
-            deadline:
-              sec: 9223372036
-              nsec: 854775807
-            lifespan:
-              sec: 9223372036
-              nsec: 854775807
-            liveliness: automatic
-            liveliness_lease_duration:
-              sec: 9223372036
-              nsec: 854775807
-            avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_2e03881740c76356e7fce579892d413e7b7abbb442547b05baa0a2e0be2bda54
-      message_count: 241
-    - topic_metadata:
-        name: /hub/bus_arrival
-        type: smart_hub_interfaces/msg/BusArrival
-        serialization_format: cdr
-        offered_qos_profiles:
-          - history: unknown
-            depth: 0
-            reliability: reliable
-            durability: volatile
-            deadline:
-              sec: 9223372036
-              nsec: 854775807
-            lifespan:
-              sec: 9223372036
-              nsec: 854775807
-            liveliness: automatic
-            liveliness_lease_duration:
-              sec: 9223372036
-              nsec: 854775807
-            avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_8ac408f4c22fa044d2c374d0e8bb9fffaff2b4b92593636e19256f317d94fd8f
-      message_count: 481
-    - topic_metadata:
-        name: /hub/demand
-        type: smart_hub_interfaces/msg/DemandPrediction
-        serialization_format: cdr
-        offered_qos_profiles:
-          - history: unknown
-            depth: 0
-            reliability: reliable
-            durability: volatile
-            deadline:
-              sec: 9223372036
-              nsec: 854775807
-            lifespan:
-              sec: 9223372036
-              nsec: 854775807
-            liveliness: automatic
-            liveliness_lease_duration:
-              sec: 9223372036
-              nsec: 854775807
-            avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_2e03881740c76356e7fce579892d413e7b7abbb442547b05baa0a2e0be2bda54
-      message_count: 241
+        type_description_hash: RIHS01_9c45bf16fe0983d80e3cfe750d6835843d265a9a6c46bd2e609fcddde6fb8d2a
+      message_count: 4830
     - topic_metadata:
         name: /hub/safety
         type: smart_hub_interfaces/msg/SafetyState
@@ -228,8 +96,8 @@ rosbag2_bagfile_information:
         type_description_hash: RIHS01_08abdf41a5d4309eed81581f2d2994d773080138c617337c7d5b2df2a850ba71
       message_count: 2415
     - topic_metadata:
-        name: /hub/vehicles
-        type: smart_hub_interfaces/msg/VehicleStateArray
+        name: /hub/events
+        type: smart_hub_interfaces/msg/HubEvent
         serialization_format: cdr
         offered_qos_profiles:
           - history: unknown
@@ -247,8 +115,90 @@ rosbag2_bagfile_information:
               sec: 9223372036
               nsec: 854775807
             avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_61a408f8b676879aa97a3affbf70bcfbe6c374270e9dc922cef1303fdb34b34c
-      message_count: 2413
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: volatile
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: volatile
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: volatile
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: volatile
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+        type_description_hash: RIHS01_7d9cf5862409e5853f1b803e31be754eb486a31e874fd2f70002c9e8ef633f57
+      message_count: 199
+    - topic_metadata:
+        name: /parking/state
+        type: smart_hub_interfaces/msg/ParkingState
+        serialization_format: cdr
+        offered_qos_profiles:
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: transient_local
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+        type_description_hash: RIHS01_af108c44a5be5b17eecd98e6ef17ce139329d24509b6f6dae232da289f095e87
+      message_count: 429
     - topic_metadata:
         name: /sim/truth
         type: smart_hub_interfaces/msg/VehicleStateArray
@@ -270,32 +220,10 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_61a408f8b676879aa97a3affbf70bcfbe6c374270e9dc922cef1303fdb34b34c
-      message_count: 2413
+      message_count: 2403
     - topic_metadata:
-        name: /crossing/state
-        type: smart_hub_interfaces/msg/CrossingState
-        serialization_format: cdr
-        offered_qos_profiles:
-          - history: unknown
-            depth: 0
-            reliability: reliable
-            durability: transient_local
-            deadline:
-              sec: 9223372036
-              nsec: 854775807
-            lifespan:
-              sec: 9223372036
-              nsec: 854775807
-            liveliness: automatic
-            liveliness_lease_duration:
-              sec: 9223372036
-              nsec: 854775807
-            avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_84e12c3b7672bc38d08be43945205360cc88e9313e50d644c0aecb488a385aa9
-      message_count: 2415
-    - topic_metadata:
-        name: /hub/queue
-        type: smart_hub_interfaces/msg/QueueState
+        name: /hub/vehicles
+        type: smart_hub_interfaces/msg/VehicleStateArray
         serialization_format: cdr
         offered_qos_profiles:
           - history: unknown
@@ -313,8 +241,8 @@ rosbag2_bagfile_information:
               sec: 9223372036
               nsec: 854775807
             avoid_ros_namespace_conventions: false
-        type_description_hash: RIHS01_3c1caa293a68867c14e1e7a957a5555e5939d4fea1dae36e306f5a7def384ab5
-      message_count: 1205
+        type_description_hash: RIHS01_61a408f8b676879aa97a3affbf70bcfbe6c374270e9dc922cef1303fdb34b34c
+      message_count: 2403
     - topic_metadata:
         name: /robot/route
         type: nav_msgs/msg/Path
@@ -337,6 +265,138 @@ rosbag2_bagfile_information:
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227efce4c20f8458b36e73066ca334b
       message_count: 2
+    - topic_metadata:
+        name: /bus/route
+        type: nav_msgs/msg/Path
+        serialization_format: cdr
+        offered_qos_profiles:
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: transient_local
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+        type_description_hash: RIHS01_1957a5bb3cee5da65c4e52e52b65a93df227efce4c20f8458b36e73066ca334b
+      message_count: 5
+    - topic_metadata:
+        name: /crossing/state
+        type: smart_hub_interfaces/msg/CrossingState
+        serialization_format: cdr
+        offered_qos_profiles:
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: transient_local
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+        type_description_hash: RIHS01_84e12c3b7672bc38d08be43945205360cc88e9313e50d644c0aecb488a385aa9
+      message_count: 2393
+    - topic_metadata:
+        name: /hub/queue
+        type: smart_hub_interfaces/msg/QueueState
+        serialization_format: cdr
+        offered_qos_profiles:
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: volatile
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+        type_description_hash: RIHS01_3c1caa293a68867c14e1e7a957a5555e5939d4fea1dae36e306f5a7def384ab5
+      message_count: 1201
+    - topic_metadata:
+        name: /hub/bus_arrival
+        type: smart_hub_interfaces/msg/BusArrival
+        serialization_format: cdr
+        offered_qos_profiles:
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: volatile
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+        type_description_hash: RIHS01_8ac408f4c22fa044d2c374d0e8bb9fffaff2b4b92593636e19256f317d94fd8f
+      message_count: 482
+    - topic_metadata:
+        name: /hub/demand
+        type: smart_hub_interfaces/msg/DemandPrediction
+        serialization_format: cdr
+        offered_qos_profiles:
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: volatile
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+        type_description_hash: RIHS01_2e03881740c76356e7fce579892d413e7b7abbb442547b05baa0a2e0be2bda54
+      message_count: 240
+    - topic_metadata:
+        name: /hub/demand_unserved
+        type: smart_hub_interfaces/msg/DemandPrediction
+        serialization_format: cdr
+        offered_qos_profiles:
+          - history: unknown
+            depth: 0
+            reliability: reliable
+            durability: volatile
+            deadline:
+              sec: 9223372036
+              nsec: 854775807
+            lifespan:
+              sec: 9223372036
+              nsec: 854775807
+            liveliness: automatic
+            liveliness_lease_duration:
+              sec: 9223372036
+              nsec: 854775807
+            avoid_ros_namespace_conventions: false
+        type_description_hash: RIHS01_2e03881740c76356e7fce579892d413e7b7abbb442547b05baa0a2e0be2bda54
+      message_count: 240
   compression_format: ""
   compression_mode: ""
   relative_file_paths:
@@ -344,9 +404,9 @@ rosbag2_bagfile_information:
   files:
     - path: bag_seed1_predictive_0.mcap
       starting_time:
-        nanoseconds_since_epoch: 1794519683323880334
+        nanoseconds_since_epoch: 1794652376888088545
       duration:
-        nanoseconds: 241553519834
-      message_count: 22625
+        nanoseconds: 241470985918
+      message_count: 22551
   custom_data: ~
   ros_distro: jazzy

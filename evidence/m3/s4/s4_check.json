@@ -14,7 +14,7 @@
     {
       "check": "S4 idempotent retry",
       "passed": true,
-      "detail": "repeat of C1-r1 -> ('P2', 'b87972c7') (first answer ('P2', 'b87972c7'))"
+      "detail": "repeat of C1-r1 -> ('P2', 'af30f035') (first answer ('P2', 'af30f035'))"
     },
     {
       "check": "S4 wrong-token release rejected",
@@ -24,12 +24,12 @@
     {
       "check": "S4 arrival sensed",
       "passed": true,
-      "detail": "P2 OCCUPIED 0.80 s after C1 parked (sensor debounce 0.5 s)"
+      "detail": "P2 OCCUPIED 0.76 s after C1 parked (sensor debounce 0.5 s)"
     },
     {
       "check": "S4 offline sensor -> UNKNOWN",
       "passed": true,
-      "detail": "P3 UNKNOWN 0.23 s after its sensor went offline"
+      "detail": "P3 UNKNOWN 0.46 s after its sensor went offline"
     },
     {
       "check": "T08 expiry keeps sensed state",
@@ -54,8 +54,8 @@
     {
       "check": "T07 p95 latency",
       "passed": true,
-      "detail": "p95 17.0 ms over 40 requests (limit 250 ms), max 52.6 ms"
+      "detail": "p95 17.9 ms over 40 requests (limit 250 ms), max 54.0 ms"
     }
   ],
-  "commit": "b8ea743"
+  "commit": "4c89df9"
 }
