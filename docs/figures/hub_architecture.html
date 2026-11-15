@@ -1,0 +1,164 @@
+<!doctype html>
+<!-- Hub architecture for the final presentation and report.
+     Render to PNG:  Chrome headless, window 1664x847 (the page area is
+     87 px shorter than the window), scale 2, keep the top 3328x1520
+     -> docs/figures/hub_architecture.png
+     Colours match the presentation deck: paper #F4F2EC, ink #141A29,
+     blue #2458C4 (owners), orange #E08A1E (the only motor-command path). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hub Architecture</title>
+<style>
+  html, body { margin: 0; background: #F4F2EC; }
+  svg { display: block; font-family: Inter, "Helvetica Neue", Arial, sans-serif; }
+  .box { fill: #FBFAF6; stroke: #CFC9BA; stroke-width: 2; }
+  .safe { fill: #FDF1DF; stroke: #E08A1E; stroke-width: 3; }
+  .cc { fill: #E9EEF9; stroke: #2458C4; stroke-width: 2; stroke-dasharray: 8 6; }
+  .sim { fill: #E7E3D8; stroke: #BDB6A4; stroke-width: 2; }
+  .t { fill: #141A29; font-size: 22px; font-weight: 700; }
+  .s { fill: #4A5568; font-size: 16px; }
+  .o { fill: #2458C4; font-size: 15px; font-weight: 700; }
+  .lbl { fill: #4A5568; font-size: 15px; font-weight: 600; }
+  .lbl-o { fill: #B5650A; font-size: 15px; font-weight: 700; }
+  .topic { stroke: #6B7280; stroke-width: 2.2; fill: none; marker-end: url(#ag); }
+  .svc { stroke: #6B7280; stroke-width: 2.2; fill: none; stroke-dasharray: 7 5; marker-end: url(#ag); }
+  .cmd { stroke: #E08A1E; stroke-width: 3.5; fill: none; marker-end: url(#ao); }
+</style>
+</head>
+<body>
+<svg width="1664" height="760" viewBox="0 0 1664 760" role="img"
+     aria-label="Smart Mobility Hub architecture: perception and prediction feed the coordinator, which dispatches the bus and the escort robot; routing, traffic and parking serve them; every motor command passes through the safety supervisor and actuator bridge into the simulator; the Control Center reads everything and controls nothing.">
+  <defs>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#6B7280"/>
+    </marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#E08A1E"/>
+    </marker>
+  </defs>
+
+  <!-- Control Center: reads every topic, starts tasks, no control authority -->
+  <rect class="cc" x="40" y="20" width="1600" height="64" rx="14"/>
+  <text class="t" x="64" y="60">Hub Control Center</text>
+  <text class="s" x="290" y="59">(M5) · reads every topic · starts any task · shows the verdict · publishes nothing, so it can’t move a vehicle</text>
+
+  <!-- column 1: perception and prediction -->
+  <rect class="box" x="40" y="150" width="240" height="110" rx="14"/>
+  <text class="t" x="58" y="184">passenger_detector</text>
+  <text class="s" x="58" y="208">camera → people in Q,</text>
+  <text class="s" x="58" y="228">someone in crossing C</text>
+  <text class="o" x="58" y="250">M1-A · Husan</text>
+
+  <rect class="box" x="40" y="330" width="240" height="110" rx="14"/>
+  <text class="t" x="58" y="364">demand_predictor</text>
+  <text class="s" x="58" y="388">queue → two forecasts,</text>
+  <text class="s" x="58" y="408">30 s ahead</text>
+  <text class="o" x="58" y="430">M1-B · Tuymurod</text>
+
+  <!-- column 2: coordinator -->
+  <rect class="box" x="380" y="150" width="240" height="290" rx="14"/>
+  <text class="t" x="398" y="184">hub_coordinator</text>
+  <text class="s" x="398" y="214">crossing C: one owner,</text>
+  <text class="s" x="398" y="236">renewable lease</text>
+  <text class="s" x="398" y="268">bus dispatch: 3 forecasts</text>
+  <text class="s" x="398" y="290">in a row at 6 or more</text>
+  <text class="s" x="398" y="322">escort requests</text>
+  <text class="s" x="398" y="344">→ robot</text>
+  <text class="o" x="398" y="426">M2-B · Arkar</text>
+
+  <!-- column 3: the two moving agents -->
+  <rect class="box" x="720" y="150" width="240" height="110" rx="14"/>
+  <text class="t" x="738" y="184">bus_manager</text>
+  <text class="s" x="738" y="208">DockBus: A → B → exit E</text>
+  <text class="s" x="738" y="228">door interlock</text>
+  <text class="o" x="738" y="250">M2-A · Fazliddin</text>
+
+  <rect class="box" x="720" y="330" width="240" height="110" rx="14"/>
+  <text class="t" x="738" y="364">robot_manager</text>
+  <text class="s" x="738" y="388">EscortPassenger:</text>
+  <text class="s" x="738" y="408">pickup → ready → D</text>
+  <text class="o" x="738" y="430">M4 · Aidil</text>
+
+  <!-- column 4: services the agents use -->
+  <rect class="box" x="1060" y="150" width="240" height="110" rx="14"/>
+  <text class="t" x="1078" y="184">route_planner</text>
+  <text class="s" x="1078" y="208">live edge costs,</text>
+  <text class="s" x="1078" y="228">Dijkstra or NO_ROUTE</text>
+  <text class="o" x="1078" y="250">M4 · Aidil</text>
+
+  <rect class="box" x="1060" y="330" width="240" height="110" rx="14"/>
+  <text class="t" x="1078" y="364">traffic_monitor</text>
+  <text class="s" x="1078" y="388">NORMAL · CONGESTED</text>
+  <text class="s" x="1078" y="408">BLOCKED · UNKNOWN</text>
+  <text class="o" x="1078" y="430">M3 · Carla</text>
+
+  <rect class="box" x="1060" y="480" width="240" height="100" rx="14"/>
+  <text class="t" x="1078" y="512">parking_manager</text>
+  <text class="s" x="1078" y="536">cars reserve P1–P3,</text>
+  <text class="s" x="1078" y="556">atomic and idempotent</text>
+  <text class="o" x="1078" y="574">M3 · Carla</text>
+
+  <!-- column 5: the safety gate -->
+  <rect class="safe" x="1400" y="150" width="240" height="200" rx="14"/>
+  <text class="t" x="1418" y="184">safety_supervisor</text>
+  <text class="s" x="1418" y="210">the only node that</text>
+  <text class="s" x="1418" y="230">sends motor commands</text>
+  <text class="s" x="1418" y="260">stopping distance,</text>
+  <text class="s" x="1418" y="280">e-stop latch,</text>
+  <text class="s" x="1418" y="300">numbered decisions</text>
+  <text class="o" x="1418" y="336">M5 · Saidumar</text>
+
+  <rect class="safe" x="1400" y="400" width="196" height="100" rx="14"/>
+  <text class="t" x="1416" y="438" style="font-size:20px">actuator_bridge</text>
+  <text class="s" x="1416" y="464">own watchdog,</text>
+  <text class="s" x="1416" y="484">speed caps</text>
+
+  <!-- simulator -->
+  <rect class="sim" x="40" y="640" width="1600" height="64" rx="14"/>
+  <text class="t" x="64" y="680">Simulator</text>
+  <text class="s" x="180" y="679">scenario_runner (M5) · 20 Hz world: bus, robot, cars, people, camera, obstacles, faults, reset handshake</text>
+
+  <!-- topics (solid) -->
+  <path class="topic" d="M24 640 V205 H36"/>
+  <text class="lbl" transform="translate(18 470) rotate(-90)">camera</text>
+  <path class="topic" d="M160 260 V326"/>
+  <text class="lbl" x="168" y="300">queue</text>
+  <path class="topic" d="M280 205 H376"/>
+  <text class="lbl" x="290" y="197">queue</text>
+  <path class="topic" d="M280 385 H376"/>
+  <text class="lbl" x="286" y="377">forecast</text>
+  <path class="topic" d="M1180 330 V264"/>
+  <text class="lbl" x="1188" y="302">edges</text>
+  <path class="topic" d="M1618 640 V354"/>
+  <text class="lbl" transform="translate(1638 600) rotate(-90)">vehicles, odometry</text>
+
+  <!-- actions and services (dashed) -->
+  <path class="svc" d="M620 205 H716"/>
+  <text class="lbl" x="630" y="197">dispatch</text>
+  <path class="svc" d="M620 385 H716"/>
+  <text class="lbl" x="636" y="377">escort</text>
+  <path class="svc" d="M960 205 H1056"/>
+  <text class="lbl" x="982" y="197">route</text>
+  <path class="svc" d="M960 385 H1010 V240 H1056"/>
+
+  <!-- the only motor-command path (orange) -->
+  <path class="cmd" d="M840 150 V116 H1520 V146"/>
+  <text class="lbl-o" x="1080" y="109">speed candidates</text>
+  <path class="cmd" d="M840 440 V612 H1360 V300 H1396"/>
+  <text class="lbl-o" x="1080" y="604">speed candidates</text>
+  <path class="cmd" d="M1485 350 V396"/>
+  <text class="lbl-o" x="1500" y="381">cmd_vel</text>
+  <path class="cmd" d="M1485 500 V636"/>
+  <text class="lbl-o" x="1500" y="574">applied</text>
+
+  <!-- legend -->
+  <line x1="40" y1="736" x2="88" y2="736" stroke="#6B7280" stroke-width="2.2"/>
+  <text class="lbl" x="98" y="741">topic</text>
+  <line x1="170" y1="736" x2="218" y2="736" stroke="#6B7280" stroke-width="2.2" stroke-dasharray="7 5"/>
+  <text class="lbl" x="228" y="741">action or service</text>
+  <line x1="400" y1="736" x2="448" y2="736" stroke="#E08A1E" stroke-width="3.5"/>
+  <text class="lbl" x="458" y="741">motor commands: managers only propose, the safety supervisor decides</text>
+</svg>
+</body>
+</html>
