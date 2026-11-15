@@ -17,3 +17,6 @@ submission/
 
 # team members' raw screen / voice recordings for the video
 project-video-recs/
+
+# graphify knowledge-graph output (local only)
+graphify-out/
